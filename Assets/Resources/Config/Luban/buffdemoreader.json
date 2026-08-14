@@ -1,0 +1,263 @@
+[
+  {
+    "BuffId": 20001,
+    "Name": "眩晕",
+    "BuffType": 1,
+    "BigBuffType": 1,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Dizziness"
+    ],
+    "Description": "",
+    "StatusSlot": 0,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 3,
+    "BuffModifyList": [
+      1
+    ],
+    "BaseDuration": 1,
+    "BaseTimes": 0,
+    "IsAddPoint": 1,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 20101,
+    "Name": "沉默",
+    "BuffType": 1,
+    "BigBuffType": 2,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Silence"
+    ],
+    "Description": "",
+    "StatusSlot": 0,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 3,
+    "BuffModifyList": [
+      2
+    ],
+    "BaseDuration": 1,
+    "BaseTimes": 0,
+    "IsAddPoint": 1,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 20201,
+    "Name": "虚弱",
+    "BuffType": 1,
+    "BigBuffType": 3,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Weak"
+    ],
+    "Description": "",
+    "StatusSlot": 0,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 3,
+    "BuffModifyList": [
+      3
+    ],
+    "BaseDuration": 1,
+    "BaseTimes": 0,
+    "IsAddPoint": 1,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 20301,
+    "Name": "普通灼烧",
+    "BuffType": 1,
+    "BigBuffType": 4,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Fire.Normal"
+    ],
+    "Description": "",
+    "StatusSlot": 0,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 1,
+    "BuffModifyList": [
+      4
+    ],
+    "BaseDuration": 5,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0.5,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 20302,
+    "Name": "高级灼烧",
+    "BuffType": 1,
+    "BigBuffType": 4,
+    "SmallBuffType": 2,
+    "BuffTag": [
+      "Buff.Fire.Hight"
+    ],
+    "Description": "",
+    "StatusSlot": 0,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 1,
+    "BuffModifyList": [
+      4
+    ],
+    "BaseDuration": 6,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0.5,
+    "TriggerFormula": "#CheckIsHadFireBigBuff",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 20401,
+    "Name": "中毒",
+    "BuffType": 1,
+    "BigBuffType": 5,
+    "SmallBuffType": 1,
+    "BuffTag": [],
+    "Description": "",
+    "StatusSlot": 0,
+    "CanStack": 1,
+    "MaxLevel": 10,
+    "RepeatedAddition": 1,
+    "BuffModifyList": [
+      6
+    ],
+    "BaseDuration": 2,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0.5,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 20410,
+    "Name": "热毒",
+    "BuffType": 1,
+    "BigBuffType": 5,
+    "SmallBuffType": 10,
+    "BuffTag": [],
+    "Description": "造成灼烧与中毒效果",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 1,
+    "BuffModifyList": [
+      4,
+      6
+    ],
+    "BaseDuration": 5,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0.5,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 20501,
+    "Name": "持续治疗",
+    "BuffType": 1,
+    "BigBuffType": 10,
+    "SmallBuffType": 1,
+    "BuffTag": [],
+    "Description": "",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 2,
+    "BuffModifyList": [
+      7
+    ],
+    "BaseDuration": 2,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0.5,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 30001,
+    "Name": "普通攻击伤害提升1",
+    "BuffType": 6,
+    "BigBuffType": 15,
+    "SmallBuffType": 1,
+    "BuffTag": [],
+    "Description": "下一次普通攻击最终伤害提升",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 0,
+    "BuffModifyList": [
+      8
+    ],
+    "BaseDuration": 0,
+    "BaseTimes": 1,
+    "IsAddPoint": 0,
+    "ActionPointType": 2,
+    "CDTime": 0.5,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 30002,
+    "Name": "无伤增伤",
+    "BuffType": 9,
+    "BigBuffType": 20,
+    "SmallBuffType": 1,
+    "BuffTag": [],
+    "Description": "全伤害提升",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 0,
+    "BuffModifyList": [
+      11
+    ],
+    "BaseDuration": -1,
+    "BaseTimes": 0,
+    "IsAddPoint": 1,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 16
+  }
+]

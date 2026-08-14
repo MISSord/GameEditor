@@ -1,0 +1,219 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed827811158d727419f8bd04fa76136a, type: 3}
+  m_Name: 2002
+  m_EditorClassIdentifier: 
+  SkillId: 2002
+  TargetInputType: 3
+  skillAllEventDatas:
+  - SkillId: 2002
+    SkillName: 2002
+    SkillSort: 0
+    Speed: 1
+    IsJumpFinishEstimate: 1
+    ObjEvent:
+      range:
+        _start: 0
+        _end: 0
+      eName: 
+      isLocalTrueOnly: 0
+      isEffect: 0
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: 0, y: 0, z: 0}
+      startRotation: {x: 0, y: 0, z: 0}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events:
+      - range:
+          _start: 0
+          _end: 39
+        eName: Attack_Nor_3
+        isLocalTrueOnly: 0
+        blenderLength: 0
+        startOffset: 0
+        Speed: 1
+        isBackToIdle: 1
+    MoveEvents:
+      Events:
+      - range:
+          _start: 0
+          _end: 6
+        eName: 
+        isLocalTrueOnly: 0
+        startVec: {x: 0, y: 0, z: 0}
+        endVec: {x: 0, y: 0, z: 1}
+        easeType: 7
+        cc: {fileID: 0}
+        startDetal: {x: 0, y: 0, z: 0}
+        isBezier: 0
+        lookForward: 0
+        _handlePoint: {x: 0, y: 0, z: 0}
+      - range:
+          _start: 9
+          _end: 11
+        eName: 
+        isLocalTrueOnly: 0
+        startVec: {x: 0, y: 0, z: 1}
+        endVec: {x: -0.1562289, y: 0, z: 2}
+        easeType: 7
+        cc: {fileID: 0}
+        startDetal: {x: 0, y: 0, z: 0}
+        isBezier: 0
+        lookForward: 0
+        _handlePoint: {x: 0, y: 0, z: 0}
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events:
+      - range:
+          _start: 29
+          _end: 34
+        eName: 
+        isLocalTrueOnly: 0
+        blend: 0
+        ToFrame: 0
+        UnMoveTime: 0.40000004
+        keyCode: 0
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events: []
+  - SkillId: 2002
+    SkillName: 2002_1
+    SkillSort: 1
+    Speed: 1
+    IsJumpFinishEstimate: 0
+    ObjEvent:
+      range:
+        _start: 2
+        _end: 15
+      eName: SkillEffet/Using/RuningAck
+      isLocalTrueOnly: 0
+      isEffect: 1
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: 0, y: 1, z: 0}
+      startRotation: {x: -0, y: 0, z: 0}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events: []
+    MoveEvents:
+      Events: []
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events: []
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events:
+      - range:
+          _start: 4
+          _end: 9
+        eName: 
+        isLocalTrueOnly: 0
+        cubeRange:
+          pos: {x: 0, y: 0, z: 0.56}
+          rotation: {x: 0, y: 0, z: 0}
+          size: {x: 4.25, y: 0.8, z: 3.13}
+        triggerItem: {fileID: 0}
+  - SkillId: 2002
+    SkillName: 2002_2
+    SkillSort: 2
+    Speed: 1
+    IsJumpFinishEstimate: 0
+    ObjEvent:
+      range:
+        _start: 10
+        _end: 24
+      eName: SkillEffet/Using/RuningAck
+      isLocalTrueOnly: 0
+      isEffect: 1
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: 0, y: 1, z: 0}
+      startRotation: {x: -0, y: 0, z: 0}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events: []
+    MoveEvents:
+      Events: []
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events: []
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events:
+      - range:
+          _start: 12
+          _end: 17
+        eName: 
+        isLocalTrueOnly: 0
+        cubeRange:
+          pos: {x: 0, y: 0, z: 0.56}
+          rotation: {x: 0, y: 0, z: 0}
+          size: {x: 4.25, y: 0.8, z: 3.13}
+        triggerItem: {fileID: 0}
+  - SkillId: 2002
+    SkillName: 2002_3
+    SkillSort: 3
+    Speed: 1
+    IsJumpFinishEstimate: 0
+    ObjEvent:
+      range:
+        _start: 24
+        _end: 33
+      eName: SkillEffet/Using/RuningAck
+      isLocalTrueOnly: 0
+      isEffect: 1
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: 0, y: 1, z: 0}
+      startRotation: {x: -0, y: -0, z: 143.11855}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events: []
+    MoveEvents:
+      Events: []
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events: []
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events:
+      - range:
+          _start: 26
+          _end: 31
+        eName: 
+        isLocalTrueOnly: 0
+        cubeRange:
+          pos: {x: 0, y: 0, z: 0.56}
+          rotation: {x: 0, y: 0, z: 0}
+          size: {x: 4.25, y: 1, z: 3.13}
+        triggerItem: {fileID: 0}

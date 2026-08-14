@@ -1,0 +1,131 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed827811158d727419f8bd04fa76136a, type: 3}
+  m_Name: 1002
+  m_EditorClassIdentifier: 
+  SkillId: 1002
+  TargetInputType: 3
+  skillAllEventDatas:
+  - SkillId: 1002
+    SkillName: 1002
+    SkillSort: 0
+    Speed: 1.25
+    IsJumpFinishEstimate: 1
+    ObjEvent:
+      range:
+        _start: 0
+        _end: 0
+      eName: 
+      isLocalTrueOnly: 0
+      isEffect: 0
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: 0, y: 0, z: 0}
+      startRotation: {x: 0, y: 0, z: 0}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events:
+      - range:
+          _start: 0
+          _end: 25
+        eName: Attack_Nor_3
+        isLocalTrueOnly: 0
+        blenderLength: 0
+        startOffset: 0
+        Speed: 1
+        isBackToIdle: 0
+    MoveEvents:
+      Events:
+      - range:
+          _start: 8
+          _end: 10
+        eName: 
+        isLocalTrueOnly: 0
+        startVec: {x: 0, y: 0, z: 0}
+        endVec: {x: 0, y: 0, z: 0.523084}
+        easeType: 7
+        cc: {fileID: 0}
+        startDetal: {x: 0, y: 0, z: 0}
+        isBezier: 0
+        lookForward: 0
+        _handlePoint: {x: 0, y: 0, z: 0}
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events:
+      - range:
+          _start: 14
+          _end: 20
+        eName: 
+        isLocalTrueOnly: 0
+        blend: 0
+        ToFrame: 0
+        UnMoveTime: 0.3
+        keyCode: 0
+      - range:
+          _start: 23
+          _end: 29
+        eName: 
+        isLocalTrueOnly: 0
+        blend: 0
+        ToFrame: 0
+        UnMoveTime: 0
+        keyCode: 0
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events: []
+  - SkillId: 1002
+    SkillName: 1002_1
+    SkillSort: 1
+    Speed: 1.25
+    IsJumpFinishEstimate: 0
+    ObjEvent:
+      range:
+        _start: 8
+        _end: 18
+      eName: SkillEffet/Using/NorAck_0
+      isLocalTrueOnly: 0
+      isEffect: 1
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: 0, y: 1, z: 0}
+      startRotation: {x: -0, y: 0, z: 0}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events: []
+    MoveEvents:
+      Events: []
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events: []
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events:
+      - range:
+          _start: 9
+          _end: 13
+        eName: 
+        isLocalTrueOnly: 0
+        cubeRange:
+          pos: {x: 0, y: 0, z: 0.72}
+          rotation: {x: 0, y: 0, z: 0}
+          size: {x: 5.35, y: 0.8, z: 3.67}
+        triggerItem: {fileID: 0}

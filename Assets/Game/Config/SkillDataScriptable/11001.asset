@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed827811158d727419f8bd04fa76136a, type: 3}
+  m_Name: 11001
+  m_EditorClassIdentifier: 
+  SkillId: 11001
+  TargetInputType: 3
+  skillAllEventDatas:
+  - SkillId: 11001
+    SkillName: 11001
+    SkillSort: 0
+    Speed: 1.5
+    ObjEvent:
+      Range:
+        _start: 0
+        _end: 0
+      IsLocalTrueOnly: 0
+      IsEffect: 0
+      TransfromType: 0
+      PlayerOffset: {x: 0, y: 0, z: 0}
+      BundlePath: 
+      AssetPath: 
+      StartPos: {x: 0, y: 0, z: 0}
+      StartRotation: {x: 0, y: 0, z: 0}
+      StartScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events:
+      - Range:
+          _start: 0
+          _end: 72
+        IsLocalTrueOnly: 0
+        AnimName: MeleeAttackOne
+        BlenderLength: 0
+        StartOffset: 0
+        IsBackToIdle: 1
+    MoveEvents:
+      Events: []
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events:
+      - Range:
+          _start: 64
+          _end: 73
+        IsLocalTrueOnly: 0
+        InputType: 3
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events:
+      - Range:
+          _start: 25
+          _end: 33
+        IsLocalTrueOnly: 0
+        CubeRange:
+          pos: {x: 0.78, y: 1.26, z: 0.05}
+          rotation: {x: 0, y: -90, z: 0}
+          size: {x: 1.96, y: 0.5, z: 2.82}
+          radius: 0
+          height: 0
+          colliderType: 0
+        EffectIds: 
+    SkillInputEvents:
+      Events:
+      - Range:
+          _start: 48
+          _end: 61
+        IsLocalTrueOnly: 0
+        InputDataList:
+        - ListernType: 1
+          PressType: 0
+          InputCallBackType: 1
+          SkillId: 11002
+          SkillSort: 100
+          RequiredTags: []
+          BlockedTags: []
+          InputTimeout: 0
+        - ListernType: 2
+          PressType: 0
+          InputCallBackType: 1
+          SkillId: 11004
+          SkillSort: 100
+          RequiredTags: []
+          BlockedTags: []
+          InputTimeout: 0
+    EffectEvents:
+      Events:
+      - Range:
+          _start: 0
+          _end: 48
+        IsLocalTrueOnly: 0
+        NormalEffectIds: 
+        SkillEffectIds: 
+        SkillTagList:
+        - Buff.UnStopped

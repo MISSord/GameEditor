@@ -1,0 +1,20 @@
+[
+  {
+    "FormulaID": 1,
+    "ResourceFormulaType": 1,
+    "AttributeTypeJoin": 1001,
+    "VitalTypeJoin": 0
+  },
+  {
+    "FormulaID": 2,
+    "ResourceFormulaType": 1,
+    "AttributeTypeJoin": 1002,
+    "VitalTypeJoin": 0
+  },
+  {
+    "FormulaID": 3,
+    "ResourceFormulaType": 1,
+    "AttributeTypeJoin": 1007,
+    "VitalTypeJoin": 0
+  }
+]

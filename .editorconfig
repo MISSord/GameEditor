@@ -1,0 +1,14 @@
+# 项目根配置，避免中文注释等乱码
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+end_of_line = lf
+
+[*.cs]
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_size = 2

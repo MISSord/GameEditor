@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b7c8d9e0f1122334455667788990011, type: 3}
+  m_Name: GraphicsFxConfig
+  m_EditorClassIdentifier: 
+  Bloom: 1
+  Vignette: 1
+  ColorAdjustments: 1
+  Tonemapping: 1
+  SSAO: 1
+  SoftShadows: 1
+  HitFlash: 1
+  Dissolve: 1
+  OcclusionOutline: 1
+  ForceOutline: 1
+  ScanPulse: 1
+  ScanEdgeHighlight: 1
+  RevealVision: 1
+  DepthVision: 1
+  PlayerFog: 1
+  ProximityDither: 1
+  Afterimage: 1
