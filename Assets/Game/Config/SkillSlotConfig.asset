@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 190010d6025491c40a2d0f6380239a34, type: 3}
+  m_Name: SkillSlotConfig
+  m_EditorClassIdentifier: 
+  Slots:
+  - SlotId: 0
+    DefaultSkillId: 11001
+    SortBase: 100
+    SortOffset: 0
+    InputType: 1
+    PressType: 0
+    InputCallBackType: 1
+    InputTimeout: 0
+    ComboSkillIds: f92a0000fa2a0000fc2a0000fb2a0000
+  - SlotId: 5
+    DefaultSkillId: 11000
+    SortBase: 3000
+    SortOffset: 0
+    InputType: 2
+    PressType: 0
+    InputCallBackType: 1
+    InputTimeout: 0
+    ComboSkillIds: f82a0000

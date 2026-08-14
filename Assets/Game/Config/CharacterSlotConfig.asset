@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e64f80fc1fdd26645aa5954352596b17, type: 3}
+  m_Name: CharacterSlotConfig
+  m_EditorClassIdentifier: 
+  Overrides:
+  - SlotId: 0
+    SkillId: 11001
+    ComboSkillIds: f92a0000fa2a0000fc2a0000fb2a0000

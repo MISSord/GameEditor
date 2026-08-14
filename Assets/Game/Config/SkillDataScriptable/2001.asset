@@ -1,0 +1,241 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed827811158d727419f8bd04fa76136a, type: 3}
+  m_Name: 2001
+  m_EditorClassIdentifier: 
+  SkillId: 2001
+  TargetInputType: 3
+  skillAllEventDatas:
+  - SkillId: 2001
+    SkillName: 2001
+    SkillSort: 0
+    Speed: 1.25
+    IsJumpFinishEstimate: 1
+    ObjEvent:
+      range:
+        _start: 0
+        _end: 0
+      eName: 
+      isLocalTrueOnly: 0
+      isEffect: 0
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: 0, y: 0, z: 0}
+      startRotation: {x: 0, y: 0, z: 0}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events:
+      - range:
+          _start: 0
+          _end: 57
+        eName: Attack_Nor_3
+        isLocalTrueOnly: 0
+        blenderLength: 0
+        startOffset: 0
+        Speed: 1
+        isBackToIdle: 0
+    MoveEvents:
+      Events: []
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events:
+      - range:
+          _start: 36
+          _end: 43
+        eName: 
+        isLocalTrueOnly: 0
+        blend: 0
+        ToFrame: 0
+        UnMoveTime: 0.13333334
+        keyCode: 0
+      - range:
+          _start: 63
+          _end: 73
+        eName: 
+        isLocalTrueOnly: 0
+        blend: 0
+        ToFrame: 0
+        UnMoveTime: 0
+        keyCode: 0
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events: []
+  - SkillId: 2001
+    SkillName: 2001_1
+    SkillSort: 1
+    Speed: 1.25
+    IsJumpFinishEstimate: 0
+    ObjEvent:
+      range:
+        _start: 5
+        _end: 53
+      eName: SkillEffet/Using/Sword Slash_Fly4
+      isLocalTrueOnly: 0
+      isEffect: 1
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: -9.3830575e-11, y: -0.0000000127427455, z: 1.4606989e-10}
+      startRotation: {x: -0, y: 0, z: 324.79678}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events: []
+    MoveEvents:
+      Events:
+      - range:
+          _start: 5
+          _end: 53
+        eName: 
+        isLocalTrueOnly: 0
+        startVec: {x: 0, y: 1.26, z: -1}
+        endVec: {x: 0, y: 1.26, z: 30}
+        easeType: 1
+        cc: {fileID: 0}
+        startDetal: {x: 0, y: 0, z: 0}
+        isBezier: 0
+        lookForward: 0
+        _handlePoint: {x: 0, y: 0, z: 0}
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events: []
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events:
+      - range:
+          _start: 6
+          _end: 53
+        eName: 
+        isLocalTrueOnly: 0
+        cubeRange:
+          pos: {x: 0, y: 0, z: 0.72}
+          rotation: {x: 0, y: 0, z: 90}
+          size: {x: 1.2, y: 4.19, z: 2.62}
+        triggerItem: {fileID: 0}
+  - SkillId: 2001
+    SkillName: 2001_2
+    SkillSort: 2
+    Speed: 1.25
+    IsJumpFinishEstimate: 0
+    ObjEvent:
+      range:
+        _start: 10
+        _end: 58
+      eName: SkillEffet/Using/Sword Slash_Fly4
+      isLocalTrueOnly: 0
+      isEffect: 1
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: 0, y: 0, z: 0}
+      startRotation: {x: -0, y: 0, z: 0}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events: []
+    MoveEvents:
+      Events:
+      - range:
+          _start: 10
+          _end: 58
+        eName: 
+        isLocalTrueOnly: 0
+        startVec: {x: 0, y: 1.26, z: -1}
+        endVec: {x: 0, y: 1.26, z: 30}
+        easeType: 1
+        cc: {fileID: 0}
+        startDetal: {x: 0, y: 0, z: 0}
+        isBezier: 0
+        lookForward: 0
+        _handlePoint: {x: 0, y: 0, z: 0}
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events: []
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events:
+      - range:
+          _start: 11
+          _end: 58
+        eName: 
+        isLocalTrueOnly: 0
+        cubeRange:
+          pos: {x: 0, y: 0, z: 0.72}
+          rotation: {x: 0, y: 0, z: 90}
+          size: {x: 1.2, y: 4.19, z: 2.62}
+        triggerItem: {fileID: 0}
+  - SkillId: 2001
+    SkillName: 2001_3
+    SkillSort: 3
+    Speed: 1.25
+    IsJumpFinishEstimate: 0
+    ObjEvent:
+      range:
+        _start: 25
+        _end: 63
+      eName: SkillEffet/Using/Sword Slash_Fly4
+      isLocalTrueOnly: 0
+      isEffect: 1
+      transfromType: 0
+      LoadObj: {fileID: 0}
+      playerOffset: {x: 0, y: 0, z: 0}
+      startPos: {x: -9.3830575e-11, y: -0.0000000127427455, z: 1.4606989e-10}
+      startRotation: {x: -0, y: 0, z: 324.79678}
+      startScale: {x: 1, y: 1, z: 1}
+    AnimEvents:
+      Events: []
+    MoveEvents:
+      Events:
+      - range:
+          _start: 25
+          _end: 63
+        eName: 
+        isLocalTrueOnly: 0
+        startVec: {x: 0, y: 1.26, z: -1}
+        endVec: {x: 0, y: 1.26, z: 20}
+        easeType: 1
+        cc: {fileID: 0}
+        startDetal: {x: 0, y: 0, z: 0}
+        isBezier: 0
+        lookForward: 0
+        _handlePoint: {x: 0, y: 0, z: 0}
+    RotateEvents:
+      Events: []
+    ScaleEvents:
+      Events: []
+    SwitchEvents:
+      Events: []
+    MsgEvents:
+      Events: []
+    TriggerEvents:
+      Events:
+      - range:
+          _start: 25
+          _end: 63
+        eName: 
+        isLocalTrueOnly: 0
+        cubeRange:
+          pos: {x: 0, y: 0, z: 0.72}
+          rotation: {x: 0, y: 0, z: 90}
+          size: {x: 1.2, y: 4.19, z: 2.06}
+        triggerItem: {fileID: 0}

@@ -1,0 +1,32 @@
+[
+  {
+    "CharacterId": 1,
+    "baseHealthPointMax": 3000,
+    "HealthPointMaxAdd": 20,
+    "baseAttack": 200,
+    "AttackAdd": 1,
+    "baseDefense": 100,
+    "DefenseAdd": 1,
+    "baseManaMax": 100,
+    "ManaMaxAdd": 1,
+    "baseCriticalProbability": 5000,
+    "CriticalProbabilityAdd": 0,
+    "baseCriticalValue": 15000,
+    "CriticalValueAdd": 0
+  },
+  {
+    "CharacterId": 2,
+    "baseHealthPointMax": 2000,
+    "HealthPointMaxAdd": 20,
+    "baseAttack": 300,
+    "AttackAdd": 1,
+    "baseDefense": 100,
+    "DefenseAdd": 1,
+    "baseManaMax": 100,
+    "ManaMaxAdd": 1,
+    "baseCriticalProbability": 5000,
+    "CriticalProbabilityAdd": 0,
+    "baseCriticalValue": 15000,
+    "CriticalValueAdd": 0
+  }
+]

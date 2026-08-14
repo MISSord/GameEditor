@@ -1,0 +1,97 @@
+[
+  {
+    "EffectModifyID": 1,
+    "EffectModifyType": 2,
+    "ParamInt1": 0,
+    "ParamInt2": 0,
+    "ParamInt3": 0,
+    "ParamFloat1": 0,
+    "ParamFloat2": 0,
+    "ParamString1": [
+      "Buff.MoveForbid",
+      "Buff.SkillForbid"
+    ]
+  },
+  {
+    "EffectModifyID": 2,
+    "EffectModifyType": 2,
+    "ParamInt1": 0,
+    "ParamInt2": 0,
+    "ParamInt3": 0,
+    "ParamFloat1": 0,
+    "ParamFloat2": 0,
+    "ParamString1": [
+      "Buff.SkillForbid"
+    ]
+  },
+  {
+    "EffectModifyID": 3,
+    "EffectModifyType": 1,
+    "ParamInt1": 1001,
+    "ParamInt2": 2,
+    "ParamInt3": 0,
+    "ParamFloat1": 30,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 8,
+    "EffectModifyType": 9,
+    "ParamInt1": 0,
+    "ParamInt2": 0,
+    "ParamInt3": 1,
+    "ParamFloat1": 1,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 9,
+    "EffectModifyType": 10,
+    "ParamInt1": 0,
+    "ParamInt2": 1,
+    "ParamInt3": 0,
+    "ParamFloat1": 1,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 10,
+    "EffectModifyType": 11,
+    "ParamInt1": 0,
+    "ParamInt2": 1007,
+    "ParamInt3": 0,
+    "ParamFloat1": 20,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 11,
+    "EffectModifyType": 12,
+    "ParamInt1": 0,
+    "ParamInt2": 1000,
+    "ParamInt3": 0,
+    "ParamFloat1": 100,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 12,
+    "EffectModifyType": 13,
+    "ParamInt1": 0,
+    "ParamInt2": 0,
+    "ParamInt3": 0,
+    "ParamFloat1": 0,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 13,
+    "EffectModifyType": 14,
+    "ParamInt1": 0,
+    "ParamInt2": 0,
+    "ParamInt3": 0,
+    "ParamFloat1": 0,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  }
+]

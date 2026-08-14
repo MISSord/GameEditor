@@ -1,0 +1,29 @@
+[
+  {
+    "SkillId": 11000,
+    "SkillName": "",
+    "SegmentIndex": 1,
+    "Ratio": 1,
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1
+  },
+  {
+    "SkillId": 11001,
+    "SkillName": "",
+    "SegmentIndex": 1,
+    "Ratio": 3,
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1
+  },
+  {
+    "SkillId": 11002,
+    "SkillName": "",
+    "SegmentIndex": 1,
+    "Ratio": 3,
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1
+  }
+]
