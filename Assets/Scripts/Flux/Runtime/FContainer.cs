@@ -33,10 +33,7 @@ namespace Flux
 		internal void SetSequence( FSequence sequence )
 		{
 			_sequence = sequence;
-			if( _sequence )
-				transform.parent = _sequence.Content;
-			else
-				transform.parent = null;
+			SetParentIfNeeded( _sequence ? _sequence.Content : null );
 		}
 
 		public override void Init()

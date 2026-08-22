@@ -31,11 +31,28 @@ namespace ACTGameEditor
         //优先级
         public int Sort = 0;
 
+        /// <summary>本轴最近一次技能动画 Token，结束时按此 Release。</summary>
+        public int AnimToken { get; private set; }
+
+        /// <summary>最近一次动画事件的结束策略。</summary>
+        public AnimExitPolicy AnimExitPolicy { get; private set; }
+
+        /// <summary>XCAnimEvent 播放成功后登记 Token 与 ExitPolicy。</summary>
+        public void NotifyAnimPlayed(int token, AnimExitPolicy exitPolicy)
+        {
+            if (token == 0)
+                return;
+            AnimToken = token;
+            AnimExitPolicy = exitPolicy;
+        }
+
         public void StartUpdate()
         {
             this.Count = SubRuners.Count;
             _state = RunnerState.Update;
             IsMainFinish = false;
+            AnimToken = 0;
+            AnimExitPolicy = AnimExitPolicy.Locomotion;
         }
 
         public override void Update(float deltaTime)
@@ -63,7 +80,11 @@ namespace ACTGameEditor
             }
             else if (State == RunnerState.StopEnd || State == RunnerState.Break)
             {
+                // 自然结束：按 ExitPolicy；Break：不交回（新技能已占 Token）
+                bool returnToLocomotion = State == RunnerState.StopEnd
+                    && AnimExitPolicy != AnimExitPolicy.Hold;
                 _state = RunnerState.Finish;
+                ReleaseAnimOwnership(returnToLocomotion);
                 DestroyAll();
             }
         }
@@ -90,6 +111,16 @@ namespace ACTGameEditor
             {
                 IsMainFinish = true;
             }
+        }
+
+        void ReleaseAnimOwnership(bool returnToLocomotion)
+        {
+            if (AnimToken == 0 || OwnerEntity == null || OwnerEntity.IsDisposed)
+                return;
+
+            CombatAnimDirector director = OwnerEntity.GetComponent<AnimComponent>()?.Director;
+            director?.Release(AnimToken, returnToLocomotion);
+            AnimToken = 0;
         }
 
         private void DestroyAll()

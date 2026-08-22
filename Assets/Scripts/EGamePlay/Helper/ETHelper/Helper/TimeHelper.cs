@@ -1,6 +1,6 @@
 using System;
 
-namespace ET
+namespace EGamePlay
 {
 	public static class TimeHelper
 	{

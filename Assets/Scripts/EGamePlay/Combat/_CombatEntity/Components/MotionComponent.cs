@@ -1,14 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using System;
-using GameUtils;
-using Sirenix.OdinInspector;
-#if EGAMEPLAY_ET
-using Unity.Mathematics;
-using Vector3 = Unity.Mathematics.float3;
-using Quaternion = Unity.Mathematics.quaternion;
-#endif
 
 namespace EGamePlay.Combat
 {

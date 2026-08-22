@@ -21,7 +21,7 @@ namespace XiaoCao
         {
 #if UNITY_EDITOR
             var fields = this.GetType().GetFields();
-            fields.IELogStr();
+            //fields.IELogStr();
             foreach (var item in fields)
             {
                 Type subType = item.FieldType;

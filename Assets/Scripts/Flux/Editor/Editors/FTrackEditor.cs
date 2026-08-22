@@ -199,7 +199,6 @@ namespace FluxEditor
                     }
                     else if (Rect.Contains(Event.current.mousePosition))
                     {
-                        Debug.Log("yns  OnBodyContextClick ");
                         OnBodyContextClick();
                     }
                     break;
@@ -376,11 +375,9 @@ namespace FluxEditor
                 int delta = frame - evt.Start;
                 evt.Start += delta;
                 evt.End += delta;
-                Debug.Log("yns  pasteEvent ");
             }
             else
             {
-                Debug.Log("yns  else ");
                 evt.Start = frame;
                 evt.End = frame + 10;
             }
@@ -499,7 +496,6 @@ namespace FluxEditor
             GameObject go = new GameObject(menuData.evtType.ToString());
             FEvent evt = (FEvent)go.AddComponent(menuData.evtType);
             menuData.track.Add(evt);
-            Debug.Log("yns  add menu ");
             SequenceEditor.Refresh();
         }
 
@@ -546,7 +542,6 @@ namespace FluxEditor
                 Undo.RegisterCreatedObjectUndo(newEvt.gameObject, "create Event");
 
                 Track.Add(newEvt);
-                Debug.Log("yns  add new " + t);
             }
             return newEvt;
         }

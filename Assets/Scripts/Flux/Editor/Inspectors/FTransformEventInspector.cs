@@ -5,7 +5,6 @@ using Flux;
 
 using FluxEditor;
 using System.Collections.Generic;
-using XiaoCao;
 using UnityEditorInternal;
 
 namespace FluxEditor
@@ -292,16 +291,16 @@ namespace FluxEditor
 
             EditorGUI.LabelField(r, "FTweenVector3");
 
-            r = r.GetNextLine();
+            r = NextLine(r);
             r.xMin = StartOffset;
             EditorGUI.PropertyField(r, _easingType);
 
-            r = r.GetNextLine();
+            r = NextLine(r);
 
             r = DrawVec3(_to, r, "to");
 
 
-            r = r.GetNextLine();
+            r = NextLine(r);
             r = DrawVec3(_from, r, "from");
 
 
@@ -310,6 +309,13 @@ namespace FluxEditor
             //EditorGUI.PropertyField(position, property, _label);
             //base.OnGUI(position, property, label);
 
+        }
+
+        private static Rect NextLine(Rect rect)
+        {
+            EditorGUILayout.Separator();
+            rect.y += EditorGUIUtility.singleLineHeight * 1.28f;
+            return rect;
         }
 
         private Rect DrawVec3(SerializedProperty _to, Rect r, string label)

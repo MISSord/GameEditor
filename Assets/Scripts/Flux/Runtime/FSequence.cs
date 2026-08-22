@@ -379,10 +379,10 @@ namespace Flux
 					foreach( FTrack track in tracks )
 					{
 #if UNITY_EDITOR
-						if( ((!Application.isPlaying && track.RequiresEditorCache) || (IsPlayingForward && track.RequiresForwardCache) || (!IsPlayingForward && track.RequiresBackwardsCache)) && !track.HasCache )
+						if( ((!Application.isPlaying && track.RequiresEditorCache) || (IsPlayingForward && track.RequiresForwardCache) || (!IsPlayingForward && track.RequiresBackwardsCache)) && !track.HasCache && track.CanCreateCache() )
 							track.CreateCache();
 #else
-						if( ((IsPlayingForward && track.RequiresForwardCache) || (!IsPlayingForward && track.RequiresBackwardsCache)) && !track.HasCache )
+						if( ((IsPlayingForward && track.RequiresForwardCache) || (!IsPlayingForward && track.RequiresBackwardsCache)) && !track.HasCache && track.CanCreateCache() )
 							track.CreateCache();
 #endif
 					}

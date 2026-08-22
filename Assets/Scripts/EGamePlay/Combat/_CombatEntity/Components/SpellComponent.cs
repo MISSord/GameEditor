@@ -22,7 +22,15 @@ namespace EGamePlay.Combat
         public override bool DefaultEnable { get; set; } = true;
         public override bool IsNeedUpdate { get; protected set; } = true;
 
+        /// <summary>冷却表挂在战斗实体上，Idle 与轨道入口共用。</summary>
+        public SkillCDTimer CDTimer { get; private set; }
+
         private List<SkillSpellInfo> _spelllist = new List<SkillSpellInfo>();
+
+        public override void Awake()
+        {
+            CDTimer = new SkillCDTimer();
+        }
 
         public override void OnDestroy()
         {
@@ -34,71 +42,75 @@ namespace EGamePlay.Combat
                 }
             }
             _spelllist.Clear();
+            CDTimer = null;
         }
 
         public override void Update(float deltaTime)
         {
-            if(_spelllist.Count > 0)
-            {
-                SkillSpellInfo curHightSkill = null;
-                SkillSpellInfo info;
-                for(int i = 0; i < _spelllist.Count; i++)
-                {
-                    info = _spelllist[i];
-                    SkillDemoSetting setting = SkillSettingMgr.Instance.GetSkillDemoSetting(info.SkillId);
-                    if (setting != null)
-                    {
-                        //判断当前能否释放这个技能
-                        bool isCanSpell = (bool)FastStaticExecutor.Execute(setting.TriggerFormula);
-                        if(isCanSpell && curHightSkill == null)
-                        {
-                            curHightSkill = info;
-                        }
-                        else if(isCanSpell && info.Sort > curHightSkill.Sort)
-                        {
-                            PoolManager.Instance.Return<SkillSpellInfo>(curHightSkill);
-                            curHightSkill = info;
-                        }
-                    }
-                    //不是当前的直接塞回去
-                    if(info != curHightSkill)
-                    {
-                        PoolManager.Instance.Return<SkillSpellInfo>(info);
-                    }
-                }
-                if(curHightSkill != null)
-                {
-                    if (CombatEntity.SpellingExecution != null && CombatEntity.SpellingExecution.Sort > curHightSkill.Sort)
-                        return;
+            CDTimer?.OnUpdate(deltaTime);
 
-                    Ability ability;
-                    if(Entity.GetComponent<AbilityComponent>().IdAbilities.TryGetValue(curHightSkill.SkillId, out ability))
-                    {
-                        if(curHightSkill.Target != null)
-                        {
-                            this.SpellWithTarget(ability, curHightSkill.Target);
-                        }
-                        else
-                        {
-                            this.SpellWithPoint(ability, curHightSkill.Point);
-                        }
-                    }
-                    PoolManager.Instance.Return<SkillSpellInfo>(curHightSkill);
+            if (_spelllist.Count == 0)
+                return;
+
+            SkillSpellInfo winner = null;
+            SkillSpellInfo info;
+            for (int i = 0; i < _spelllist.Count; i++)
+            {
+                info = _spelllist[i];
+                if (winner == null || info.Sort > winner.Sort)
+                {
+                    if (winner != null)
+                        PoolManager.Instance.Return<SkillSpellInfo>(winner);
+                    winner = info;
                 }
-                //每帧清空，不缓存
-                _spelllist.Clear();
+                else
+                {
+                    PoolManager.Instance.Return<SkillSpellInfo>(info);
+                }
             }
+
+            _spelllist.Clear();
+            if (winner == null)
+                return;
+
+            bool checkCostAndCooldown = CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate;
+            ActivateFail fail = AbilityActivationGate.Evaluate(
+                CombatEntity, winner.SkillId, winner.Sort, CDTimer, checkCostAndCooldown);
+
+            if (fail == ActivateFail.SortBlocked)
+            {
+                _spelllist.Add(winner);
+                return;
+            }
+
+            if (fail != ActivateFail.None)
+            {
+                PoolManager.Instance.Return<SkillSpellInfo>(winner);
+                return;
+            }
+
+            Ability ability;
+            if (Entity.GetComponent<AbilityComponent>().IdAbilities.TryGetValue(winner.SkillId, out ability))
+            {
+                if (winner.Target != null)
+                    SpellWithTarget(ability, winner.Target, winner.Sort);
+                else
+                    SpellWithPoint(ability, winner.Point, winner.Sort);
+            }
+            PoolManager.Instance.Return<SkillSpellInfo>(winner);
         }
         
-        //能进入到这里的，说明常规的外部判断都已经完成，如玩家状态，标签检查那些，后面的判断只会判断配置部分
-        //因此要在外部进行非配置部分判断！！
+        /// <summary>
+        /// 入队一次出手意图。入队前应由调用方 Gate 预检并消费预输入；
+        /// 此处提交时再 Evaluate，防止入队后被命中改状态。
+        /// </summary>
         public void AddSkillSpellInfo(SkillSpellInfo skillSpell)
         {
             GameLog.CombatDebug($"AddSkillSpellInfo skillId={skillSpell.SkillId}");
             _spelllist.Add(skillSpell);
         }
 
-        private SpellAction SpellWithTarget(Ability spellSkill, CombatEntity targetEntity = null, int sort = 0)
+        private SpellAction SpellWithTarget(Ability spellSkill, CombatEntity targetEntity, int sort)
         {
             if (CombatEntity.SpellAbility.TryMakeAction(out var spellAction))
             {
@@ -131,17 +143,13 @@ namespace EGamePlay.Combat
 
         public SpellAction SpellWithPoint(SkillAbility spellSkill, float3 point)
         {
-            //if (CombatEntity.SpellingExecution != null)
-            //    return null;
-
             if (CombatEntity.SpellAbility.TryMakeAction(out var spellAction))
             {
                 spellAction.SkillAbility = spellSkill;
                 spellAction.InputPoint = point;
                 var forward = math.normalizesafe(point - spellSkill.OwnerEntity.Position, math.right());
-                //var forward = new float3(rawForward.x, -rawForward.y, 1);
                 var rotate = quaternion.LookRotation(forward, math.up());
-                spellSkill.OwnerEntity.Rotation = rotate;//.GetQuaternionEulerAngles() / MathF.PI * 180;
+                spellSkill.OwnerEntity.Rotation = rotate;
                 var cos = CalCos(math.right(), forward);
                 var radian = MathF.Acos(cos);
                 if (forward.y < 0) radian = -radian;
@@ -155,16 +163,12 @@ namespace EGamePlay.Combat
             return null;
         }
 #else
-        private SpellAction SpellWithPoint(Ability spellSkill, Vector3 point, int sort = 0)
+        private SpellAction SpellWithPoint(Ability spellSkill, Vector3 point, int sort)
         {
             if (CombatEntity.SpellAbility.TryMakeAction(out var spellAction))
             {
                 spellAction.SkillAbility = spellSkill;
                 var forward = Vector3.Normalize(point - spellSkill.OwnerEntity.Position);
-                //var rotation = Quaternion.LookRotation(forward);
-                //var angle = rotation.eulerAngles.y;
-                //var radian = angle * MathF.PI / 180f;
-                //spellAction.InputRadian = radian;
                 spellAction.InputDirection = forward;
                 spellAction.InputPoint = point;
                 spellAction.Sort = sort;

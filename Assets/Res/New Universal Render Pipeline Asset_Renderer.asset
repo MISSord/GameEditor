@@ -32,6 +32,22 @@ MonoBehaviour:
   settings:
     injectionPoint: 550
     shader: {fileID: 4800000, guid: 84780cdc66a942039b99d870b94a0ac3, type: 3}
+--- !u!114 &161803398874989484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7b8c9d0e1f2436586978899aabbccdd, type: 3}
+  m_Name: RadialBlur
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  settings:
+    injectionPoint: 550
+    shader: {fileID: 4800000, guid: d0e1f2a3b4c567890abcdef123456789, type: 3}
 --- !u!114 &271828182845904523
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -67,6 +83,7 @@ MonoBehaviour:
   - {fileID: -5211228564158115304}
   - {fileID: 314159265358979323}
   - {fileID: 271828182845904523}
+  - {fileID: 161803398874989484}
   m_RendererFeatureMap: 0c3e5c57ff0fd7c1b7adff3b2dfc9218045c1e2ff69ea0fb03c5ba4ac678568b
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}

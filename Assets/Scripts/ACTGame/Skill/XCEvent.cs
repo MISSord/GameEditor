@@ -118,82 +118,88 @@ namespace ACTGameEditor
     public class XCAnimEvent : XCEvent
     {
         private XCAnimEventData eventData => (XCAnimEventData)EventData;
-        private Animator _animator;
-        private AnimationClip _clip;
         private int _cachedClipHash;
-        private Action _onTimeScaleChangedHandler;
+        private float _cachedClipLength;
+        private int _animToken;
+        private CombatAnimDirector _director;
 
         public override void Init(CombatEntity owner, XCNewEventsRunner runner)
         {
             base.Init(owner, runner);
             _cachedClipHash = Animator.StringToHash(eventData.AnimName);
+            _cachedClipLength = 0f;
+            _animToken = 0;
+            _director = null;
         }
 
-        /// <summary>时间流速变化时重新应用 animator.speed，保证时空断裂/HitStop 等生效。</summary>
-        private void ApplyAnimatorSpeedToTimeScale()
+        /// <summary>解析并缓存 clip 时长（优先 Director 缓存，避免重复扫表）。</summary>
+        private bool TryResolveClipLength(Animator animator, CombatAnimDirector director)
         {
-            if (_animator == null || SelfRunner == null) return;
-            float entityScale = OwnCombat?.GetTimeScale() ?? 1f;
-            _animator.speed = SelfRunner.Speed * GameTimeManager.PlayerScale * entityScale;
-        }
+            if (_cachedClipLength > 0f)
+                return true;
+            if (director != null && director.TryGetClipLength(_cachedClipHash, out float cached) && cached > 0f)
+            {
+                _cachedClipLength = cached;
+                return true;
+            }
 
-        /// <summary>仅在 clip 为 null 时遍历 animationClips 查找，避免每 Trigger 重复分配</summary>
-        private void TryCacheClipFromController()
-        {
-            if (_clip != null || _animator?.runtimeAnimatorController == null) return;
-            var clips = _animator.runtimeAnimatorController.animationClips;
+            if (animator?.runtimeAnimatorController == null)
+                return false;
+
+            var clips = animator.runtimeAnimatorController.animationClips;
             for (int i = 0; i < clips.Length; i++)
             {
-                if (clips[i].name == eventData.AnimName)
-                {
-                    _clip = clips[i];
-                    return;
-                }
+                if (clips[i].name != eventData.AnimName)
+                    continue;
+                _cachedClipLength = clips[i].length;
+                director?.CacheClipLength(_cachedClipHash, _cachedClipLength);
+                return _cachedClipLength > 0f;
             }
+
+            return false;
         }
 
         public override void OnTrigger(float timeSinceTrigger)
         {
-            if (_animator == null)
-                _animator = SelfRunner.GetAnimator();
-            if (_animator == null)
+            AnimComponent animComp = OwnCombat?.GetComponent<AnimComponent>();
+            _director = animComp?.Director;
+            Animator animator = animComp?.animator;
+            if (_director == null || animator == null)
             {
-                Debug.LogError("no _animator " + eventData.AnimName);
+                Debug.LogError("no CombatAnimDirector/animator " + eventData.AnimName);
                 return;
             }
 
-            TryCacheClipFromController();
-            if (_clip == null)
+            if (!TryResolveClipLength(animator, _director))
             {
                 Debug.LogError("no clip " + eventData.AnimName);
                 return;
             }
 
-            float entityScale = OwnCombat?.GetTimeScale() ?? 1f;
-            _animator.speed = SelfRunner.Speed * GameTimeManager.PlayerScale * entityScale;
-            if (_onTimeScaleChangedHandler == null)
-                _onTimeScaleChangedHandler = ApplyAnimatorSpeedToTimeScale;
-            GameTimeManager.OnTimeScaleChanged += _onTimeScaleChangedHandler;
-            base.OnTrigger(timeSinceTrigger);
-            _animator.CrossFade(_cachedClipHash, eventData.BlenderLength / _clip.length, 0, eventData.StartOffset / _clip.length);
+            // BlenderLength / StartOffset 按秒（FixedTime），与旧「秒/clip.length」资源语义对齐
+            float blendSeconds = eventData.BlenderLength > 0f ? eventData.BlenderLength : 0f;
+            float offsetSeconds = eventData.StartOffset > 0f ? eventData.StartOffset : 0f;
+            float skillSpeed = SelfRunner != null ? SelfRunner.Speed : 1f;
 
-            if (timeSinceTrigger > 0)
-                _animator.Update(timeSinceTrigger - 0.001f);
+            _animToken = _director.PlaySkill(
+                _cachedClipHash,
+                blendSeconds,
+                offsetSeconds,
+                skillSpeed,
+                eventData.UseRootMotion,
+                eventData.SuppressGravity);
+            AnimExitPolicy policy = eventData.ExitPolicy;
+            SelfRunner?.GetParent<ActSkillRunner>()?.NotifyAnimPlayed(_animToken, policy);
+
+            base.OnTrigger(timeSinceTrigger);
+            _director.Scrub(timeSinceTrigger);
         }
 
         public override void OnFinish()
         {
-            if (_onTimeScaleChangedHandler != null)
-            {
-                GameTimeManager.OnTimeScaleChanged -= _onTimeScaleChangedHandler;
-                _onTimeScaleChangedHandler = null;
-            }
-            if (eventData.IsBackToIdle && _animator != null)
-            {
-                _animator.CrossFade("Idle", 0.2f);
-            }
-            _animator = null;
-            _clip = null;
+            // 不在此回 Idle：交由 ActSkillRunner Release；速度由 Director 统一订阅时间缩放。
+            _animToken = 0;
+            _director = null;
         }
     }
 
@@ -271,18 +277,22 @@ namespace ACTGameEditor
     public class XCMoveEvent : XCLineEvent
     {
         private CharacterController _cc;
+        private ACTGameEditor.Locomotion.MotionDirector _motion;
         private Matrix4x4 _m4;
 
         public override void Init(CombatEntity owner, XCNewEventsRunner runner)
         {
             base.Init(owner, runner);
             _m4 = OwnerTF.localToWorldMatrix;
+            _motion = owner?.GetComponent<AnimComponent>()?.Motion;
         }
 
         public override void OnTrigger(float timeSinceTrigger)
         {
             base.OnTrigger(timeSinceTrigger);
             _cc = OwnerTF.GetComponent<CharacterController>();
+            if (_motion == null)
+                _motion = OwnCombat?.GetComponent<AnimComponent>()?.Motion;
 
             var moveData = (XCMoveEventData)EventData;
             if (moveData.StartVec != Vector3.zero)
@@ -293,19 +303,25 @@ namespace ACTGameEditor
 
         public override void ApplyDetalVec(Vector3 detalMove)
         {
-            if (_cc != null)
+            Vector3 world = _m4.MultiplyVector(detalMove);
+            if (_motion != null)
             {
-                _cc.Move(_m4.MultiplyVector(detalMove));
+                // 曲线可带 Y；是否吃重力由 MotionDirector.GravityEnabled 决定
+                _motion.TryApply(ACTGameEditor.Locomotion.MotionSource.SkillCurve, world, flattenY: false);
+            }
+            else if (_cc != null)
+            {
+                _cc.Move(world);
             }
             else
             {
-                OwnerTF.Translate(_m4.MultiplyVector(detalMove), Space.World);
+                OwnerTF.Translate(world, Space.World);
             }
 
             var moveData = (XCMoveEventData)EventData;
             if (moveData.LookForward)
             {
-                OwnerTF.forward = _m4.MultiplyVector(detalMove);
+                OwnerTF.forward = world;
             }
         }
 
@@ -326,6 +342,7 @@ namespace ACTGameEditor
         public override void OnFinish()
         {
             _cc = null;
+            _motion = null;
         }
     }
 
@@ -417,14 +434,22 @@ namespace ACTGameEditor
         private Collider _collider;
         private GameObject _colliderObj;
         private OnTriggerEnterCallback _callBack;
+        private static int _nextHitInstanceId = 1;
+        private int _hitInstanceId;
 
         public static string colliderBundle = "other_prefab";
         public static string colliderAsset = "ColliderPerfab";
+
+        /// <summary>HitGroupId 为 0 时用于「本事件实例」去重。</summary>
+        public int HitInstanceId => _hitInstanceId;
 
         public override void Init(CombatEntity OwnCombat, XCNewEventsRunner runner)
         {
             base.Init(OwnCombat, runner);
             TriggerEventData = (XCTriggerEventData)EventData;
+            _hitInstanceId = _nextHitInstanceId++;
+            if (_hitInstanceId == 0)
+                _hitInstanceId = _nextHitInstanceId++;
             FindTrigger(OwnCombat.IsCanCauseHarm);
             if (OwnCombat.IsCanCauseHarm)
             {
@@ -434,27 +459,25 @@ namespace ACTGameEditor
                 _callBack.OnTriggerEnterCallbackAction = (other) =>
                 {
                     if (SelfRunner.IsDisposed)
-                    {
                         return;
-                    }
 
                     CombatEntity owner = SelfRunner.OwnerEntity;
-                    CombatEntity target = null;
-                    if (CombatContext.Instance.Object2Entities.TryGetValue(other.gameObject, out var otherEntity))
-                    {
-                        if (otherEntity == owner) 
-                            return;
-                        target = otherEntity;
-                    }
+                    if (owner == null)
+                        return;
 
-                    //产生碰撞实体，处理碰撞
-                    if (target != null && owner.CollisionAbility.TryMakeAction(out var collisionAction))
+                    var context = CombatContext.Instance;
+                    if (context == null || context.HitPipeline == null)
+                        return;
+                    if (!context.Object2Entities.TryGetValue(other.gameObject, out var target) || target == owner)
+                        return;
+
+                    context.HitPipeline.Enqueue(new HitRequest
                     {
-                        collisionAction.Runner = SelfRunner;
-                        collisionAction.Target = target;
-                        collisionAction.triggerEvent = this;
-                        collisionAction.ApplyCollision();
-                    }
+                        Attacker = owner,
+                        Defender = target,
+                        Runner = SelfRunner,
+                        TriggerEvent = this,
+                    });
                 };
             }
         }
@@ -596,6 +619,14 @@ namespace ACTGameEditor
                 }
             }
 
+            // 本地战斗实体直接落地（编辑器/单机）；网络仍走 PlayerManager
+            long runnerId = SelfRunner?.GetParent<ActSkillRunner>()?.Id ?? 0;
+            OwnCombat?.HandleTimelineMessage(
+                eventData.MsgName,
+                eventData.FloatdMsg,
+                eventData.BoolMsg,
+                TagSource.Skill(runnerId));
+
             //TODO 修改为本地
             switch (eventData.MsgEType)
             {
@@ -638,10 +669,10 @@ namespace ACTGameEditor
             List<string> list = eventData.SkillTagList;
             if (list != null && list.Count > 0)
             {
+                long runnerId = SelfRunner?.GetParent<ActSkillRunner>()?.Id ?? 0;
+                var src = TagSource.Skill(runnerId);
                 for (int i = 0; i < list.Count; i++)
-                {
-                    this.OwnCombat.AddTag(list[i]);
-                }
+                    OwnCombat.PushTag(src, list[i]);
             }
         }
 
@@ -653,10 +684,10 @@ namespace ACTGameEditor
             List<string> list = eventData.SkillTagList;
             if (list != null && list.Count > 0)
             {
+                long runnerId = SelfRunner?.GetParent<ActSkillRunner>()?.Id ?? 0;
+                var src = TagSource.Skill(runnerId);
                 for (int i = 0; i < list.Count; i++)
-                {
-                    this.OwnCombat.RemoveTag(list[i]);
-                }
+                    OwnCombat.PopTag(src, list[i]);
             }
         }
     }
@@ -690,34 +721,22 @@ namespace ACTGameEditor
             _actSkillRunner = null;
         }
 
-        //每帧判断监听
         public override void OnUpdateEvent(int frame, float timeSinceTrigger)
         {
-            //判断是否有玩家的输入
-            if (_isHaveTrigger == false && this._attackPlayer != null && this._attackPlayer.IsHadInputRecords() && OwnCombat.IsCanSpellSkill)
-            {
-                //InputDataList在保存的时候是按照优先级从高到低保存的
-                SkillInputData data;
-                for (int i = 0; i < eventData.InputDataList.Count; i++)
-                {
-                    data = eventData.InputDataList[i];
-                    //先检查 RequiredTags/BlockedTags，不满足则跳过（不消费输入）
-                    if (OwnCombat.CanSpellSkillWithTagLists(data.RequiredTags, data.BlockedTags) == false)
-                        continue;
-                    if (_attackPlayer.CheckAndConsume(data.ListernType, data.PressType, data.InputCallBackType, data.InputTimeout > 0 ? data.InputTimeout : -1f))
-                    {
-                        SkillSpellInfo info = PoolManager.Instance.TryGet<SkillSpellInfo>();
-                        info.Target = LockSystem.Instance?.LockedCombatEntity ?? _actSkillRunner?.InputTarget;
-                        info.Point = MathHelper.GetPositionInFront(this.OwnCombat.Position, this.OwnCombat.Rotation, 3f);
-                        info.SkillId = data.SkillId;
-                        info.Sort = data.SkillSort;
-                        this.OwnCombat.GetComponent<SpellComponent>().AddSkillSpellInfo(info);
-                        this._attackPlayer.InputRecordsClear();
-                        _isHaveTrigger = true;
-                        break;
-                    }
-                }
-            }
+            if (_isHaveTrigger || _attackPlayer == null || !OwnCombat.IsCanSpellSkill)
+                return;
+            if (eventData?.InputDataList == null)
+                return;
+            if (!_attackPlayer.TryResolveEdges(eventData.InputDataList, out int skillId, out int sort))
+                return;
+
+            SkillSpellInfo info = PoolManager.Instance.TryGet<SkillSpellInfo>();
+            info.Target = LockSystem.Instance?.LockedCombatEntity ?? _actSkillRunner?.InputTarget;
+            info.Point = MathHelper.GetPositionInFront(this.OwnCombat.Position, this.OwnCombat.Rotation, 3f);
+            info.SkillId = skillId;
+            info.Sort = sort;
+            this.OwnCombat.GetComponent<SpellComponent>().AddSkillSpellInfo(info);
+            _isHaveTrigger = true;
         }
     }
 

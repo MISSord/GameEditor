@@ -64,6 +64,14 @@ namespace ACTGameEditor
 
             if (autoApplyOnAwake)
                 GraphicsFxApplier.ApplyAll(this);
+
+            EnsureCameraPostFx();
+        }
+
+        void EnsureCameraPostFx()
+        {
+            if (GetComponent<CameraPostFxController>() == null)
+                gameObject.AddComponent<CameraPostFxController>();
         }
 
         void OnEnable()

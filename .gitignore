@@ -71,6 +71,10 @@ InitTestScene*.unity*
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 /[Aa]ssets/[Ss]ceneDependencyCache*
 
+# Flux 技能预览用的 Animator 临时副本，禁止写回工程 Controller
+/[Aa]ssets/Res/Animator/_FluxPreview.controller
+/[Aa]ssets/Res/Animator/_FluxPreview.controller.meta
+
 # OS / IDE extras
 .DS_Store
 Thumbs.db

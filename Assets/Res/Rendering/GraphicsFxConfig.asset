@@ -29,3 +29,5 @@ MonoBehaviour:
   PlayerFog: 1
   ProximityDither: 1
   Afterimage: 1
+  ChromaticAberration: 1
+  RadialBlur: 1

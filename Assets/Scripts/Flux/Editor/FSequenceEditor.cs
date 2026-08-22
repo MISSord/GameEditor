@@ -258,30 +258,28 @@ namespace FluxEditor
 
         public void OnUndo()
         {
-            Debug.Log("yns undo");
-            return;
+            if (_editorCache != null)
+                _editorCache.Refresh();
 
-            //_editorCache.Refresh();
+            if (FInspectorWindow._instance)
+            {
+                EventSelection.Refresh();
+                TrackSelection.Refresh();
+                TimelineSelection.Refresh();
+                ContainerSelection.Refresh();
+                FInspectorWindow._instance.Repaint();
+            }
 
-            //if (FInspectorWindow._instance)
-            //{
-            //    EventSelection.Refresh();
-            //    TrackSelection.Refresh();
-            //    TimelineSelection.Refresh();
-            //    ContainerSelection.Refresh();
-            //    FInspectorWindow._instance.Repaint();
-            //}
+            OpenSequence(Sequence);
 
-            //OpenSequence(Sequence);
+            SetAllDirty();
 
-            //SetAllDirty();
-
-            //if (Sequence && !Sequence.IsStopped)
-            //{
-            //    int currentFrame = Sequence.CurrentFrame;
-            //    Stop();
-            //    SetCurrentFrame(currentFrame);
-            //}
+            if (Sequence && !Sequence.IsStopped)
+            {
+                int currentFrame = Sequence.CurrentFrame;
+                Stop();
+                SetCurrentFrame(currentFrame);
+            }
         }
 
         UndoPropertyModification[] PostProcessModifications(UndoPropertyModification[] modifications)
@@ -455,7 +453,6 @@ namespace FluxEditor
                 if (!object.Equals(sequence, null))
                 {
                     sequence = (FSequence)EditorUtility.InstanceIDToObject(sequence.GetInstanceID());
-                    Debug.Log($"yns  nul obj");
                 }
             }
 
@@ -496,7 +493,6 @@ namespace FluxEditor
             {
                 if (!EditorApplication.isPlaying && sequence.Version != Flux.FUtility.FLUX_VERSION)
                 {
-                    Debug.Log($"yns Upgrade {sequence.Version}");
                     FluxEditor.FUtility.Upgrade(sequence);
                 }
 
@@ -525,10 +521,9 @@ namespace FluxEditor
                 sequence.Init();
                 FAnimationTrack animationTrack = null;
                 sequence.GetAnimTrack(ref animationTrack);
-                if (animationTrack != null)
+                if (animationTrack != null && animationTrack.Owner != null)
                 {
                     FAnimationTrackInspector.RebuildStateMachine((FAnimationTrack)animationTrack);
-                    Debug.Log($"yns RebuildStateMachine Anim {animationTrack.Sequence.name} {sequence.name}");
                 }
             }
 
@@ -832,6 +827,9 @@ namespace FluxEditor
                 GUI.enabled = false;
             }
 
+            if (Sequence == null)
+                return;
+
             if (!Sequence.HasTimelines())
             {
                 if (_renderingOnEditorWindow)
@@ -973,7 +971,6 @@ namespace FluxEditor
                     }
                     break;
                 case EventType.DragPerform:
-                    Debug.Log("yns Seq  dragPerform");
                     if (!normalizedScrollViewRect.Contains(Event.current.mousePosition))
                         break;
 
@@ -995,7 +992,6 @@ namespace FluxEditor
                         {
                             CreateContainer(new FColorSetting("Default", FGUI.DefaultContainerColor()));
                             containerEditor = GetEditor<FContainerEditor>(Sequence.Containers[0]);
-                            Debug.Log($"yns  add FContainerEditor");
                         }
                     }
 
@@ -1027,7 +1023,6 @@ namespace FluxEditor
                         {
                             
                             timeline.Add<FPlayParticleEvent>(new FrameRange(Sequence.CurrentFrame, Sequence.CurrentFrame+10));
-                            Debug.Log($"yns Add FPlayParticleEvent");
                         }
 
                         Undo.RegisterCreatedObjectUndo(timeline.gameObject, "create Timeline");
@@ -1954,7 +1949,6 @@ namespace FluxEditor
 
         private void ClearAnimPos()
         {
-            Debug.Log($"yns  ClearAnim pos");
             foreach (var con in Sequence.Containers)
             {
                 foreach (var timeline in con.Timelines)

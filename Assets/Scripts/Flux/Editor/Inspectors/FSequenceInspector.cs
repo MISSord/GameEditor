@@ -91,26 +91,20 @@ namespace FluxEditor
 				EditorGUILayout.PropertyField( _content );
 //				serializedObject.ApplyModifiedProperties();
 
-				bool showContent = (_sequence.Content.hideFlags & HideFlags.HideInHierarchy) == 0;
+				bool showContent = _sequence.Content != null && (_sequence.Content.hideFlags & HideFlags.HideInHierarchy) == 0;
                 showContent = true; //强制显示
 				EditorGUI.BeginChangeCheck();
 				showContent = EditorGUILayout.Toggle( "Show Content", showContent );
 //				bool showTimelines = EditorGUILayout.Toggle( "Show Timelines", (_timelineContainer.objectReferenceValue.hideFlags & HideFlags.HideInHierarchy) == 0 );
-				if( EditorGUI.EndChangeCheck() )
+				if( EditorGUI.EndChangeCheck() && _sequence.Content != null )
 				{
 					if( showContent )
 					{
-//						_timelineContainer.objectReferenceValue.hideFlags &= ~HideFlags.HideInHierarchy;
 						_sequence.Content.transform.hideFlags &= ~HideFlags.HideInHierarchy;
-//						for( int i = 0; i != _sequence.Containers.Count; ++i )
-//							_sequence.Containers[i].transform.hideFlags &= ~HideFlags.HideInHierarchy;
 					}
 					else
 					{
 						_sequence.Content.transform.hideFlags |= HideFlags.HideInHierarchy;
-//						_timelineContainer.objectReferenceValue.hideFlags |= HideFlags.HideInHierarchy;
-//						for( int i = 0; i != _sequence.Containers.Count; ++i )
-//							_sequence.Containers[i].transform.hideFlags |= HideFlags.HideInHierarchy;
 					}
 
 				}

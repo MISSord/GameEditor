@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using Flux;
 
 using Object = UnityEngine.Object;
-using System.Reflection;
 using XiaoCao;
 
 namespace FluxEditor
@@ -196,29 +195,10 @@ namespace FluxEditor
 #endif
         }
 
-        static MethodInfo clearMethod = null;
-
-        /// <summary>
-        /// 清空log信息
-        /// </summary>
-        private static void ClearConsole()
-        {
-            if (clearMethod == null)
-            {
-                Type log = typeof(EditorWindow).Assembly.GetType("UnityEditor.LogEntries");
-                clearMethod = log.GetMethod("Clear");
-            }
-            clearMethod.Invoke(null, null);
-        }
-
         public void Play(bool restart)
         {
             _sequenceEditor.IsPlayingForward = true;
             _sequenceEditor.Play(restart);
-
-            ClearConsole();
-            Debug.Log("yns  play");
-            //SetTrackCache();
         }
 
 

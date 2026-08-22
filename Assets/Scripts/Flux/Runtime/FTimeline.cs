@@ -77,10 +77,7 @@ namespace Flux
 		internal void SetContainer( FContainer container )
 		{
 			_container = container;
-			if( _container )
-				transform.parent = container.transform;
-			else
-				transform.parent = null;
+			SetParentIfNeeded( _container ? _container.transform : null );
 			OnValidate();
 		}
 

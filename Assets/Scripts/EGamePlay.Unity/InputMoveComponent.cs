@@ -44,6 +44,23 @@ namespace EGamePlay.Combat
                 new GameTimeLocomotionTimeSource(),
                 new CombatLocomotionStateSink(_combatEntity));
             _motor.LocomotionEnabled = Enable;
+
+            AnimComponent animComp = _combatEntity.GetComponent<AnimComponent>();
+            CombatAnimDirector director = animComp?.Director;
+            if (animComp?.Motion != null)
+                _motor.BindMotion(animComp.Motion);
+
+            if (director != null)
+            {
+                director.MoveIntentProvider = () =>
+                {
+                    var mgr = ConfigurableInputManager.Instance;
+                    return mgr != null ? mgr.PlayerInput : Vector2.zero;
+                };
+                director.MoveIntentDeadZone = tuning.InputDeadZone;
+                // 技能占轴时 Locomotion 不写 MoveSpeed，避免冲技能 Pose
+                _motor.SetAnimParamWriteGate(() => !director.HasSkillOwner);
+            }
         }
 
         public override void Update(float deltaTime)

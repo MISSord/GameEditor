@@ -110,7 +110,9 @@ MonoBehaviour:
     radius: 0
     height: 0
     colliderType: 0
-  effectApplyTypesList: 01000000
+  DamageSegmentIndex: 0
+  HitGroupId: 0
+  EffectIds: 
 --- !u!1 &969308601
 GameObject:
   m_ObjectHideFlags: 0
@@ -224,113 +226,6 @@ MonoBehaviour:
   _stateHash: -186917087
   isBackToIdle: 1
   _speed: 1
---- !u!1 &1424096973221288409
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1253059267230517485}
-  - component: {fileID: 3586977647055161434}
-  m_Layer: 0
-  m_Name: Play Tag
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1253059267230517485
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1424096973221288409}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2646219535106531824}
-  m_Father: {fileID: 6889016167695844011}
-  m_RootOrder: 3
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &3586977647055161434
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1424096973221288409}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5227522a9dd23f344a3aa99bcf351568, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _id: 3
-  _timeline: {fileID: 6889016167695844012}
-  _evtTypeStr: Flux.FPlayTagEvent
-  _events:
-  - {fileID: 9093919345380585745}
-  _cacheMode: 0
---- !u!1 &6487415455533914225
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2646219535106531824}
-  - component: {fileID: 9093919345380585745}
-  m_Layer: 0
-  m_Name: Flux.FPlayTagEvent
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2646219535106531824
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6487415455533914225}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1253059267230517485}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &9093919345380585745
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6487415455533914225}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c4435a41cf5d25488c40fb7c03ed5a5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _id: 0
-  EnableEvent: 1
-  isLocalTrueOnly: 0
-  _track: {fileID: 3586977647055161434}
-  _triggerOnSkip: 1
-  _frameRange:
-    _start: 0
-    _end: 52
-  SkillTagList:
-  - Buff.UnStopped
-  NormalEffectList: 
-  SkillEffectList: 
 --- !u!1 &6889016166023563177
 GameObject:
   m_ObjectHideFlags: 0
@@ -645,7 +540,6 @@ Transform:
   - {fileID: 969308602}
   - {fileID: 6889016167399735054}
   - {fileID: 303830292}
-  - {fileID: 1253059267230517485}
   m_Father: {fileID: 6889016166686018152}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -671,4 +565,3 @@ MonoBehaviour:
   - {fileID: 969308603}
   - {fileID: 6889016167399735055}
   - {fileID: 303830291}
-  - {fileID: 3586977647055161434}

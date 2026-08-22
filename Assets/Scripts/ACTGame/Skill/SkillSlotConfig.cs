@@ -40,7 +40,7 @@ namespace ACTGameEditor
             public PressType PressType;
             [Tooltip("回调类型")]
             public InputCallBackType InputCallBackType = InputCallBackType.Performed;
-            [Tooltip("预输入有效时长（秒），0=使用玩家默认")]
+            [Tooltip("预输入有效时长（秒），0=使用玩家 InputTimeout")]
             [Range(0f, 2f)]
             public float InputTimeout;
 

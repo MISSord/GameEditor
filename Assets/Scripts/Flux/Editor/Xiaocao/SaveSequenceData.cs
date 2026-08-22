@@ -22,11 +22,81 @@ namespace FluxEditor
 
         public static void GetData()
         {
-            var editor = FSequenceEditorWindow.instance.GetSequenceEditor();
-            FSequence Sequence = editor.Sequence;
-            SavaOneSeq(Sequence);
-            //AssetDatabase.SaveAssets();     //保存改动的资源
-            AssetDatabase.Refresh();
+            TrySaveCurrentSequence();
+        }
+
+        /// <summary>
+        /// 校验当前窗口 Sequence 后导出。失败弹窗；成功只还原场景 Animator，不改工程 Controller。
+        /// </summary>
+        public static bool TrySaveCurrentSequence()
+        {
+            if (FSequenceEditorWindow.instance == null)
+            {
+                EditorUtility.DisplayDialog("保存失败", "Flux 窗口未打开。", "确定");
+                return false;
+            }
+
+            FSequence sequence = FSequenceEditorWindow.instance.GetSequenceEditor()?.Sequence;
+            if (!TryValidateSequence(sequence, out string error))
+            {
+                EditorUtility.DisplayDialog("保存失败", error, "确定");
+                return false;
+            }
+
+            if (!SavaOneSeq(sequence))
+                return false;
+
+            RestorePreviewAnimators(sequence);
+            AssetDatabase.SaveAssets();
+            return true;
+        }
+
+        /// <summary>
+        /// 导出前检查 SkillId、FSeqSetting 和可导出的 Timeline。
+        /// </summary>
+        public static bool TryValidateSequence(FSequence sequence, out string error)
+        {
+            error = null;
+            if (sequence == null)
+            {
+                error = "没有打开的 Sequence。";
+                return false;
+            }
+
+            if (sequence.FSeqSetting == null)
+            {
+                error = $"Sequence \"{sequence.name}\" 未配置 FSeqSetting。";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(sequence.SkillId))
+            {
+                error = $"Sequence \"{sequence.name}\" 的 SkillId 为空。";
+                return false;
+            }
+
+            if (!int.TryParse(sequence.SkillId, out _))
+            {
+                error = $"Sequence \"{sequence.name}\" 的 SkillId \"{sequence.SkillId}\" 不是整数。";
+                return false;
+            }
+
+            if (sequence.Containers == null || sequence.Containers.Count == 0
+                || sequence.Containers[0] == null || sequence.Containers[0].Timelines.Count == 0)
+            {
+                error = $"Sequence \"{sequence.name}\" 没有可导出的 Timeline（目前只导出第一个 Container）。";
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 保存后把场景 Animator 从预览副本还原到工程 Controller，不改 man_editor.controller。
+        /// </summary>
+        public static void RestorePreviewAnimators(FSequence sequence)
+        {
+            FAnimationTrackInspector.RestorePreviewAnimators(sequence);
         }
 
 
@@ -35,14 +105,20 @@ namespace FluxEditor
         {
             foreach (var item in Selection.objects)
             {
-                var seq = (item as GameObject).GetComponent<FSequence>();
-                if (seq)
+                var seq = (item as GameObject)?.GetComponent<FSequence>();
+                if (seq == null)
+                    continue;
+
+                if (!TryValidateSequence(seq, out string error))
                 {
-                    SavaOneSeq(seq);
+                    EditorUtility.DisplayDialog("保存失败", error, "确定");
+                    continue;
                 }
+
+                SavaOneSeq(seq);
+                RestorePreviewAnimators(seq);
             }
-            AssetDatabase.SaveAssets();     //保存改动的资源
-            AssetDatabase.Refresh();
+            AssetDatabase.SaveAssets();
         }
 
         [MenuItem("GameObject/XiaoCao/选中预制体", priority = 0)]
@@ -94,22 +170,19 @@ namespace FluxEditor
             foreach (var item in tmpSeqFAnimEvents)
             {
                 string path = AssetDatabase.GetAssetPath(item._animationClip);
-                path.LogStr();
-                EditorAssetExtend.MoveToDir(path, "Assets/_Res/Anim/Using");
+                string newPath = "Assets/_Res/Anim/Using/" + Path.GetFileName(path);
+                AssetDatabase.MoveAsset(path, newPath);
             }
         }
 
-        private static void SavaOneSeq(FSequence Sequence)
+        private static bool SavaOneSeq(FSequence Sequence)
         {
-            if (Sequence.FSeqSetting == null)
-            {
-                Debug.LogError("yns FSeqSetting null");
-                return;
-            }
-
             tmpSeqFAnimEvents.Clear();
-            SavaSequnce(Sequence, Sequence.SkillId);
+            if (!SavaSequnce(Sequence, Sequence.SkillId))
+                return false;
+
             CheckAddAnim(Sequence);
+            return true;
         }
 
         private static void CheckAddAnim(FSequence sequence)
@@ -117,7 +190,8 @@ namespace FluxEditor
             AnimatorController ac = sequence.FSeqSetting.targetAnimtorController as AnimatorController;
             if (ac == null)
             {
-                Debug.LogError($"yns FSeqSetting.targetAnimtorController is null ");
+                Debug.LogWarning($"FSeqSetting.targetAnimtorController 为空，已跳过写入 Animator。Sequence={sequence.name}");
+                return;
             }
 
             bool ischage = false;
@@ -202,49 +276,59 @@ namespace FluxEditor
         //    nameSet.IELogStr("动画");
         //}
 
-        private static void SavaSequnce(FSequence Sequence, string SkillId)
+        /// <summary>预览轨：不导出运行时，也不视为未知失败。</summary>
+        static readonly HashSet<Type> IgnoredPreviewEventTypes = new HashSet<Type>
         {
-            string SkillName = SkillId.ToString();
-            if (string.IsNullOrEmpty(SkillName))
-            {
-                Debug.LogError("yns SkillId empty!");
-                return;
-            }
+            typeof(FCommentEvent),
+            typeof(FPlayAudioEvent),
+            typeof(FVolumeAudioEvent),
+            typeof(FGlobalVolumeAudioEvent),
+            typeof(FTimescaleEvent),
+            typeof(FCameraManagerEvent),
+        };
 
+        private static bool SavaSequnce(FSequence Sequence, string SkillId)
+        {
             float Speed = Sequence.Speed;
             int objIndex = 0;
             Transform playerTF = Sequence.Containers[0].Timelines[0]._owner;
 
             int sort = 0;
-
-            //改用ScriptableObject存储
-            SkillAllEventData data = ScriptableObject.CreateInstance<SkillAllEventData>();
+            var unknownEnabledTypes = new List<string>();
+            var skippedPreviewTypes = new HashSet<string>();
             int SkillInt = int.Parse(SkillId);
-            data.SkillId = SkillInt;
 
             List<SkillNewEventData> skillEvents = new List<SkillNewEventData>();
             foreach (var _timeline in Sequence.Containers[0].Timelines)
             {
-                if (objIndex > 0)
-                    SkillName = SkillId + "_" + objIndex;
+                string SkillName = objIndex > 0 ? SkillId + "_" + objIndex : SkillId;
                 SkillNewEventData skillData = new SkillNewEventData();
                 skillData.SkillName = SkillName;
                 skillData.SkillId = SkillInt;
                 skillData.Speed = Speed;
                 skillData.SkillSort = sort;
-                //skillData.IsJumpFinishEstimate = sort == 0; //第一个一般是人物的，默认只加入这个就好
                 foreach (var _track in _timeline.Tracks)
                 {
-                    //对于disactive的轨道不保存
-                    if (_track.enabled)
-                        ReadTrack(skillData, _track, playerTF);
+                    if (!_track.enabled)
+                        continue;
+                    TryReadTrack(skillData, _track, playerTF, unknownEnabledTypes, skippedPreviewTypes);
                 }
                 skillEvents.Add(skillData);
                 objIndex++;
                 sort++;
             }
 
-            //按照开始时间戳进行升序排序
+            if (skippedPreviewTypes.Count > 0)
+                Debug.Log($"[SaveSequenceData] 跳过预览轨 skillId={SkillId}: {string.Join(", ", skippedPreviewTypes)}");
+
+            if (unknownEnabledTypes.Count > 0)
+            {
+                string unknown = string.Join("\n", unknownEnabledTypes);
+                Debug.LogError($"[SaveSequenceData] 未映射的启用轨道，已中止保存 skillId={SkillId}: {unknown}");
+                EditorUtility.DisplayDialog("保存失败", $"存在未映射的启用轨道，已中止保存：\n{unknown}", "确定");
+                return false;
+            }
+
             foreach(SkillNewEventData eventData in skillEvents)
             {
                 eventData.AnimEvents.Events.Sort((a, b) => a.Range.Start.CompareTo(b.Range.Start));
@@ -258,19 +342,35 @@ namespace FluxEditor
                 eventData.EffectEvents.Events.Sort((a, b) => a.Range.Start.CompareTo(b.Range.Start));
             }
 
-            data.skillAllEventDatas = skillEvents;
-
             curAgentName = Sequence.FSeqSetting.agentName;
             string resDir = "Game/Config/" + curAgentName.GetSkillPath();
             FileTool.CheckDirOrCreat(Application.dataPath + "/" + resDir);
 
             string prefabPath = "Assets/" + resDir + SkillId + ".asset";
-            AssetDatabase.CreateAsset(data, prefabPath);
+            SkillAllEventData data = AssetDatabase.LoadAssetAtPath<SkillAllEventData>(prefabPath);
+            bool isNew = data == null;
+            if (isNew)
+                data = ScriptableObject.CreateInstance<SkillAllEventData>();
 
-            UnityEditor.EditorUtility.SetDirty(data);
+            data.SkillId = SkillInt;
+            data.SchemaVersion = SkillAllEventData.CurrentSchemaVersion;
+            data.skillAllEventDatas = skillEvents;
+
+            if (isNew)
+                AssetDatabase.CreateAsset(data, prefabPath);
+            else
+                EditorUtility.SetDirty(data);
+
             AssetDatabase.SaveAssetIfDirty(data);
-            AssetDatabase.Refresh();
             EditorGUIUtility.PingObject(data);
+
+            string notify = isNew ? $"已新建 {prefabPath}" : $"已更新 {prefabPath}";
+            if (FSequenceEditorWindow.instance != null)
+                FSequenceEditorWindow.instance.ShowNotification(new GUIContent(notify));
+            else
+                Debug.Log($"[SaveSequenceData] {notify}");
+
+            return true;
         }
 
         ////获取已保存的动画名
@@ -300,28 +400,28 @@ namespace FluxEditor
         //    return nameList;
         //}
 
-        //playerTF 作为参考坐标
-        private static SkillNewEventData ReadTrack(SkillNewEventData res, FTrack _track, Transform playerTF)
+        //playerTF 作为参考坐标。同类型多轨追加，不再每轨 Clear。
+        private static void TryReadTrack(SkillNewEventData res, FTrack _track, Transform playerTF, List<string> unknownEnabledTypes, HashSet<string> skippedPreviewTypes)
         {
-            //Debug.Log("yns  " + _track.GetEventType());
-            //单个轨道可以有多个event，可以有多个相同轨道
-            //多个相同轨道，每个轨道有多个event，都会放到同一个events中存储
             var trackType = _track.GetEventType();
+            if (IgnoredPreviewEventTypes.Contains(trackType))
+            {
+                skippedPreviewTypes.Add(trackType != null ? trackType.Name : "null");
+                return;
+            }
+
             if (trackType == typeof(FPlayAnimationEvent))
             {
-                res.AnimEvents.Events.Clear();
                 foreach (var ev in _track.Events)
                 {
                     var fEvent = ev as FPlayAnimationEvent;
                     tmpSeqFAnimEvents.Add(fEvent);
                     var xce = ToXCAnimEvent(fEvent);
-                    //xce.Speed = res.Speed;
                     res.AnimEvents.Events.Add(xce);
                 }
             }
             else if (trackType == typeof(FTweenPositionEvent))
             {
-                res.MoveEvents.Events.Clear();
                 FTweenPositionEvent lastEvent = null;
                 foreach (var ev in _track.Events)
                 {
@@ -330,7 +430,6 @@ namespace FluxEditor
                     SetLineEventTween_Ex(xce, fEvent);
                     if (lastEvent != null)
                     {
-                        //位移事件之间的间隙
                         xce.StartDetal = xce.StartVec - lastEvent.Tween.To;
                     }
                     res.MoveEvents.Events.Add(xce);
@@ -339,7 +438,6 @@ namespace FluxEditor
             }
             else if (trackType == typeof(FTweenScaleEvent))
             {
-                res.ScaleEvents.Events.Clear();
                 foreach (var ev in _track.Events)
                 {
                     var fEvent = ev as FTweenScaleEvent;
@@ -350,7 +448,6 @@ namespace FluxEditor
             }
             else if (trackType == typeof(FTweenRotationEvent))
             {
-                res.RotateEvents.Events.Clear();
                 foreach (var ev in _track.Events)
                 {
                     var fEvent = ev as FTweenRotationEvent;
@@ -363,7 +460,6 @@ namespace FluxEditor
             {
                 if (_track.Events.Count == 1)
                 {
-                    //ObjEvent 一个track默认只有一个
                     var fEvent = _track.Events[0] as FPlayParticleEvent;
                     var xce = TOXCObjEvent(fEvent, playerTF);
                     xce.IsEffect = true;
@@ -382,7 +478,6 @@ namespace FluxEditor
             {
                 if (_track.Events.Count == 1)
                 {
-                    //ObjEvent 一个track默认只有一个
                     var fEvent = _track.Events[0] as FObjectEvent;
                     var xce = TOXCObjEvent(fEvent, playerTF);
                     if (res.ObjEvent != null)
@@ -416,7 +511,6 @@ namespace FluxEditor
             }
             else if (trackType == typeof(FTriggerRangeEvent))
             {
-                res.TriggerEvents.Events.Clear();
                 foreach (var ev in _track.Events)
                 {
                     var fEvent = ev as FTriggerRangeEvent;
@@ -426,7 +520,6 @@ namespace FluxEditor
             }
             else if (trackType == typeof(FSkillInputEvent))
             {
-
                 foreach (var ev in _track.Events)
                 {
                     var fEvent = ev as FSkillInputEvent;
@@ -445,10 +538,8 @@ namespace FluxEditor
             }
             else
             {
-                Debug.Log($"yns  no type " + trackType);
+                unknownEnabledTypes.Add(trackType != null ? trackType.Name : "null");
             }
-
-            return res;
         }
 
         public static XCEffectEventData TOXCEffectEvent(FPlayTagEvent fe)
@@ -523,9 +614,9 @@ namespace FluxEditor
             return fe;
         }
 
-        /// <summary>从 SkillAllEventData 将 SkillInputEvents 同步回 FSequence 的 FInputTrack</summary>
-        [MenuItem("GameObject/XiaoCao/从 Asset 加载 SkillInputEvents", priority = 1)]
-        private static void LoadSkillInputEventsFromAsset()
+        /// <summary>从 SkillAllEventData 将 Input / Trigger / Effect 同步回 FSequence，不重建 Anim / Obj。</summary>
+        [MenuItem("GameObject/XiaoCao/从 Asset 同步 Input/Trigger/Effect", priority = 1)]
+        private static void LoadCombatEventsFromAsset()
         {
             var seq = Selection.activeGameObject?.GetComponent<FSequence>();
             if (seq == null)
@@ -552,64 +643,115 @@ namespace FluxEditor
                 Debug.LogWarning("FSequence 无有效 Container/Timeline。");
                 return;
             }
-            int synced = 0;
+
+            Undo.RegisterCompleteObjectUndo(seq, "Load Input/Trigger/Effect");
+            int inputCount = 0;
+            int triggerCount = 0;
+            int effectCount = 0;
             for (int i = 0; i < skillData.skillAllEventDatas.Count && i < container.Timelines.Count; i++)
             {
                 var skillEventData = skillData.skillAllEventDatas[i];
-                if (skillEventData.SkillInputEvents?.Events == null || skillEventData.SkillInputEvents.Events.Count == 0)
-                    continue;
                 var timeline = container.Timelines[i];
-                FTrack inputTrack = null;
-                foreach (var t in timeline.Tracks)
-                {
-                    if (t.GetEventType() == typeof(FSkillInputEvent))
-                    {
-                        inputTrack = t;
-                        break;
-                    }
-                }
-                if (inputTrack == null)
-                {
-                    inputTrack = FTrack.Create<FSkillInputEvent>();
-                    timeline.Add(inputTrack);
-                }
-                var toRemove = new List<FEvent>();
-                foreach (var ev in inputTrack.Events)
-                    if (ev is FSkillInputEvent) toRemove.Add(ev);
-                foreach (var ev in toRemove)
-                {
-                    inputTrack.Remove(ev);
-                    if (ev.gameObject != null)
-                        Object.DestroyImmediate(ev.gameObject);
-                }
-                foreach (var xce in skillEventData.SkillInputEvents.Events)
-                {
-                    var fe = TOFSkillInputEvent(xce);
-                    inputTrack.Add(fe);
-                    synced++;
-                }
+                inputCount += SyncTrackEvents(timeline, skillEventData.SkillInputEvents?.Events, TOFSkillInputEvent);
+                triggerCount += SyncTrackEvents(timeline, skillEventData.TriggerEvents?.Events, TOFTriggerEvent);
+                effectCount += SyncTrackEvents(timeline, skillEventData.EffectEvents?.Events, TOFEffectEvent);
             }
-            Undo.RegisterCompleteObjectUndo(seq, "Load SkillInputEvents");
             EditorUtility.SetDirty(seq);
-            Debug.Log($"已从 Asset 加载 {synced} 个 SkillInputEvent（含 InputTimeout）。");
+            Debug.Log($"已从 Asset 同步 Input={inputCount} Trigger={triggerCount} Effect={effectCount}（SchemaVersion={skillData.SchemaVersion}）。");
         }
 
+        /// <summary>将 SO 事件列表灌到 Timeline 上第一条匹配类型轨；没有则新建。空列表不改现有轨。</summary>
+        static int SyncTrackEvents<TEvent, TData>(FTimeline timeline, List<TData> events, Func<TData, TEvent> toF)
+            where TEvent : FEvent
+        {
+            if (events == null || events.Count == 0)
+                return 0;
+
+            FTrack track = null;
+            foreach (var t in timeline.Tracks)
+            {
+                if (t.GetEventType() == typeof(TEvent))
+                {
+                    track = t;
+                    break;
+                }
+            }
+            if (track == null)
+            {
+                track = FTrack.Create<TEvent>();
+                timeline.Add(track);
+            }
+
+            var toRemove = new List<FEvent>();
+            foreach (var ev in track.Events)
+            {
+                if (ev is TEvent)
+                    toRemove.Add(ev);
+            }
+            foreach (var ev in toRemove)
+            {
+                track.Remove(ev);
+                if (ev.gameObject != null)
+                    Object.DestroyImmediate(ev.gameObject);
+            }
+
+            int n = 0;
+            for (int i = 0; i < events.Count; i++)
+            {
+                track.Add(toF(events[i]));
+                n++;
+            }
+            return n;
+        }
+
+        /// <summary>Flux 触发轨 → 运行时数据，成对拷贝盒体、段索引、HitGroupId、EffectIds。</summary>
         public static XCTriggerEventData TOXCTriggerEvent(FTriggerRangeEvent fe)
         {
             var xce = new XCTriggerEventData();
             xce.Range = new XCRange(fe.Start, fe.End);
             xce.IsLocalTrueOnly = fe.isLocalTrueOnly;
-            EGamePlay.Combat.CubeRange range = new EGamePlay.Combat.CubeRange();
-            range.pos = fe.cubeRange.pos;
-            range.rotation = fe.cubeRange.rotation;
-            range.size = fe.cubeRange.size;
-            range.radius = fe.cubeRange.radius;
-            range.height = fe.cubeRange.height;
-            range.colliderType = fe.cubeRange.colliderType;
-            xce.CubeRange = range;
+            xce.CubeRange = CopyCubeRange(fe.cubeRange);
             xce.DamageSegmentIndex = fe.DamageSegmentIndex;
+            xce.HitGroupId = fe.HitGroupId;
             xce.EffectIds = fe.EffectIds ?? new List<int>();
             return xce;
+        }
+
+        /// <summary>从 XCTriggerEventData 反转为 FTriggerRangeEvent，用于从 Asset 灌回 Sequence。</summary>
+        public static FTriggerRangeEvent TOFTriggerEvent(XCTriggerEventData xce)
+        {
+            var fe = FEvent.Create<FTriggerRangeEvent>(new FrameRange(xce.Range.Start, xce.Range.End));
+            fe.isLocalTrueOnly = xce.IsLocalTrueOnly;
+            fe.cubeRange = CopyCubeRange(xce.CubeRange);
+            fe.DamageSegmentIndex = xce.DamageSegmentIndex;
+            fe.HitGroupId = xce.HitGroupId;
+            fe.EffectIds = xce.EffectIds != null ? new List<int>(xce.EffectIds) : new List<int>();
+            return fe;
+        }
+
+        /// <summary>从 XCEffectEventData 反转为 FPlayTagEvent，用于从 Asset 灌回 Sequence。</summary>
+        public static FPlayTagEvent TOFEffectEvent(XCEffectEventData xce)
+        {
+            var fe = FEvent.Create<FPlayTagEvent>(new FrameRange(xce.Range.Start, xce.Range.End));
+            fe.isLocalTrueOnly = xce.IsLocalTrueOnly;
+            fe.SkillTagList = xce.SkillTagList != null ? new List<string>(xce.SkillTagList) : new List<string>();
+            fe.NormalEffectIds = xce.NormalEffectIds != null ? new List<int>(xce.NormalEffectIds) : new List<int>();
+            fe.SkillEffectIds = xce.SkillEffectIds != null ? new List<int>(xce.SkillEffectIds) : new List<int>();
+            return fe;
+        }
+
+        static EGamePlay.Combat.CubeRange CopyCubeRange(EGamePlay.Combat.CubeRange src)
+        {
+            var range = new EGamePlay.Combat.CubeRange();
+            if (src == null)
+                return range;
+            range.pos = src.pos;
+            range.rotation = src.rotation;
+            range.size = src.size;
+            range.radius = src.radius;
+            range.height = src.height;
+            range.colliderType = src.colliderType;
+            return range;
         }
 
         public static XCSwitchEventData TOXCSwitchEvent(FSwitchEvent fe)
@@ -701,6 +843,7 @@ namespace FluxEditor
             xce.StartOffset = fe._startOffset * XCSetting.FramePerSec;
             xce.BlenderLength = fe._blendLength * XCSetting.FramePerSec;
             xce.IsBackToIdle = fe.isBackToIdle;
+            xce.ExitPolicy = fe.ExitPolicy;
             xce.AnimName = fe._animationClip.name;
             return xce;
         }

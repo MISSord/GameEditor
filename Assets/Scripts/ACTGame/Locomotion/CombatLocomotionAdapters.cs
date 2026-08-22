@@ -14,7 +14,7 @@ namespace ACTGameEditor.Locomotion
         public bool CanMove => _entity != null && _entity.IsCanMove;
     }
 
-    /// <summary>把移动状态写回 CombatEntity。</summary>
+    /// <summary>把移动意图报给 CombatStateDirector，不直接写 CurState。</summary>
     public sealed class CombatLocomotionStateSink : ILocomotionStateSink
     {
         readonly CombatEntity _entity;
@@ -25,17 +25,7 @@ namespace ACTGameEditor.Locomotion
         {
             if (_entity == null)
                 return;
-
-            if (isMoving)
-            {
-                _entity.CurMoveState = isRun ? MoveTypeEnum.Run : MoveTypeEnum.Idle;
-                _entity.CurState = PlayerStateEnum.Moving;
-            }
-            else
-            {
-                _entity.CurMoveState = MoveTypeEnum.Idle;
-                _entity.CurState = PlayerStateEnum.Idle;
-            }
+            _entity.StateDirector?.NotifyLocomotion(isMoving, isRun);
         }
     }
 

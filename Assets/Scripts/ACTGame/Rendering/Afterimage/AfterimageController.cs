@@ -32,7 +32,7 @@ namespace ACTGameEditor
         readonly GhostSource[] _sources = new GhostSource[MaxSources];
         readonly GhostSlot[] _slots = new GhostSlot[MaxSlots];
         readonly PendingCapture[] _pending = new PendingCapture[MaxSlots];
-        readonly MaterialPropertyBlock _mpb = new MaterialPropertyBlock();
+        MaterialPropertyBlock _mpb;
 
         Transform _afterimageRoot;
         ObjectFxController _objectFx;
@@ -48,6 +48,7 @@ namespace ACTGameEditor
 
         void Awake()
         {
+            _mpb = new MaterialPropertyBlock();
             _objectFx = GetComponent<ObjectFxController>();
             _activeProfile = defaultProfile ?? new AfterimageProfile();
             EnsureGhostMaterial();

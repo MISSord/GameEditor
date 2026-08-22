@@ -15,9 +15,6 @@ namespace EGamePlay
             set
             {
                 _name = value;
-//#if !NOT_UNITY
-//                GetComponent<GameObjectComponent>().OnNameChanged(name);
-//#endif
             }
         }
         public long InstanceId { get; set; }
@@ -45,7 +42,6 @@ namespace EGamePlay
         {
 #if !NOT_UNITY
             if (this is ECSNode) { }
-            else if (this.GetType().Name.Contains("OnceWaitTimer")) { }
             //else AddComponent<GameObjectComponent>();
 #endif
         }

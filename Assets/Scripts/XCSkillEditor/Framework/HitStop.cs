@@ -21,6 +21,7 @@ public class HitStop : MonoSingleton<HitStop>
     {
         if (!isEnbleHitShop || time < 0f) return;
         TimeScaleEffectManager.AddHitStop(time);
+        CameraPostFxController.TryPlayHitStopImpact(time);
     }
 
     /// <summary> 触发命中顿帧（可选相机震动）。 </summary>
@@ -28,6 +29,7 @@ public class HitStop : MonoSingleton<HitStop>
     {
         if (!isEnbleHitShop || time <= 0f) return;
         TimeScaleEffectManager.AddHitStop(time);
+        CameraPostFxController.TryPlayHitStopImpact(time);
         //if (isShake && CurrentPlayerData.shakeLengthRate > 0)
         //    CameraController.instance.CamShake(shakeTime, shakeLength, shakeCount);
     }

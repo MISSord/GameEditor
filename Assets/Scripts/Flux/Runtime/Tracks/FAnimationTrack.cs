@@ -11,16 +11,25 @@ namespace Flux
         public override void OnEditorInit()
         {
             base.OnEditorInit();
-            //_animatorController = Owner.GetComponent<Animator>()?.runtimeAnimatorController;
+            if (Owner == null)
+                return;
+
             if (_animatorController == null)
                 _animatorController = Owner.GetComponentInChildren<Animator>()?.runtimeAnimatorController;
             _layerId = 0;
-            (Events[0] as FPlayAnimationEvent)._animationClip = _animatorController.animationClips[0];
+            if (_animatorController != null && Events.Count > 0)
+            {
+                var playEvt = Events[0] as FPlayAnimationEvent;
+                if (playEvt != null && _animatorController.animationClips != null && _animatorController.animationClips.Length > 0)
+                    playEvt._animationClip = _animatorController.animationClips[0];
+            }
         }
         public static FAnimationTrackCache GetAnimationPreview(FSequence sequence, Transform owner)
         {
-            Dictionary<int, FAnimationTrackCache> sequencePreviews = null;
+            if (sequence == null || owner == null)
+                return null;
 
+            Dictionary<int, FAnimationTrackCache> sequencePreviews = null;
             FAnimationTrackCache animationTrackCache = null;
 
             if (_animPreviews.TryGetValue(sequence.GetInstanceID(), out sequencePreviews))
@@ -38,6 +47,9 @@ namespace Flux
 
         private static FAnimationTrackCache GetAnimationPreview(FAnimationTrack animTrack, bool createIfDoesntExist)
         {
+            if (animTrack == null || animTrack.Sequence == null || animTrack.Owner == null)
+                return null;
+
             Dictionary<int, FAnimationTrackCache> sequencePreviews = null;
             if (!_animPreviews.TryGetValue(animTrack.Sequence.GetInstanceID(), out sequencePreviews))
             {
@@ -61,11 +73,17 @@ namespace Flux
 
         private static void DeleteAnimationPreview(FAnimationTrack animTrack)
         {
+            if (animTrack == null || animTrack.Sequence == null || animTrack.Owner == null)
+                return;
+
             Dictionary<int, FAnimationTrackCache> sequencePreviews = null;
             if (_animPreviews.TryGetValue(animTrack.Sequence.GetInstanceID(), out sequencePreviews))
             {
-                sequencePreviews[animTrack.Owner.GetInstanceID()].Clear();
-                sequencePreviews.Remove(animTrack.Owner.GetInstanceID());
+                int ownerId = animTrack.Owner.GetInstanceID();
+                FAnimationTrackCache cache;
+                if (sequencePreviews.TryGetValue(ownerId, out cache) && cache != null)
+                    cache.Clear();
+                sequencePreviews.Remove(ownerId);
             }
         }
 
@@ -125,12 +143,19 @@ namespace Flux
 
         public override void Init()
         {
+            if (Owner == null)
+            {
+                base.Init();
+                return;
+            }
+
             if (Owner.GetComponent<Animator>() == null)
                 Owner.gameObject.AddComponent<Animator>();
 
             base.Init();
 
-            _snapshot.TakeChildSnapshots();
+            if (_snapshot != null)
+                _snapshot.TakeChildSnapshots();
         }
 
         public override void Stop()
@@ -138,7 +163,12 @@ namespace Flux
             if (HasCache && Cache.Track == this)
             {
                 ((FAnimationTrackCache)Cache).StopPlayback();
-                Owner.GetComponent<Animator>().enabled = false;
+                if (Owner != null)
+                {
+                    Animator animator = Owner.GetComponent<Animator>();
+                    if (animator != null)
+                        animator.enabled = false;
+                }
             }
 
             base.Stop();
@@ -154,11 +184,14 @@ namespace Flux
 
         public override void UpdateEvents(int frame, float time)
         {
+            if (Owner == null)
+                return;
+
             if (Sequence.Speed != 1 && !HasCache)
                 Owner.GetComponent<Animator>().speed = Sequence.Speed;
             if (HasCache)
             {
-                if (Cache.Track == this) // only one of them needs to set the playback
+                if (Cache.Track == this)
                     GetPreviewAt(time);
             }
             else
@@ -167,7 +200,12 @@ namespace Flux
 
         public override void CreateCache()
         {
+            if (!CanCreateCache())
+                return;
+
             FAnimationTrackCache preview = GetAnimationPreview(this);
+            if (preview == null)
+                return;
             preview.Build(true);
         }
 
@@ -186,7 +224,7 @@ namespace Flux
 
         public override bool CanCreateCache()
         {
-            if (_animatorController == null)
+            if (Owner == null || _animatorController == null)
                 return false;
 
             List<FEvent> evts = Events;

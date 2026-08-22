@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace GameUtils
+namespace EGamePlay
 {
     public class PowerModel
     {

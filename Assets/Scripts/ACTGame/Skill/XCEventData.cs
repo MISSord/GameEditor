@@ -108,8 +108,19 @@ namespace ACTGameEditor
     public class XCAnimEventData : XCEventData
     {
         public string AnimName;
+        /// <summary>混合时长（秒），走 CrossFadeInFixedTime。</summary>
         public float BlenderLength = 0;
+        /// <summary>从 clip 内偏移起播（秒）。</summary>
         public float StartOffset = 0;
+        /// <summary>轴自然结束时是否交回 Locomotion；Hold 则保持末帧。</summary>
+        public AnimExitPolicy ExitPolicy = AnimExitPolicy.Locomotion;
+        /// <summary>本段是否把动画 Root Motion 写入 CharacterController（跟 Token；无曲线则无位移）。</summary>
+        public bool UseRootMotion = true;
+        /// <summary>本段技能全控位移时压制重力（浮空/动画带 Y 时勾选）。</summary>
+        public bool SuppressGravity;
+        /// <summary>
+        /// 已废弃：请用 ExitPolicy。保留仅兼容旧资源；运行时若 ExitPolicy 为默认且本字段为 false，仍按 Locomotion。
+        /// </summary>
         public bool IsBackToIdle;
     }
 
@@ -156,6 +167,8 @@ namespace ACTGameEditor
         public CubeRange CubeRange;
         /// <summary>该触发对应技能的第几段伤害（从 1 开始），0 表示未指定。</summary>
         public int DamageSegmentIndex = 0;
+        /// <summary>同一击多盒共用的组。0 表示按该触发事件实例去重。</summary>
+        public int HitGroupId = 0;
         /// <summary>触发时执行的效果 ID；为空时触发该技能下全部效果。</summary>
         public List<int> EffectIds = new List<int>();
     }
@@ -203,7 +216,7 @@ namespace ACTGameEditor
         //技能释放Buff判断
         public List<string> RequiredTags;
         public List<string> BlockedTags;
-        /// <summary>预输入有效时长（秒），0=使用 NormalActPlayer.InputTimeout</summary>
+        /// <summary>窗边预输入寿命（秒）。≤0 时用 NormalActPlayer.ComboBufferTimeout。</summary>
         public float InputTimeout;
     }
 

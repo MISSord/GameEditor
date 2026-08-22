@@ -81,6 +81,8 @@ namespace EGamePlay.Combat
             "Buff.UnStopped",
             "Buff.Fire.Normal",
             "Buff.Fire.Hight",
+            "Stance.Form",
+            "Locomotion.Airborne",
         };
     }
 }

@@ -1,5 +1,6 @@
 using EGamePlay;
 using EGamePlay.Combat;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,6 +13,7 @@ namespace ACTGameEditor
 
         private readonly List<XCEvent> _events = new List<XCEvent>(64);
         private readonly Dictionary<int, BuffModifySetting> _effectSettingsById = new Dictionary<int, BuffModifySetting>(16);
+        private readonly HashSet<HitKey> _resolvedHits = new HashSet<HitKey>();
         private ActSkillRunner _parentRunner;
 
         private RunnerState _state;
@@ -37,6 +39,21 @@ namespace ACTGameEditor
             State = RunnerState.Update;
             this.CastEuler = CastEuler;
             this.CastPos = CastPos;
+            _resolvedHits.Clear();
+            // 池化复用时必须重置时间，否则首帧会跳过整段时间轴
+            _time = InitialTimeOffset;
+            _frame = 0;
+            if (_events.Count > 0)
+            {
+                for (int i = _events.Count - 1; i >= 0; i--)
+                {
+                    var ev = _events[i];
+                    ev.OnReset();
+                    PoolManager.Instance.Return(ev);
+                }
+                _events.Clear();
+            }
+            ObjEvent = null;
         }
 
         public override void Update(float deltaTime)
@@ -69,7 +86,7 @@ namespace ACTGameEditor
 
             _time += deltaTime * Speed; //按照速度进行加减速
             //帧数是用时间累加计算出来的 delta不是稳定的
-            //当前的1帧,指的的是动画帧,即1/30s,而不是update的一帧
+            //当前的1帧,指的的是逻辑帧,即1/30s,而不是update的一帧
             _frame = Mathf.FloorToInt(_time * XCSetting.FrameRate);
 
             bool isFinish = true;
@@ -147,6 +164,7 @@ namespace ACTGameEditor
                 PoolManager.Instance.Return(ev);
             }
             _events.Clear();
+            _resolvedHits.Clear();
             _parentRunner = null;
             _frame = 0;
             _time = InitialTimeOffset;
@@ -165,32 +183,68 @@ namespace ACTGameEditor
             }
         }
 
-        //碰撞执行后回调
-        public void OnTriggerEvent(CollisionAction aciton)
+        /// <summary>
+        /// 命中过滤：指定目标、HitGroup 去重、子轴仍在 Update。
+        /// 不扣血、不 Break；通过后由 Pipeline 再落地效果。
+        /// </summary>
+        public HitResultKind TryAcceptHit(CombatEntity defender, XCTriggerEvent triggerEvent)
         {
-            if (IsDisposed)
-            {
+            if (IsDisposed || State != RunnerState.Update)
+                return HitResultKind.Ignored;
+            if (defender == null || defender.IsDisposed)
+                return HitResultKind.Ignored;
+            if (triggerEvent == null || triggerEvent.TriggerEventData == null)
+                return HitResultKind.Ignored;
+
+            CombatEntity designated = _parentRunner?.InputTarget;
+            if (designated != null && defender != designated)
+                return HitResultKind.Ignored;
+
+            int group = triggerEvent.TriggerEventData.HitGroupId;
+            if (group == 0)
+                group = triggerEvent.HitInstanceId;
+
+            if (!_resolvedHits.Add(new HitKey(group, defender.Id)))
+                return HitResultKind.Ignored;
+
+            return HitResultKind.Land;
+        }
+
+        /// <summary>对已通过过滤的命中执行效果列表。</summary>
+        public void ApplyAcceptedHit(CombatEntity defender, XCTriggerEvent triggerEvent)
+        {
+            if (IsDisposed || defender == null || defender.IsDisposed)
                 return;
-            }
+            if (triggerEvent == null || triggerEvent.TriggerEventData == null)
+                return;
 
-            CombatEntity targetEntity = _parentRunner?.InputTarget;
-            if (targetEntity != null)
+            TriggerEffectList(triggerEvent.TriggerEventData.EffectIds, defender,
+                triggerEvent.TriggerEventData.DamageSegmentIndex);
+        }
+
+        /// <summary>命中后处理：指定目标命中后结束该子轴。受击打断等后续在此扩展。</summary>
+        public void PostAcceptedHit()
+        {
+            if (_parentRunner?.InputTarget != null)
+                State = RunnerState.Break;
+        }
+
+        private readonly struct HitKey : IEquatable<HitKey>
+        {
+            public readonly int Group;
+            public readonly long DefenderId;
+
+            public HitKey(int group, long defenderId)
             {
-                //如果有技能目标而当前击中的不是，直接无视
-                if (aciton.Target != targetEntity)
-                {
-                    return;
-                }
+                Group = group;
+                DefenderId = defenderId;
             }
 
-            TriggerEffectList(aciton.triggerEvent.TriggerEventData.EffectIds, aciton.Target,
-                aciton.triggerEvent.TriggerEventData.DamageSegmentIndex);
+            public bool Equals(HitKey other) => Group == other.Group && DefenderId == other.DefenderId;
 
-            //完成触发，进入打断状态，等下一帧完成全部暂停与回收
-            if (targetEntity != null)
-            {
-                this.State = RunnerState.Break;
-            }
+            public override bool Equals(object obj) => obj is HitKey other && Equals(other);
+
+            public override int GetHashCode() => Group * 397 ^ DefenderId.GetHashCode();
         }
 
         /// <summary>
@@ -210,7 +264,7 @@ namespace ACTGameEditor
             if (effectIds.Count == 0)
             {
                 for (int i = 0; i < settings.Count; i++)
-                    SkillInlineBuffEffectProcessor.Execute(settings[i], owner, target, ability, damageSegmentIndex);
+                    EffectApplier.ApplySkillInline(settings[i], owner, target, ability, damageSegmentIndex);
                 return;
             }
 
@@ -219,7 +273,7 @@ namespace ACTGameEditor
                 if (effectId <= 0) continue;
                 if (_effectSettingsById.TryGetValue(effectId, out var setting))
                 {
-                    SkillInlineBuffEffectProcessor.Execute(setting, owner, target, ability, damageSegmentIndex);
+                    EffectApplier.ApplySkillInline(setting, owner, target, ability, damageSegmentIndex);
                 }
             }
         }

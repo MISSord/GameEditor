@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: 11002
   m_EditorClassIdentifier: 
   SkillId: 11002
+  SchemaVersion: 1
   TargetInputType: 3
   skillAllEventDatas:
   - SkillId: 11002
@@ -70,6 +71,8 @@ MonoBehaviour:
           radius: 0
           height: 0
           colliderType: 0
+        DamageSegmentIndex: 0
+        HitGroupId: 0
         EffectIds: 
       - Range:
           _start: 16
@@ -82,11 +85,13 @@ MonoBehaviour:
           radius: 0
           height: 0
           colliderType: 0
+        DamageSegmentIndex: 0
+        HitGroupId: 0
         EffectIds: 
     SkillInputEvents:
       Events:
       - Range:
-          _start: 36
+          _start: 28
           _end: 40
         IsLocalTrueOnly: 0
         InputDataList:
@@ -99,12 +104,4 @@ MonoBehaviour:
           BlockedTags: []
           InputTimeout: 0
     EffectEvents:
-      Events:
-      - Range:
-          _start: 0
-          _end: 36
-        IsLocalTrueOnly: 0
-        NormalEffectIds: 
-        SkillEffectIds: 
-        SkillTagList:
-        - Buff.UnStopped
+      Events: []
