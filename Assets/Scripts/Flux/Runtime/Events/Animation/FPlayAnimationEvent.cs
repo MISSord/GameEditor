@@ -25,7 +25,11 @@ namespace Flux
 		[HideInInspector]
 		public int _stateHash;
 
+		[Tooltip("已废弃：请用 ExitPolicy。旧资源仍可读。")]
 		public bool isBackToIdle;
+
+		[Tooltip("轴自然结束：Locomotion=交回移动；Hold=保持末帧")]
+		public EGamePlay.Combat.AnimExitPolicy ExitPolicy = EGamePlay.Combat.AnimExitPolicy.Locomotion;
 
 		public float _speed = 1;
 

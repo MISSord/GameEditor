@@ -63,67 +63,18 @@ namespace EGamePlay.Combat
         /// </summary>
         private bool TryConsumeResourceBeforeSpell()
         {
-            if (SkillAbility == null || SkillAbility.Definition == null)
-                return true;
-
-            var config = SkillAbility.Definition.Config;
-            if (config == null)
-                return true;
-
-            // 未配置消耗（约定 CostAttrType<=0 时不做资源校验）
-            if (config.CostAttrType <= 0)
-                return true;
-
-            var caster = Creator;
-            if (caster == null || caster.IsDisposed)
+            if (!AbilityActivationGate.TryGetResourceCost(Creator, SkillAbility, out int need, out var attrType))
                 return false;
-
-            var attrType = (AttributeType)config.CostAttrType;
-            var formulaType = (ResourceFormulaType)config.CostFormulaType;
-            float a = config.CostA;
-            float b = config.CostB;
-
-            // 计算本次需要消耗的资源值（正数表示需求量）
-            int need;
-            if (formulaType == ResourceFormulaType.Flat)
-            {
-                need = (int)a;
-            }
-            else
-            {
-                var vital = caster.CurrentVital;
-                if (vital == null)
-                    return false;
-
-                var ctx = new ResourceFormulaContext
-                {
-                    Caster = caster,
-                    Target = caster,
-                    FormulaType = formulaType,
-                    AttrOrVitalType = attrType,
-                    A = a,
-                    B = b,
-                    CeilResult = true,
-                };
-                need = ResourceFormula.Calculate(ctx);
-            }
-
             if (need <= 0)
                 return true;
 
-            // 检查是否有足够资源
-            if (caster.CurrentVital == null)
+            if (Creator.CurrentVital == null)
                 return false;
-            float currentValue = caster.CurrentVital.GetVitalValue(attrType);
-            if (currentValue < need)
-            {
-                // 资源不足：这里暂不触发额外事件，仅阻止施法
+            if (Creator.CurrentVital.GetVitalValue(attrType) < need)
                 return false;
-            }
 
-            // 通过 ResourceAction 扣除资源（负数表示消耗）
-            if (caster.ResourceAbility != null &&
-                caster.ResourceAbility.TryMakeAction(out var resourceAction))
+            if (Creator.ResourceAbility != null &&
+                Creator.ResourceAbility.TryMakeAction(out var resourceAction))
             {
                 var effect = new CureEffect
                 {
@@ -135,11 +86,11 @@ namespace EGamePlay.Combat
                 {
                     EffectConfig = effect,
                     SourceAbility = SkillAbility,
-                    TriggerSource = caster,
-                    Target = caster,
+                    TriggerSource = Creator,
+                    Target = Creator,
                 };
 
-                resourceAction.Target = caster;
+                resourceAction.Target = Creator;
                 resourceAction.TriggerContext = context;
                 resourceAction.ApplyCure();
             }
@@ -150,21 +101,55 @@ namespace EGamePlay.Combat
         public void FinishAction()
         {
 #if UNITY_EDITOR
-            GameLog.CombatError($"FinishAction {ActSkillRunner.Id} {SkillAbility.SkillID}");
+            GameLog.CombatError($"FinishAction {ActSkillRunner?.Id} {SkillAbility?.SkillID}");
 #endif
+            // ParentFinish 后 SpellingExecution 会故意残留到后摇结束；此处必须清掉，
+            // 否则 Runner 回池再被取出时，BreakSkill(SpellingExecution) 会打断「自己」。
+            bool releasedAxis = false;
+            if (Creator != null && !Creator.IsDisposed && ActSkillRunner != null
+                && Creator.SpellingExecution == ActSkillRunner)
+            {
+                Creator.SpellingExecution = null;
+                releasedAxis = true;
+            }
+
+            // 仅当本轴是最后占轴者时退出 Skill 槽；被新技能顶替时 source 不匹配会空操作
+            if (Creator != null && !Creator.IsDisposed && ActSkillRunner != null)
+            {
+                // Tag 必须按本轴 Source 清；即使已被顶替（releasedAxis=false）
+                Creator.PopTagsFrom(TagSource.Skill(ActSkillRunner.Id));
+                if (releasedAxis)
+                    Creator.StateDirector?.ExitSkill(ActSkillRunner.Id);
+            }
+
             SkillAbility = null;
             InputTarget = null;
             Creator = null;
             Target = null;
+            ActSkillRunner = null;
             _isPostProcess = false;
             Entity.Destroy(this);
         }
 
         public void SpellSkill(bool actionOccupy = true)
         {
+            if (Creator == null || Creator.IsDisposed)
+            {
+                FinishAction();
+                return;
+            }
+
+            if (SkillAbility?.SkillData == null)
+            {
+#if UNITY_EDITOR
+                GameLog.CombatError($"[SpellAction] SkillData 为空 skillId={SkillAbility?.SkillID}");
+#endif
+                FinishAction();
+                return;
+            }
+
             PreProcess();
 
-            // 施法前资源校验与扣除，不满足则直接结束本次行动
             if (!TryConsumeResourceBeforeSpell())
             {
                 FinishAction();
@@ -180,14 +165,6 @@ namespace EGamePlay.Combat
             runner.AbilityEntity = SkillAbility;
             runner.Sort = Sort;
             var skillData = SkillAbility.SkillData;
-            if (skillData == null)
-            {
-#if UNITY_EDITOR
-                GameLog.CombatError($"[SpellAction] SkillData 为空 skillId={SkillAbility.SkillID}");
-#endif
-                FinishAction();
-                return;
-            }
             foreach (var subSkill in skillData.skillAllEventDatas)
             {
                 XCNewEventsRunner subRunner = runner.AddChild<XCNewEventsRunner>();
@@ -195,12 +172,18 @@ namespace EGamePlay.Combat
                 runner.SubRuners.Add(subRunner);
             }
             runner.StartUpdate();
-            //打断之前的 这里未来可以拓展，按照当前状态是否打断之前的技能
-            if (Creator.SpellingExecution != null)
-                Creator.SpellingExecution.BreakSkill();
+
+            ActSkillRunner previous = Creator.SpellingExecution;
+            // 必须排除 previous == runner（池化复用同一实例时），否则会 Break 掉刚 Start 的自己
+            if (previous != null && previous != runner && !previous.IsDisposed)
+                previous.BreakSkill();
+
             Creator.SpellingExecution = runner;
-            Creator.CurState = PlayerStateEnum.PlayerSkill;
+            Creator.StateDirector?.EnterSkill(runner.Id);
             ActSkillRunner = runner;
+
+            if (CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate)
+                Creator.GetComponent<SpellComponent>()?.CDTimer?.StartCooldown(SkillAbility.SkillID);
         }
 
         public void StartRuner(XCNewEventsRunner runner, CombatEntity skillOwner, SkillNewEventData skillData, Vector3 castEuler, Vector3 castPos)
@@ -285,17 +268,15 @@ namespace EGamePlay.Combat
             Creator.TriggerActionPoint(ActionPointType.PreSpell, this);
         }
 
-        //后置处理
+        //后置处理（ParentFinish：逻辑上可接招/可切人，时间轴可继续播后摇）
         private void PostProcess()
         {
             _isPostProcess = true;
             Creator.TriggerActionPoint(ActionPointType.PostSpell, this);
-            //如果是当前这个执行器，清空，如果不是，说明有其他技能正在跑，不移除
-            if(Creator.SpellingExecution == ActSkillRunner)
-            {
-                Creator.SpellingExecution = null;
-            }
-            Creator.CurState = PlayerStateEnum.Idle;
+            // 不清 SpellingExecution、不改 CurState 为 Idle：
+            // - SpellingExecution 残留供下一段 Break，并锁 IsCanMove
+            // - CurState 保持 PlayerSkill，避免后摇阶段又能走
+            // 真正结束时由 FinishAction 清空轴并回到 Idle
         }
     }
 }

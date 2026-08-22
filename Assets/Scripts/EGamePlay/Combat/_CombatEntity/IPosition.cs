@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
-using ET;
 using System;
 #if EGAMEPLAY_ET
 using Vector3 = Unity.Mathematics.float3;

@@ -1,3 +1,4 @@
+using ACTGameEditor;
 using UnityEngine;
 using XiaoCao;
 
@@ -152,8 +153,9 @@ namespace EGamePlay.Combat
             if (_status == null) _status = Parent?.GetComponent<StatusComponent>();
             var tags = Setting?.BuffTag;
             if (_status == null || tags == null) return;
+            var src = TagSource.Buff(Id);
             for (int i = 0; i < tags.Count; i++)
-                _status.TagContainer.AddTag(tags[i]);
+                _status.TagContainer.Push(src, tags[i]);
         }
 
         protected override void OnDeactivate()
@@ -162,8 +164,9 @@ namespace EGamePlay.Combat
             var tags = Setting?.BuffTag;
             if (_status != null && tags != null)
             {
+                var src = TagSource.Buff(Id);
                 for (int i = 0; i < tags.Count; i++)
-                    _status.TagContainer.RemoveTag(tags[i]);
+                    _status.TagContainer.Pop(src, tags[i]);
             }
             base.OnDeactivate();
         }

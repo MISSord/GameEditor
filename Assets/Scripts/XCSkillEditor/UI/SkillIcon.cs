@@ -34,7 +34,7 @@ namespace XiaoCao
             _slotConfig = player?.SlotConfig;
             _cdTimer = player?.CDTimer;
 
-            int skillId = _slotRuntime?.GetSkillId(slotId) ?? 0;
+            int skillId = player != null ? player.ResolveIdleSkillId(slotId) : (_slotRuntime?.GetSkillId(slotId) ?? 0);
             var entry = _slotConfig?.FindBySlot(slotId);
             var cdTimerForSkill = _cdTimer?.GetTimer(skillId);
 
@@ -106,7 +106,9 @@ namespace XiaoCao
         {
             if (_slotRuntime != null && _cdTimer != null)
             {
-                int skillId = _slotRuntime.GetSkillId(_boundSlotId);
+                int skillId = _player != null
+                    ? _player.ResolveIdleSkillId(_boundSlotId)
+                    : _slotRuntime.GetSkillId(_boundSlotId);
                 timer = _cdTimer.GetTimer(skillId);
             }
             if (timer != null && maskImg != null)

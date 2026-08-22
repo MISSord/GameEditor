@@ -1,59 +1,40 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using EGamePlay;
 
-namespace ET
+namespace EGamePlay
 {
 	public interface ITimer
 	{
 		void Run(bool isTimeout);
 	}
 
-	public class OnceWaitTimer: Entity, ITimer
-	{
-		public ETTaskCompletionSource<bool> Callback { get; set; }
-
-        public override void Awake(object initData)
-        {
-			Callback = initData as ETTaskCompletionSource<bool>;
-		}
-
-        public void Run(bool isTimeout)
-		{
-			ETTaskCompletionSource<bool> tcs = this.Callback;
-			this.GetParent<ETTimerManager>().Remove(this.Id);
-			tcs.SetResult(isTimeout);
-		}
-	}
-
 	public class OnceTimer: Entity, ITimer
 	{
-		public Action<bool> Callback { get; set; }
+		public Action Callback { get; set; }
 
 		public override void Awake(object initData)
 		{
-			Callback = initData as Action<bool>;
+			Callback = initData as Action;
 		}
 
-        public void Run(bool isTimeout)
-        {
-            try
-            {
-                this.Callback.Invoke(isTimeout);
-            }
-            catch (Exception e)
-            {
-                GameLog.Error(e);
-            }
-        }
+		public void Run(bool isTimeout)
+		{
+			try
+			{
+				this.Callback?.Invoke();
+			}
+			catch (Exception e)
+			{
+				GameLog.Error(e);
+			}
+		}
 	}
 
 	public class RepeatedTimerAwakeData
 	{
 		public long RepeatedTime;
 		public Action<bool> Callback;
-    }
+	}
 
 	public class RepeatedTimer: Entity, ITimer
 	{
@@ -67,30 +48,29 @@ namespace ET
 		}
 
 		private long StartTime { get; set; }
-		
+
 		private long RepeatedTime { get; set; }
 
-		// 下次一是第几次触发
 		private int Count { get; set; }
-		
-		public Action<bool> Callback { private get; set; }
-		
-        public void Run(bool isTimeout)
-        {
-            ++this.Count;
-            ETTimerManager timerComponent = this.GetParent<ETTimerManager>();
-            long tillTime = this.StartTime + this.RepeatedTime * this.Count;
-            timerComponent.AddToTimeId(tillTime, this.Id);
 
-            try
-            {
-                this.Callback?.Invoke(isTimeout);
-            }
-            catch (Exception e)
-            {
-                GameLog.Error(e);
-            }
-        }
+		public Action<bool> Callback { private get; set; }
+
+		public void Run(bool isTimeout)
+		{
+			++this.Count;
+			ETTimerManager timerComponent = this.GetParent<ETTimerManager>();
+			long tillTime = this.StartTime + this.RepeatedTime * this.Count;
+			timerComponent.AddToTimeId(tillTime, this.Id);
+
+			try
+			{
+				this.Callback?.Invoke(isTimeout);
+			}
+			catch (Exception e)
+			{
+				GameLog.Error(e);
+			}
+		}
 
 		public override void OnDestroy()
 		{
@@ -98,16 +78,14 @@ namespace ET
 			{
 				return;
 			}
-			
+
 			long id = this.Id;
 
-            if (id == 0)
-            {
-                GameLog.Error("RepeatedTimer可能多次释放了");
-                return;
-            }
-			
-			//base.Dispose();
+			if (id == 0)
+			{
+				GameLog.Error("RepeatedTimer可能多次释放了");
+				return;
+			}
 
 			this.StartTime = 0;
 			this.RepeatedTime = 0;
@@ -116,10 +94,13 @@ namespace ET
 		}
 	}
 
+	/// <summary>
+	/// 集中调度一次性/周期定时器。时间轴走 TimeHelper 毫秒戳，避免业务侧每帧 Update。
+	/// </summary>
 	public class ETTimerManager : Entity
 	{
 		public static ETTimerManager Instance { get; set; }
-		
+
 		private readonly Dictionary<long, ITimer> _timers = new Dictionary<long, ITimer>();
 
 		/// <summary>
@@ -128,18 +109,17 @@ namespace ET
 		public readonly MultiMap<long, long> TimeId = new MultiMap<long, long>();
 
 		private readonly Queue<long> _timeOutTime = new Queue<long>();
-		
+
 		private readonly Queue<long> _timeOutTimerIds = new Queue<long>();
 
-		// 记录最小时间，不用每次都去MultiMap取第一个值
 		private long _minTime;
 
-        public override void Awake()
-        {
+		public override void Awake()
+		{
 			Instance = this;
-        }
+		}
 
-        public new void Update(float fixDeltaTime)
+		public new void Update(float fixDeltaTime)
 		{
 			if (this.TimeId.Count == 0)
 			{
@@ -152,7 +132,7 @@ namespace ET
 			{
 				return;
 			}
-			
+
 			foreach (KeyValuePair<long, List<long>> kv in this.TimeId.GetDictionary())
 			{
 				long k = kv.Key;
@@ -164,112 +144,31 @@ namespace ET
 				this._timeOutTime.Enqueue(k);
 			}
 
-			while(this._timeOutTime.Count > 0)
+			while (this._timeOutTime.Count > 0)
 			{
 				long time = this._timeOutTime.Dequeue();
-				foreach(long timerId in this.TimeId[time])
+				foreach (long timerId in this.TimeId[time])
 				{
-					this._timeOutTimerIds.Enqueue(timerId);	
+					this._timeOutTimerIds.Enqueue(timerId);
 				}
 				this.TimeId.Remove(time);
 			}
 
-			while(this._timeOutTimerIds.Count > 0)
+			while (this._timeOutTimerIds.Count > 0)
 			{
 				long timerId = this._timeOutTimerIds.Dequeue();
-				ITimer timer;
-				if (!this._timers.TryGetValue(timerId, out timer))
+				if (!this._timers.TryGetValue(timerId, out ITimer timer))
 				{
 					continue;
 				}
-				
+
 				timer.Run(true);
 			}
 		}
 
-		public async ETTask<bool> WaitTillAsync(long tillTime, ETCancellationToken cancellationToken)
-		{
-			if (TimeHelper.ClientNow() > tillTime)
-			{
-				return true;
-			}
-			ETTaskCompletionSource<bool> tcs = new ETTaskCompletionSource<bool>();
-			OnceWaitTimer timer = this.AddChild<OnceWaitTimer>(tcs);
-			this._timers[timer.Id] = timer;
-			AddToTimeId(tillTime, timer.Id);
-			
-			long instanceId = timer.InstanceId;
-			cancellationToken.Register(() =>
-			{
-				if (instanceId != timer.InstanceId)
-				{
-					return;
-				}
-				
-				timer.Run(false);
-				
-				this.Remove(timer.Id);
-			});
-			return await tcs.Task;
-		}
-
-		public async ETTask<bool> WaitTillAsync(long tillTime)
-		{
-			if (TimeHelper.ClientNow() > tillTime)
-			{
-				return true;
-			}
-			ETTaskCompletionSource<bool> tcs = new ETTaskCompletionSource<bool>();
-			OnceWaitTimer timer = this.AddChild<OnceWaitTimer>(tcs);
-			this._timers[timer.Id] = timer;
-			AddToTimeId(tillTime, timer.Id);
-			return await tcs.Task;
-		}
-
-		public async ETTask<bool> WaitAsync(long time, ETCancellationToken cancellationToken)
-		{
-			long tillTime = TimeHelper.ClientNow() + time;
-
-            if (TimeHelper.ClientNow() > tillTime)
-            {
-                return true;
-            }
-
-            ETTaskCompletionSource<bool> tcs = new ETTaskCompletionSource<bool>();
-			OnceWaitTimer timer = this.AddChild<OnceWaitTimer>(tcs);
-			this._timers[timer.Id] = timer;
-			AddToTimeId(tillTime, timer.Id);
-			long instanceId = timer.InstanceId;
-			cancellationToken.Register(() =>
-			{
-				if (instanceId != timer.InstanceId)
-				{
-					return;
-				}
-				
-				timer.Run(false);
-				
-				this.Remove(timer.Id);
-			});
-			return await tcs.Task;
-		}
-
-		public async ETTask<bool> WaitAsync(long time)
-		{
-			long tillTime = TimeHelper.ClientNow() + time;
-			ETTaskCompletionSource<bool> tcs = new ETTaskCompletionSource<bool>();
-			OnceWaitTimer timer = this.AddChild<OnceWaitTimer>(tcs);
-			this._timers[timer.Id] = timer;
-			AddToTimeId(tillTime, timer.Id);
-			return await tcs.Task;
-		}
-
 		/// <summary>
-		/// 创建一个RepeatedTimer
+		/// 创建一个周期定时器。间隔必须 ≥ 30ms。
 		/// </summary>
-		/// <param name="time"></param>
-		/// <param name="action"></param>
-		/// <returns></returns>
 		public long NewRepeatedTimer(long time, Action<bool> action)
 		{
 			if (time < 30)
@@ -282,7 +181,7 @@ namespace ET
 			AddToTimeId(tillTime, timer.Id);
 			return timer.Id;
 		}
-		
+
 		public RepeatedTimer GetRepeatedTimer(long id)
 		{
 			if (!this._timers.TryGetValue(id, out ITimer timer))
@@ -291,23 +190,25 @@ namespace ET
 			}
 			return timer as RepeatedTimer;
 		}
-		
+
 		public void Remove(long id)
 		{
 			if (id == 0)
 			{
 				return;
 			}
-			ITimer timer;
-			if (!this._timers.TryGetValue(id, out timer))
+			if (!this._timers.TryGetValue(id, out ITimer timer))
 			{
 				return;
 			}
 			this._timers.Remove(id);
-			
+
 			(timer as IDisposable)?.Dispose();
 		}
-		
+
+		/// <summary>
+		/// 创建一个一次性定时器，在 tillTime（毫秒时间戳）触发。
+		/// </summary>
 		public long NewOnceTimer(long tillTime, Action action)
 		{
 			OnceTimer timer = this.AddChild<OnceTimer>(action);
@@ -315,7 +216,7 @@ namespace ET
 			AddToTimeId(tillTime, timer.Id);
 			return timer.Id;
 		}
-		
+
 		public OnceTimer GetOnceTimer(long id)
 		{
 			if (!this._timers.TryGetValue(id, out ITimer timer))

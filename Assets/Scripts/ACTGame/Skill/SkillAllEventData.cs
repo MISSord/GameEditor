@@ -10,6 +10,10 @@ namespace ACTGameEditor
     public class SkillAllEventData : ScriptableObject
     {
         public int SkillId;
+        /// <summary>导出合同版本。旧资产无此字段视为 0；当前导出写 1。</summary>
+        [LabelText("导出版本")]
+        public int SchemaVersion;
+        public const int CurrentSchemaVersion = 1;
         [ShowInInspector]
         [LabelText("技能目标")]
         public ExecutionTargetInputType TargetInputType = ExecutionTargetInputType.TargetOrNull;

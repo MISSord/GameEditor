@@ -171,6 +171,8 @@ namespace FluxEditor
             base.Init(obj, owner);
 
             FAnimationTrack animTrack = (FAnimationTrack)Obj;
+            if (animTrack == null || animTrack.Owner == null)
+                return;
 
             if (animTrack.Owner.GetComponent<Animator>() == null)
             {
@@ -219,7 +221,6 @@ namespace FluxEditor
                         {
                             int frame = SequenceEditor.GetFrameForX(Event.current.mousePosition.x);
                             int maxLength;
-                            Debug.Log($"yns  CanAddAt frame {frame} {Track.CanAddAt(frame, out maxLength)}");
                             if (Track.CanAddAt(frame, out maxLength))
                             {
                                 int end = frame + (int)(animClip.length * Track.Sequence.FrameRate);
@@ -227,14 +228,13 @@ namespace FluxEditor
                                 FrameRange Range = new FrameRange(frame,Mathf.Min(end, frame + maxLength));
                                 FPlayAnimationEvent animEvt = FEvent.Create<FPlayAnimationEvent>(Range);
                                 Track.Add(animEvt);
-                                Debug.Log("yns  add " + Range);
                                 FAnimationEventInspector.SetAnimationClip(animEvt, animClip);
                                 DragAndDrop.AcceptDrag();
                             }
                         }
                         else if (animClip)
                         {
-                            Debug.Log("yns  frameRate animClip = " + animClip.frameRate + "  Sequence.FrameRate= " + Track.Sequence.FrameRate);
+                            Debug.LogWarning($"动画帧率与 Sequence 不一致: clip={animClip.frameRate} sequence={Track.Sequence.FrameRate}");
                         }
 
                         Event.current.Use();

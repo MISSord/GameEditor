@@ -133,6 +133,12 @@ namespace ACTGameEditor
 
             if (Input.GetKeyDown(KeyCode.Alpha9))
                 renderFX?.PlayAfterimage();
+
+            if (Input.GetKeyDown(KeyCode.Alpha0))
+            {
+                TimeScaleEffectManager.AddHitStop(0.08f, 0.08f);
+                CameraPostFxController.TryPlayHitStopImpact(0.08f);
+            }
         }
 
         void OnGUI()
@@ -153,6 +159,7 @@ namespace ACTGameEditor
             GUILayout.Label("3 = 重置 / 取消显现·圆锥·迷雾");
             GUILayout.Label("4 = 扫描脉冲 (边缘高亮)");
             GUILayout.Label("9 = 闪避残影 (Afterimage x3)");
+            GUILayout.Label("0 = HitStop + CA/RadialBlur 冲击镜头");
             GUILayout.Label("5 = 球形显现 (+浅蓝屏罩)");
             GUILayout.Label("6 = 深度视界 (近白远灰)");
             GUILayout.Label("7 = 圆锥显现（角色朝向；物体需 RevealMasked）");

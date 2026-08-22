@@ -1,6 +1,5 @@
 using EGamePlay;
 using EGamePlay.Combat;
-using ET;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using ACTGameEditor;
@@ -10,8 +9,9 @@ public class EGamePlayInit : MonoBehaviour
 {
     public static EGamePlayInit Instance { get; private set; }
     public bool EntityLog;
+    [Tooltip("开：入队不扣 CD，时间轴启动后才转。关：Idle 入队立刻扣 CD。")]
+    public bool UseAbilityGate = true;
     public InputActionAsset ActionsAsset;
-    //public ReferenceCollector ConfigsCollector;
 
 #if !EGAMEPLAY_ET
     private void Awake()
@@ -19,21 +19,16 @@ public class EGamePlayInit : MonoBehaviour
         Instance = this;
         Physics.autoSimulation = false;
 
-        ////进行输入操作绑定
         ConfigurableInputManager.Instance.InputActionsAsset = ActionsAsset;
-
-        //这个用于ET多线程 Socket
-        //SynchronizationContext.SetSynchronizationContext(ThreadSynchronizationContext.Instance);
 
         Entity.EnableLog = EntityLog;
         var ecsNode = ECSNode.Create();
         ecsNode.AddChildNoPool<ETTimerManager>();
         ecsNode.AddChildNoPool<CombatContext>();
+        CombatContext.Instance.UseAbilityGate = UseAbilityGate;
         ecsNode.AddChildNoPool<GameObjectPool>();
 
-        //快速记录
         FastStaticExecutor.Initialize<SkillMethod>();
-        //ecsNode.AddComponent<ConfigManageComponent>(ConfigsCollector);
     }
 
     private void Start()
@@ -53,9 +48,13 @@ public class EGamePlayInit : MonoBehaviour
     {
         TimeScaleEffectManager.Tick();
         GameTimeManager.Tick();
-        //ThreadSynchronizationContext.Instance.Update();
         ETTimerManager.Instance.Update(GameTimeManager.WorldDelta);
-        CombatContext.Instance.Update(GameTimeManager.WorldDelta);
+        var combatContext = CombatContext.Instance;
+        if (combatContext != null)
+        {
+            combatContext.UseAbilityGate = UseAbilityGate;
+            combatContext.Update(GameTimeManager.WorldDelta);
+        }
         ConfigurableInputManager.Instance.Update();
     }
 

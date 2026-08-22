@@ -30,6 +30,8 @@ namespace ACTGameEditor
         public bool PlayerFog = true;
         public bool ProximityDither = true;
         public bool Afterimage = true;
+        public bool ChromaticAberration = true;
+        public bool RadialBlur = true;
 
         /// <summary>
         /// 按 ID 读取默认值。
@@ -55,6 +57,8 @@ namespace ACTGameEditor
                 GraphicsFxId.PlayerFog => PlayerFog,
                 GraphicsFxId.ProximityDither => ProximityDither,
                 GraphicsFxId.Afterimage => Afterimage,
+                GraphicsFxId.ChromaticAberration => ChromaticAberration,
+                GraphicsFxId.RadialBlur => RadialBlur,
                 _ => true,
             };
         }

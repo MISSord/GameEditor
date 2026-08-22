@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using ACTGameEditor;
 
 namespace EGamePlay.Combat
 {
@@ -14,6 +13,15 @@ namespace EGamePlay.Combat
         public Dictionary<GameObject, CombatEntity> Object2Entities { get; set; } = new Dictionary<GameObject, CombatEntity>();
 #endif
 
+        /// <summary>
+        /// true：入队不扣 CD，时间轴启动后才转；Evaluate 检查 CD/资源。
+        /// false：Idle 入队仍立刻扣 CD（对照旧路径）。
+        /// </summary>
+        public bool UseAbilityGate { get; set; } = true;
+
+        /// <summary>命中申报队列，由盒体入队、Context Flush。</summary>
+        public HitPipeline HitPipeline { get; private set; }
+
         private List<Entity> _spellActions = new List<Entity>(4);
         private List<Entity> _combatEntities = new List<Entity>(4);
 
@@ -21,6 +29,14 @@ namespace EGamePlay.Combat
         {
             base.Awake();
             Instance = this;
+            HitPipeline = new HitPipeline();
+        }
+
+        public override void OnDestroy()
+        {
+            HitPipeline?.Clear();
+            HitPipeline = null;
+            base.OnDestroy();
         }
 
         public Entity AddAction<T>() where T : Entity
@@ -56,6 +72,9 @@ namespace EGamePlay.Combat
                 action.Update(actionDelta);
             }
 
+            // 时间轴可能在 Action 更新里启用盒体；若本帧已有申报则先结算再跑实体。
+            HitPipeline?.Flush();
+
             //后更新CombatEntity，使用实体专属时间流速
             for (int i = _combatEntities.Count - 1; i >= 0; i--)
             {
@@ -75,6 +94,9 @@ namespace EGamePlay.Combat
 
         public override void FixedUpdate(float fixDeltaTime)
         {
+            // EGamePlayInit 先 Physics.Simulate 再调这里：OnTriggerEnter 已入队，必须先 Flush。
+            HitPipeline?.Flush();
+
             Entity entity;
             for (int i = _combatEntities.Count - 1; i >= 0; i--)
             {

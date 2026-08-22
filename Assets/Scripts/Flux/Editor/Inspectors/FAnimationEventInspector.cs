@@ -224,10 +224,8 @@ namespace FluxEditor
 			
 			if( string.IsNullOrEmpty(pathToAsset) )
 				return numAnimations;
-            Debug.Log("yns no IsNullOrEmpty ");
 			if( DragAndDrop.objectReferences[0] is AnimationClip && (frameRate >= 0 || Mathf.Approximately( ((AnimationClip)DragAndDrop.objectReferences[0]).frameRate, frameRate)) )
 				++numAnimations;
-            Debug.Log("yns objectReferences " + numAnimations);
 			Object[] objs = AssetDatabase.LoadAllAssetRepresentationsAtPath( pathToAsset );
 			
 			foreach( Object obj in objs )

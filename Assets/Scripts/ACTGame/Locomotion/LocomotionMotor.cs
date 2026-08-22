@@ -19,6 +19,8 @@ namespace ACTGameEditor.Locomotion
         IMoveGate _gate;
         ILocomotionTimeSource _time;
         ILocomotionStateSink _stateSink;
+        System.Func<bool> _canWriteAnimParams;
+        MotionDirector _motion;
 
         float _currentSpeed;
         float _targetSpeed;
@@ -70,9 +72,23 @@ namespace ACTGameEditor.Locomotion
         /// <summary>应用调参。</summary>
         public void SetTuning(in LocomotionTuning tuning) => _tuning = tuning;
 
-        /// <summary>临时关闭重力。</summary>
+        /// <summary>
+        /// 动画参数写门控。返回 false 时不写 MoveSpeed/IsRun（技能占轴期间）。
+        /// </summary>
+        public void SetAnimParamWriteGate(System.Func<bool> canWrite) => _canWriteAnimParams = canWrite;
+
+        /// <summary>绑定位移裁决；有则水平/重力均走 MotionDirector。</summary>
+        public void BindMotion(MotionDirector motion) => _motion = motion;
+
+        /// <summary>临时关闭重力（优先交 MotionDirector）。</summary>
         public void SetNoGravityT(float time)
         {
+            if (_motion != null)
+            {
+                _motion.SuppressGravityFor(time);
+                return;
+            }
+
             if (time > _disableGravityTimer)
                 _disableGravityTimer = time;
         }
@@ -138,7 +154,6 @@ namespace ACTGameEditor.Locomotion
         /// <summary>FixedUpdate 阶段：重力 + 转向 + 水平位移 + 动画。</summary>
         public void TickFixed()
         {
-            CheckEnableGravity();
             UpdateGravity();
 
             bool canMove = _gate == null || _gate.CanMove;
@@ -161,8 +176,9 @@ namespace ACTGameEditor.Locomotion
                 return;
 
             float playerDelta = _time != null ? _time.PlayerDelta : Time.deltaTime;
+            bool gravityOn = ResolveGravityEnabled(playerDelta);
 
-            if (_enableGravity)
+            if (gravityOn)
             {
                 if (IsGrounded)
                 {
@@ -181,7 +197,11 @@ namespace ACTGameEditor.Locomotion
                         40f);
                 }
 
-                _controller.Move(_velocity * playerDelta);
+                Vector3 delta = _velocity * playerDelta;
+                if (_motion != null)
+                    _motion.TryApplyGravity(delta);
+                else
+                    _controller.Move(delta);
             }
             else
             {
@@ -189,8 +209,14 @@ namespace ACTGameEditor.Locomotion
             }
         }
 
-        void CheckEnableGravity()
+        bool ResolveGravityEnabled(float playerDelta)
         {
+            if (_motion != null)
+            {
+                _motion.TickGravity(playerDelta);
+                return _motion.GravityEnabled;
+            }
+
             if (_disableGravityTimer > 0f)
             {
                 _enableGravity = false;
@@ -201,6 +227,8 @@ namespace ACTGameEditor.Locomotion
             {
                 _enableGravity = true;
             }
+
+            return _enableGravity;
         }
 
         void AutoRotate(Vector3 worldMove)
@@ -222,7 +250,11 @@ namespace ACTGameEditor.Locomotion
                 float scale = _time != null ? _time.PlayerScale : 1f;
                 float smoothTime = _currentSpeed < _targetSpeed ? _tuning.Acceleration : _tuning.Deceleration;
                 _currentSpeed = Mathf.SmoothDamp(_currentSpeed, _targetSpeed, ref _velocityXSmoothing, smoothTime);
-                _controller.Move(worldMove * _currentSpeed * Time.fixedDeltaTime * scale);
+                Vector3 horizontal = worldMove * _currentSpeed * Time.fixedDeltaTime * scale;
+                if (_motion != null)
+                    _motion.TryApply(MotionSource.Locomotion, horizontal, flattenY: true);
+                else
+                    _controller.Move(horizontal);
                 ApplyAnimSpeed(_curMoveSpeedAnim, _isRun);
             }
             else
@@ -248,6 +280,8 @@ namespace ACTGameEditor.Locomotion
         void ApplyAnimSpeed(float moveSpeed, bool isRun)
         {
             if (_animator == null)
+                return;
+            if (_canWriteAnimParams != null && !_canWriteAnimParams())
                 return;
 
             _animator.SetFloat(MoveSpeedId, moveSpeed);

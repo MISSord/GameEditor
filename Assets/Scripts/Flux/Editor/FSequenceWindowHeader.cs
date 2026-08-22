@@ -1,7 +1,6 @@
 using Flux;
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.InputSystem.XR;
 using static PlasticPipe.Server.MonitorStats;
@@ -128,8 +127,16 @@ namespace FluxEditor
 
         private void RebuildSequenceList()
         {
-            _sequences = GameObject.FindObjectsOfType<FSequence>();
-            System.Array.Sort<FSequence>(_sequences, delegate (FSequence x, FSequence y) { return x.name.CompareTo(y.name); });
+            FSequence[] found = GameObject.FindObjectsOfType<FSequence>();
+            System.Array.Sort<FSequence>(found, delegate (FSequence x, FSequence y) { return x.name.CompareTo(y.name); });
+
+            List<FSequence> sceneSequences = new List<FSequence>(found.Length);
+            for (int i = 0; i != found.Length; ++i)
+            {
+                if (found[i] != null && found[i].gameObject.scene.IsValid())
+                    sceneSequences.Add(found[i]);
+            }
+            _sequences = sceneSequences.ToArray();
 
             _sequenceNames = new GUIContent[_sequences.Length + 2];
             for (int i = 0; i != _sequences.Length; ++i)
@@ -262,10 +269,15 @@ namespace FluxEditor
 
         public void OnGUI()
         {
-            FSequence sequence = _sequenceWindow.GetSequenceEditor().Sequence;
+            FSequenceEditor sequenceEditor = _sequenceWindow.GetSequenceEditor();
+            if (sequenceEditor == null)
+                return;
 
-            if ((_selectedSequenceIndex < 0 && sequence != null) || (_selectedSequenceIndex >= 0 && _sequences[_selectedSequenceIndex] != sequence))
+            FSequence sequence = sequenceEditor.Sequence;
+
+            if ((_selectedSequenceIndex < 0 && sequence != null) || (_selectedSequenceIndex >= 0 && _selectedSequenceIndex < _sequences.Length && _sequences[_selectedSequenceIndex] != sequence))
             {
+                _selectedSequenceIndex = -1;
                 for (int i = 0; i != _sequences.Length; ++i)
                 {
                     if (_sequences[i] == sequence)
@@ -276,6 +288,17 @@ namespace FluxEditor
                 }
             }
 
+            bool currentNotInList = sequence != null && _selectedSequenceIndex < 0;
+            GUIContent[] popupNames = _sequenceNames;
+            int popupIndex = _selectedSequenceIndex;
+            if (currentNotInList)
+            {
+                popupNames = new GUIContent[_sequenceNames.Length + 1];
+                popupNames[0] = new GUIContent(sequence.name);
+                for (int i = 0; i < _sequenceNames.Length; ++i)
+                    popupNames[i + 1] = _sequenceNames[i];
+                popupIndex = 0;
+            }
 
             if (Event.current.type == EventType.MouseDown && Event.current.alt && _sequencePopupRect.Contains(Event.current.mousePosition))
             {
@@ -285,25 +308,35 @@ namespace FluxEditor
 
             EditorGUI.BeginChangeCheck();
             EditorGUI.PrefixLabel(_sequenceLabelRect, _sequenceLabel);
-            int newSequenceIndex = EditorGUI.Popup(_sequencePopupRect, _selectedSequenceIndex, _sequenceNames);
+            int newSequenceIndex = EditorGUI.Popup(_sequencePopupRect, popupIndex, popupNames);
             if (EditorGUI.EndChangeCheck())
             {
+                if (currentNotInList)
+                {
+                    if (newSequenceIndex == 0)
+                    {
+                        EditorGUIUtility.keyboardControl = 0;
+                        EditorGUIUtility.ExitGUI();
+                        return;
+                    }
+                    newSequenceIndex -= 1;
+                }
+
                 if (newSequenceIndex == _sequenceNames.Length - 1)
                 {
                     FSequence newSequence = FSequenceEditorWindow.CreateSequence();
                     Selection.activeTransform = newSequence.transform;
-                    _sequenceWindow.GetSequenceEditor().OpenSequence(newSequence);
+                    sequenceEditor.OpenSequence(newSequence);
                 }
                 else if (newSequenceIndex == _sequenceNames.Length - 2)
                 {
-                    _sequenceWindow.GetSequenceEditor().OpenSequence(null);
+                    sequenceEditor.OpenSequence(null);
                 }
                 else
                 {
                     _selectedSequenceIndex = newSequenceIndex;
                     FSequence fSequence = _sequences[_selectedSequenceIndex];
-                    Debug.Log($"OpenSeq {_selectedSequenceIndex} {fSequence.name}");
-                    _sequenceWindow.GetSequenceEditor().OpenSequence(fSequence);
+                    sequenceEditor.OpenSequence(fSequence);
                     _sequenceWindow.RemoveNotification();
                 }
                 EditorGUIUtility.keyboardControl = 0; // deselect it
@@ -377,28 +410,7 @@ namespace FluxEditor
 
             if (FGUI.Button(_savaDataRect, _savaDataLabel))
             {
-                //清空被应用的主角的动画数据
-                GameObject editor = GameObject.Find("man_editor");
-                if(editor != null)
-                {
-                    Animator animator = editor.GetComponent<Animator>();
-                    if(animator != null)
-                    {
-                        AnimatorController controller = (AnimatorController)animator.runtimeAnimatorController;
-                        AnimatorControllerLayer layer = controller.layers[0];
-
-                        foreach (ChildAnimatorStateMachine sm in layer.stateMachine.stateMachines)
-                        {
-                            var stateMachine = sm.stateMachine;
-                            if (stateMachine.states.Length > 0)
-                            {
-                                for (int i = stateMachine.states.Length - 1; i >= 0; --i)
-                                    stateMachine.RemoveState(stateMachine.states[i].state);
-                            }
-                        }
-                    }
-                }
-                SaveSequenceData.GetData();
+                SaveSequenceData.TrySaveCurrentSequence();
             }
 
             if (FGUI.Button(_openInspectorRect, _openInspectorLabel))

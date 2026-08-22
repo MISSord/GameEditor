@@ -73,9 +73,14 @@ namespace EGamePlay.Combat
 
             var healthComp = Target.GetComponent<VitalComponent>();
             healthComp.ReceiveDamage(this);
+
+            bool isDead = healthComp.CheckDead();
+            if (isDead && Target is CombatEntity combatTarget)
+                combatTarget.ApplyDeath();
+
             PostProcess();
 
-            if (healthComp.CheckDead())
+            if (isDead)
             {
                 var deadEvent = new EntityDeadEvent() { DeadEntity = Target };
                 Target.Publish(deadEvent);

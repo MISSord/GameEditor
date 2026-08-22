@@ -11,7 +11,7 @@ namespace Flux
 		public Animator Animator
 		{
 			get {
-				if( _animator == null )
+				if( _animator == null && Track != null && Track.Owner != null )
 					_animator = Track.Owner.GetComponent<Animator>();
 				return _animator;
 			}

@@ -40,6 +40,7 @@ namespace ACTGameEditor
                 case GraphicsFxId.Vignette:
                 case GraphicsFxId.ColorAdjustments:
                 case GraphicsFxId.Tonemapping:
+                case GraphicsFxId.ChromaticAberration:
                     ApplyVolume(service);
                     break;
                 case GraphicsFxId.SSAO:
@@ -62,6 +63,20 @@ namespace ACTGameEditor
             SetVolumeActive<Vignette>(_runtimeProfile, service.IsEnabled(GraphicsFxId.Vignette));
             SetVolumeActive<ColorAdjustments>(_runtimeProfile, service.IsEnabled(GraphicsFxId.ColorAdjustments));
             SetVolumeActive<Tonemapping>(_runtimeProfile, service.IsEnabled(GraphicsFxId.Tonemapping));
+            SetVolumeActive<ChromaticAberration>(_runtimeProfile, service.IsEnabled(GraphicsFxId.ChromaticAberration));
+        }
+
+        /// <summary>
+        /// 读取运行时 Volume 上的色差组件（用于 pulse）。
+        /// </summary>
+        public static bool TryGetChromaticAberration(out ChromaticAberration component)
+        {
+            EnsureRuntimeProfile();
+            component = null;
+            if (_runtimeProfile == null)
+                return false;
+
+            return _runtimeProfile.TryGet(out component);
         }
 
         static void EnsureRuntimeProfile()

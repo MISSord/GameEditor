@@ -39,8 +39,6 @@ namespace EGamePlay.Combat
         public ResourceActionAbility ResourceAbility { get; private set; }
         //施加状态行动能力
         public AddStatusActionAbility AddStatusAbility { get; private set; }
-        //碰撞能力
-        public CollisionActionAbility CollisionAbility { get; private set; }
 
         public Vector3 Position { get; set; }
         public Quaternion Rotation { get; set; }
@@ -49,8 +47,19 @@ namespace EGamePlay.Combat
 
         // 阵营信息
         public AgentTag CurAgent { get; set; }
-        // 当前状态
-        public PlayerStateEnum CurState { get; set; } = PlayerStateEnum.Idle;
+
+        CombatStateDirector _stateDirector;
+        PlayerStateEnum _curState = PlayerStateEnum.Idle;
+
+        /// <summary>行为态（只应由 CombatStateDirector 写入）。</summary>
+        public PlayerStateEnum CurState => _curState;
+
+        /// <summary>供 StateDirector 同步可见态。</summary>
+        internal void SetCurStateFromDirector(PlayerStateEnum state) => _curState = state;
+
+        /// <summary>行为态裁决。</summary>
+        public CombatStateDirector StateDirector => _stateDirector;
+
         // 当前移动状态
         public MoveTypeEnum CurMoveState { get; set; } = MoveTypeEnum.Idle;
         // 状态机，影响决策
@@ -66,14 +75,63 @@ namespace EGamePlay.Combat
 
         //public bool IsCanRollTag => !_tagContainer.HasTag(_rollTagIndex) && (CurState != PlayerStateEnum.Dead);
         public bool IsCanCauseHarm => !_tagContainer.HasTag(_attackDamageForbidTagIndex);
-        public bool IsCanMove => !_tagContainer.HasTag(_moveForbidTagIndex) && (CurState == PlayerStateEnum.Idle || CurState == PlayerStateEnum.Moving);
-        public bool IsCanSpellSkill => !_tagContainer.HasTag(_unStoppedTagIndex) && !_tagContainer.HasTag(_skillForbidTagIndex)
-            && CurState != PlayerStateEnum.Hit && CurState != PlayerStateEnum.Dead;
+        /// <summary>
+        /// 是否允许 Locomotion 读入并位移。
+        /// 技能轴未真正结束（含 ParentFinish 后摇）期间默认锁移动；
+        /// Buff.MoveForbid 额外禁止；仅 Idle/Moving 可走。
+        /// </summary>
+        public bool IsCanMove => !_tagContainer.HasTag(_moveForbidTagIndex)
+            && SpellingExecution == null
+            && (CurState == PlayerStateEnum.Idle || CurState == PlayerStateEnum.Moving);
+
+        /// <summary>空中。无移动组件时视为地面。</summary>
+        public bool IsAirborne
+        {
+            get
+            {
+#if UNITY
+                return _inputMove != null && !_inputMove.IsGrounded;
+#else
+                return false;
+#endif
+            }
+        }
+
+        /// <summary>HP 归零或已进入死亡态。伤害结算后 CurState 可能尚未切到 Dead，以 Vital 为准。</summary>
+        public bool IsDead => _stateDirector != null && _stateDirector.IsDead
+            || (CurrentVital != null && CurrentVital.CheckDead());
+
+        public bool IsCanSpellSkill => !IsDead
+            && !_tagContainer.HasTag(_unStoppedTagIndex)
+            && !_tagContainer.HasTag(_skillForbidTagIndex)
+            && CurState != PlayerStateEnum.Hit;
+
+        /// <summary>
+        /// 高优先级自身取消（闪避/大招顶普攻）。
+        /// 霸体 UnStopped 不挡自己取消；受击、死亡、禁技能仍挡。
+        /// </summary>
+        public bool IsCanSelfCancelSkill => !IsDead
+            && !_tagContainer.HasTag(_skillForbidTagIndex)
+            && CurState != PlayerStateEnum.Hit;
 
         private GameplayTagContainer _tagContainer;
         private ActionPointComponent _actionPointComponent;
         private AbilityComponent _abilityComponent;
+        private CombatFormComponent _formComponent;
         private EntityTimeScaleComponent _timeScaleComponent;
+
+        struct TimedTagRelease
+        {
+            public TagSource Source;
+            public string TagName;
+            public float EndTime;
+        }
+
+        readonly System.Collections.Generic.List<TimedTagRelease> _timedTagReleases =
+            new System.Collections.Generic.List<TimedTagRelease>(4);
+
+        /// <summary>霸体：带 Buff.UnStopped 时不进受击硬直、不打断技能。</summary>
+        public bool IsUnstopped => _tagContainer != null && _tagContainer.HasTag(_unStoppedTagIndex);
 
 #if UNITY
         private InputMoveComponent _inputMove;
@@ -98,6 +156,9 @@ namespace EGamePlay.Combat
 
             _tagContainer = AddComponent<StatusComponent>().TagContainer;
 
+            _stateDirector = new CombatStateDirector();
+            _stateDirector.Bind(this);
+
             _attackDamageForbidTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffAttackDamageForbid];
             _moveForbidTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffMoveForbid];
             _skillForbidTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffSkillForbid];
@@ -109,6 +170,7 @@ namespace EGamePlay.Combat
             _actionPointComponent = AddComponent<ActionPointComponent>();
             _abilityComponent = AddComponent<AbilityComponent>();
             AddComponent<SpellComponent>();
+            _formComponent = AddComponent<CombatFormComponent>();
 
             CurrentVital = AddComponent<VitalComponent>();
             CurrentVital.InitVital();
@@ -125,7 +187,6 @@ namespace EGamePlay.Combat
             DamageAbility = AttachAction<DamageActionAbility>();
             ResourceAbility = AttachAction<ResourceActionAbility>();
             AddStatusAbility = AttachAction<AddStatusActionAbility>();
-            CollisionAbility = AttachAction<CollisionActionAbility>();
 
 #if UNITY
             useAnimaRoot = false;
@@ -134,9 +195,13 @@ namespace EGamePlay.Combat
 
         public override void OnDestroy()
         {
+            _stateDirector?.Unbind();
+            _stateDirector = null;
             _tagContainer = null;
+            _timedTagReleases.Clear();
             stateMachine = null;
             CurrentVital = null;
+            _formComponent = null;
 #if UNITY
             _inputMove = null;
             useAnimaRoot = false;
@@ -191,6 +256,9 @@ namespace EGamePlay.Combat
             _abilityComponent?.RemoveAbility(skillId);
         }
 
+        /// <summary>当前战斗形态，可能为 null（未 Awake 完）。</summary>
+        public CombatFormComponent FormComponent => _formComponent;
+
         //标签操作
         public bool HasTag(string tagName)
         {
@@ -203,14 +271,149 @@ namespace EGamePlay.Combat
             return _tagContainer != null && _tagContainer.CanSpellSkillWithTagLists(required, blocked);
         }
 
+        /// <summary>兼容旧调用：Manual 源 Push。</summary>
         public void AddTag(string tagName)
         {
-            _tagContainer.AddTag(tagName);
+            _tagContainer?.Push(TagSource.Manual(), tagName);
         }
 
+        /// <summary>兼容旧调用：无源 Remove（防负数）。</summary>
         public void RemoveTag(string tagName)
         {
-            _tagContainer.RemoveTag(tagName);
+            _tagContainer?.RemoveTag(tagName);
+        }
+
+        /// <summary>带来源压入 Tag。</summary>
+        public void PushTag(TagSource source, string tagName)
+        {
+            _tagContainer?.Push(source, tagName);
+        }
+
+        /// <summary>配对弹出 Tag。</summary>
+        public void PopTag(TagSource source, string tagName)
+        {
+            _tagContainer?.Pop(source, tagName);
+        }
+
+        /// <summary>移除某来源的全部 Tag（技能 Break / 切形态）。</summary>
+        public void PopTagsFrom(TagSource source)
+        {
+            _tagContainer?.PopAll(source);
+            for (int i = _timedTagReleases.Count - 1; i >= 0; i--)
+            {
+                if (_timedTagReleases[i].Source.Equals(source))
+                    _timedTagReleases.RemoveAt(i);
+            }
+        }
+
+        /// <summary>按秒授予 Tag，到期自动 Pop 一条同 Source 授予。</summary>
+        public void GrantTagFor(TagSource source, string tagName, float durationSeconds)
+        {
+            if (_tagContainer == null || string.IsNullOrEmpty(tagName))
+                return;
+            PushTag(source, tagName);
+            if (durationSeconds <= 0f)
+                return;
+            float end = GameTimeManager.PlayerTime + durationSeconds;
+            _timedTagReleases.Add(new TimedTagRelease
+            {
+                Source = source,
+                TagName = tagName,
+                EndTime = end,
+            });
+        }
+
+        /// <summary>技能时间轴：短时霸体。</summary>
+        public void GrantUnstoppedFor(float durationSeconds, TagSource source)
+        {
+            GrantTagFor(source, CombatTags.BuffUnStopped, durationSeconds);
+        }
+
+        /// <summary>
+        /// 时间轴消息本地落地（与 PlayerManager 并行；单机编辑器可直接生效）。
+        /// </summary>
+        public void HandleTimelineMessage(string msgName, float floatMsg, bool boolMsg, TagSource? source = null)
+        {
+            if (string.IsNullOrEmpty(msgName))
+                return;
+
+            TagSource src = source ?? TagSource.Manual();
+
+            if (msgName == PlayEventMsg.SetNoBreakTime)
+            {
+                // 按秒计时，不跟技能轴 PopAll 绑定
+                GrantUnstoppedFor(floatMsg, TagSource.Manual());
+                return;
+            }
+
+            if (msgName == PlayEventMsg.SetNoGravityT)
+            {
+#if UNITY
+                GetComponent<AnimComponent>()?.Motion?.SuppressGravityFor(floatMsg);
+#endif
+                return;
+            }
+
+            if (msgName == PlayEventMsg.SetCanMove)
+            {
+                ChangeInputMoveState(boolMsg);
+            }
+        }
+
+        /// <summary>HP 归零后的统一死亡落地。</summary>
+        public void ApplyDeath()
+        {
+            if (_curState == PlayerStateEnum.Dead)
+                return;
+
+            _stateDirector?.EnterDead();
+
+            var runner = SpellingExecution;
+            SpellingExecution = null;
+            runner?.BreakSkill();
+
+#if UNITY
+            AnimComponent anim = GetComponent<AnimComponent>();
+            anim?.Director?.ForceLocomotion();
+            anim?.Motion?.SetPolicy(ACTGameEditor.Locomotion.MotionPolicy.Locomotion);
+            anim?.Motion?.SetSkillSuppressGravity(false);
+            ChangeInputMoveState(false);
+#endif
+        }
+
+        /// <summary>
+        /// 受击硬直 + 打断技能 + 受击动画。霸体/已死亡时返回 false。
+        /// </summary>
+        public bool TryApplyHitReaction(long sourceId, float durationSeconds = 0.35f)
+        {
+            if (_curState == PlayerStateEnum.Dead || IsUnstopped)
+                return false;
+
+            _stateDirector?.EnterHit(sourceId, durationSeconds);
+
+            var runner = SpellingExecution;
+            if (runner != null)
+            {
+                SpellingExecution = null;
+                runner.BreakSkill();
+            }
+
+#if UNITY
+            GetComponent<AnimComponent>()?.Director?.PlayDamageReaction();
+#endif
+            return true;
+        }
+
+        void TickTimedTags(float playerTime)
+        {
+            for (int i = _timedTagReleases.Count - 1; i >= 0; i--)
+            {
+                if (playerTime < _timedTagReleases[i].EndTime)
+                    continue;
+                TimedTagRelease entry = _timedTagReleases[i];
+                _timedTagReleases.RemoveAt(i);
+                PopTag(entry.Source, entry.TagName);
+            }
         }
 
         /// <summary>当前实体时间流速乘数（不含世界 scale）。1 表示正常流速。</summary>
@@ -237,6 +440,9 @@ namespace EGamePlay.Combat
             //同步最新坐标
             Position = RootTransform.position;
             Rotation = RootTransform.rotation;
+
+            _stateDirector?.Tick(GameTimeManager.PlayerTime);
+            TickTimedTags(GameTimeManager.PlayerTime);
 
             //正序遍历，保证按照加入的顺序进行更新
             for(int i = 0; i < UpdateComponents.Count; i++)

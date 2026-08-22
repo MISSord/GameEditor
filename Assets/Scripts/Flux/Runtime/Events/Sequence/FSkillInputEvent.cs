@@ -20,7 +20,7 @@ namespace Flux
 
         public List<string> RequiredTags;
         public List<string> BlockedTags;
-        /// <summary>预输入有效时长（秒），0=使用 NormalActPlayer.InputTimeout</summary>
+        /// <summary>窗边预输入寿命（秒）。≤0 时用 NormalActPlayer.ComboBufferTimeout。</summary>
         public float InputTimeout;
 
     }

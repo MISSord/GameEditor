@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace ET
+namespace EGamePlay
 {
 	public class MultiMap<T, K>
 	{

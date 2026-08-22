@@ -34,6 +34,8 @@ namespace ACTGameEditor
             GraphicsFxId.PlayerFog,
             GraphicsFxId.ProximityDither,
             GraphicsFxId.Afterimage,
+            GraphicsFxId.ChromaticAberration,
+            GraphicsFxId.RadialBlur,
         };
 
         void Awake()
@@ -91,6 +93,8 @@ namespace ACTGameEditor
             GraphicsFxId.PlayerFog => "玩家迷雾",
             GraphicsFxId.ProximityDither => "近距镂空渐隐",
             GraphicsFxId.Afterimage => "闪避残影",
+            GraphicsFxId.ChromaticAberration => "色差 CA",
+            GraphicsFxId.RadialBlur => "径向模糊",
             _ => id.ToString(),
         };
     }

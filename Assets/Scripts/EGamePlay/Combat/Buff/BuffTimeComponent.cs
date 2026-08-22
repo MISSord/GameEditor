@@ -1,5 +1,5 @@
 using System;
-using ET;
+using EGamePlay;
 
 // 时间生命周期改为 ETTimerManager 集中调度，不再每帧 Update。
 namespace EGamePlay.Combat

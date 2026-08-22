@@ -1,4 +1,5 @@
 using System;
+using ACTGameEditor;
 using UnityEngine;
 
 namespace EGamePlay.Combat
@@ -34,7 +35,10 @@ namespace EGamePlay.Combat
     /// </summary>
     public static class BuffModifyProcessorTable
     {
-        /// <summary>触发时应用（PlayerControll / PlayerModify / DamageEffect / CurveEffect）。</summary>
+        /// <summary>
+        /// 触发时应用。PlayerControll / PlayerModify 为粘性路径（RevertOnDisable 撤销）；
+        /// 伤害/资源/上独立 Buff 走 EffectApplier。
+        /// </summary>
         public static void ApplyOnTrigger(ModifyRegistration reg, Buff buff, Entity target)
         {
             if (reg == null || reg.Config == null || buff == null || buff.IsDisposed) return;
@@ -47,17 +51,11 @@ namespace EGamePlay.Combat
             {
                 ApplyPlayerAttribute(reg, buff);
             }
-            else if (reg.Config.EffectModifyType == EffectModifyType.BuffHpDamage)
+            else if (reg.Config.EffectModifyType == EffectModifyType.BuffHpDamage
+                     || reg.Config.EffectModifyType == EffectModifyType.BuffResource
+                     || reg.Config.EffectModifyType == EffectModifyType.BuffAddStatus)
             {
-                ApplyBuffHpDamage(reg, buff, target);
-            }
-            else if (reg.Config.EffectModifyType == EffectModifyType.BuffResource)
-            {
-                ApplyBuffResource(reg, buff, target);
-            }
-            else if (reg.Config.EffectModifyType == EffectModifyType.BuffAddStatus)
-            {
-                ApplyBuffAddStatus(reg, buff, target);
+                ApplyFireAndForget(reg, buff, target);
             }
             //else if (reg.Config.EffectModifyType == EffectModifyType.DamageEffect)
             //{
@@ -79,12 +77,11 @@ namespace EGamePlay.Combat
                 var tagContainer = buff.OwnerEntity?.GetComponent<StatusComponent>()?.TagContainer;
                 if (tagContainer != null && reg.Config.ParamString1 != null)
                 {
+                    var src = TagSource.Modify(buff.Id);
                     foreach (var tag in reg.Config.ParamString1)
                     {
                         if (!string.IsNullOrEmpty(tag))
-                        {
-                            tagContainer.RemoveTag(tag);
-                        }
+                            tagContainer.Pop(src, tag);
                     }
                 }
                 reg.ControlApplied = false;
@@ -111,12 +108,11 @@ namespace EGamePlay.Combat
             if (reg.ControlApplied) return;
             var tagContainer = buff.OwnerEntity?.GetComponent<StatusComponent>()?.TagContainer;
             if (tagContainer == null || reg.Config.ParamString1 == null) return;
+            var src = TagSource.Modify(buff.Id);
             foreach (var tag in reg.Config.ParamString1)
             {
                 if (!string.IsNullOrEmpty(tag))
-                {
-                    tagContainer.AddTag(tag);
-                }
+                    tagContainer.Push(src, tag);
             }
             reg.ControlApplied = true;
         }
@@ -143,34 +139,32 @@ namespace EGamePlay.Combat
             reg.AttributeApplied = true;
         }
 
-        private static void ApplyBuffHpDamage(ModifyRegistration reg, Buff buff, Entity target)
+        /// <summary>
+        /// Buff 触发的伤害/资源/上独立 Buff。粘性 PlayerModify / PlayerControll 不走这里。
+        /// </summary>
+        private static void ApplyFireAndForget(ModifyRegistration reg, Buff buff, Entity target)
         {
-            if (buff.Caster is not CombatEntity caster) return;
-            BuffModifyExecutionCore.ExecuteHpDamage(reg.Config, caster, target, buff, DamageSource.Buff);
-        }
-
-        private static void ApplyBuffResource(ModifyRegistration reg, Buff buff, Entity target)
-        {
-            if (buff.Caster is not CombatEntity caster) return;
-            BuffModifyExecutionCore.ExecuteResource(reg.Config, caster, target, buff, DamageSource.Buff);
-        }
-
-        private static void ApplyBuffAddStatus(ModifyRegistration reg, Buff buff, Entity target)
-        {
-            if (target == null) return;
-            int buffId = reg.Config.ParamInt1;
-            if (buffId <= 0) return;
-
             var caster = buff.Caster as CombatEntity;
             var creator = caster ?? buff.OwnerEntity;
-            if (creator == null || creator.IsDisposed) return;
-
-            if (creator.AddStatusAbility.TryMakeAction(out var action))
+            if (reg.Config.EffectModifyType == EffectModifyType.BuffAddStatus)
             {
-                action.Creator = creator;
-                action.Target = target;
-                action.ApplyAddStatusBySetting(buffId, reg.Config.ParamString1);
+                if (creator == null || creator.IsDisposed) return;
             }
+            else if (caster == null)
+            {
+                return;
+            }
+
+            EffectApplier.Apply(new EffectApplyRequest
+            {
+                Setting = reg.Config,
+                Caster = reg.Config.EffectModifyType == EffectModifyType.BuffAddStatus ? creator : caster,
+                Target = target,
+                TriggerSource = buff,
+                DamageSource = DamageSource.Buff,
+                SourceAbility = null,
+                DamageSegmentIndex = 0,
+            });
         }
 
         ///// <summary>[兼容旧配置] Buff 造成的伤害或资源变动，走 DamageEffect 的旧 Param 约定。</summary>

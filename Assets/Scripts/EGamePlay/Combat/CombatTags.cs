@@ -12,6 +12,10 @@ namespace EGamePlay.Combat
         public const string BuffSkillForbid = "Buff.SkillForbid";
         public const string BuffUnStopped = "Buff.UnStopped";
         public const string BuffRoll = "Buff.Roll";
+        /// <summary>处于非默认战斗形态（明心境、变身等）。</summary>
+        public const string StanceForm = "Stance.Form";
+        /// <summary>空中；Resolver 主要用 IsAirborne，此标签供技能边条件。</summary>
+        public const string LocomotionAirborne = "Locomotion.Airborne";
     }
 }
 

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: 11003
   m_EditorClassIdentifier: 
   SkillId: 11003
+  SchemaVersion: 1
   TargetInputType: 3
   skillAllEventDatas:
   - SkillId: 11003
@@ -70,16 +71,10 @@ MonoBehaviour:
           radius: 0
           height: 0
           colliderType: 0
+        DamageSegmentIndex: 0
+        HitGroupId: 0
         EffectIds: 
     SkillInputEvents:
       Events: []
     EffectEvents:
-      Events:
-      - Range:
-          _start: 0
-          _end: 52
-        IsLocalTrueOnly: 0
-        NormalEffectIds: 
-        SkillEffectIds: 
-        SkillTagList:
-        - Buff.UnStopped
+      Events: []

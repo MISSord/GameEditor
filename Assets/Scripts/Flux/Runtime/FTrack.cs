@@ -106,14 +106,7 @@ namespace Flux
 		internal void SetTimeline( FTimeline timeline )
 		{
 			_timeline = timeline;
-			if( _timeline )
-			{
-				transform.parent = _timeline.transform;
-			}
-			else
-			{
-				transform.parent = null;
-			}
+			SetParentIfNeeded( _timeline ? _timeline.transform : null );
 		}
 
 		public override FSequence Sequence { get { return _timeline.Sequence; } }

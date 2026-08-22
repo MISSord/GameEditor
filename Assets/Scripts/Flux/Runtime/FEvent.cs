@@ -255,14 +255,7 @@ namespace Flux
 		internal void SetTrack( FTrack track )
 		{
 			_track = track;
-			if( _track )
-			{
-				transform.parent = _track.transform;
-			}
-			else
-			{
-				transform.parent = null;
-			}
+			SetParentIfNeeded( _track ? _track.transform : null );
 		}
 
 		/// @brief Use this function to setup default values for when events get created

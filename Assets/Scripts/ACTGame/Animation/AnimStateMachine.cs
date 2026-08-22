@@ -1,3 +1,4 @@
+using ACTGameEditor;
 using UnityEngine;
 
 public class AnimStateMachine : StateMachineBehaviour
@@ -18,55 +19,46 @@ public class AnimStateMachine : StateMachineBehaviour
     // OnStateEnter is called before OnStateEnter is called on any state inside this state machine
     override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
+        // Token 驱动的 RootMotionDriver 接管时，不再由 SMB 改 applyRootMotion
+        if (IsDrivenByRootMotionDriver(animator))
+            return;
+
         _root = animator.transform.parent;
-        _controller = _root.GetComponent<CharacterController>();
+        _controller = _root != null ? _root.GetComponent<CharacterController>() : null;
         animator.applyRootMotion = useMotion;
-    }
-
-    // OnStateUpdate is called before OnStateUpdate is called on any state inside this state machine
-    override public void OnStateUpdate(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
-    {
-
-    }
-
-    // OnStateExit is called before OnStateExit is called on any state inside this state machine
-    override public void OnStateExit(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
-    {
-
     }
 
     // OnStateMove is called before OnStateMove is called on any state inside this state machine
     override public void OnStateMove(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        if (useCustomPositionMotion == true && _controller != null && _controller.enabled)
+        // 有 Driver 时一律交给 Token 门闩，避免与 OnAnimatorMove 双推
+        if (IsDrivenByRootMotionDriver(animator))
+            return;
+
+        if (_root == null)
+        {
+            _root = animator.transform.parent;
+            _controller = _root != null ? _root.GetComponent<CharacterController>() : null;
+        }
+
+        if (useCustomPositionMotion && _controller != null && _controller.enabled)
         {
             _deltaPosition = animator.deltaPosition;
             _deltaPosition.y = 0;
             _controller.Move(_deltaPosition);
         }
 
-        if (useCustomRotationMotion == true )
+        if (useCustomRotationMotion)
         {
             _deltaRotation = animator.deltaRotation;
-            _root.rotation = _deltaRotation;
+            if (_root != null)
+                _root.rotation = _deltaRotation * _root.rotation;
         }
     }
 
-    // OnStateIK is called before OnStateIK is called on any state inside this state machine
-    //override public void OnStateIK(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
-    //{
-    //    
-    //}
-
-    // OnStateMachineEnter is called when entering a state machine via its Entry Node
-    override public void OnStateMachineEnter(Animator animator, int stateMachinePathHash)
+    static bool IsDrivenByRootMotionDriver(Animator animator)
     {
-        Debug.Log($"yns  OnStateMachineEnter");
-    }
-
-    // OnStateMachineExit is called when exiting a state machine via its Exit Node
-    override public void OnStateMachineExit(Animator animator, int stateMachinePathHash)
-    {
-        Debug.Log($"yns OnStateMachineExit ");
+        var driver = animator.GetComponent<RootMotionDriver>();
+        return driver != null && driver.ConsumesRootMotion;
     }
 }

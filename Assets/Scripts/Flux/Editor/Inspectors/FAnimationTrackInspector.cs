@@ -16,6 +16,8 @@ namespace FluxEditor
     {
 
         private const string FLUX_STATE_MACHINE_NAME = "FluxStateMachine";
+        private const string PreviewControllerPath = "Assets/Res/Animator/_FluxPreview.controller";
+        private const string PreviewSourcePrefKey = "Flux.PreviewControllerSource";
 
         public FAnimationTrack _animTrack = null;
 
@@ -154,9 +156,12 @@ namespace FluxEditor
             }
         }
 
+        /// <summary>
+        /// Rebuild Flux preview states on a cloned controller so the project AnimatorController is not modified.
+        /// </summary>
         public static void RebuildStateMachine(FAnimationTrack track)
         {
-            if (track.AnimatorController == null || track.LayerId == -1)
+            if (track == null || track.Owner == null || track.AnimatorController == null || track.LayerId == -1)
                 return;
 
             bool isPreviewing = track.HasCache;
@@ -165,9 +170,14 @@ namespace FluxEditor
                 track.ClearCache();
 
             Animator animator = track.Owner.GetComponent<Animator>();
+            if (animator == null)
+                return;
+
             animator.runtimeAnimatorController = null;
 
-            AnimatorController controller = (AnimatorController)track.AnimatorController;
+            AnimatorController controller = GetMutablePreviewController((AnimatorController)track.AnimatorController);
+            if (controller == null)
+                return;
 
             track.UpdateEventIds();
 
@@ -176,7 +186,6 @@ namespace FluxEditor
             if (layer == null)
             {
                 layer = controller.layers[0];
-                Debug.Log($"yns layer null");
             }
 
             AnimatorStateMachine fluxSM = FindStateMachine(layer.stateMachine, FLUX_STATE_MACHINE_NAME);
@@ -202,8 +211,16 @@ namespace FluxEditor
 
             if (fluxSM.states.Length > events.Count)
             {
-                for (int i = events.Count; i < fluxSM.states.Length; ++i)
-                    fluxSM.RemoveState(fluxSM.states[i].state);
+                for (int i = fluxSM.states.Length - 1; i >= events.Count; --i)
+                {
+                    AnimatorState extra = fluxSM.states[i].state;
+                    if (extra == null)
+                        continue;
+                    AnimatorStateTransition[] extraTransitions = extra.transitions;
+                    for (int t = extraTransitions.Length - 1; t >= 0; --t)
+                        extra.RemoveTransition(extraTransitions[t]);
+                    fluxSM.RemoveState(extra);
+                }
             }
             else if (fluxSM.states.Length < events.Count)
             {
@@ -305,7 +322,7 @@ namespace FluxEditor
             if (animTrack.AnimatorController == null)
                 return null;
 
-            AnimatorController controller = (AnimatorController)animTrack.AnimatorController;
+            AnimatorController controller = GetMutablePreviewController((AnimatorController)animTrack.AnimatorController);
 
             AnimatorState animState = null;
 
@@ -377,6 +394,76 @@ namespace FluxEditor
             //			AnimatorController animatorAtPath = (AnimatorController)AssetDatabase.LoadAssetAtPath( fileLocalPath, typeof(AnimatorController) );
 
             return AnimatorController.CreateAnimatorControllerAtPath(fileLocalPath);
+        }
+
+        /// <summary>
+        /// Returns a writable preview clone. Project AnimatorController assets are copied once.
+        /// </summary>
+        public static AnimatorController GetMutablePreviewController(AnimatorController source)
+        {
+            if (source == null)
+                return null;
+
+            string srcPath = AssetDatabase.GetAssetPath(source);
+            if (string.IsNullOrEmpty(srcPath) || srcPath == PreviewControllerPath)
+                return source;
+
+            AnimatorController existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(PreviewControllerPath);
+            string lastSrc = EditorPrefs.GetString(PreviewSourcePrefKey, string.Empty);
+            if (existing == null || lastSrc != srcPath)
+            {
+                if (!string.IsNullOrEmpty(AssetDatabase.GetAssetPath(existing)))
+                    AssetDatabase.DeleteAsset(PreviewControllerPath);
+
+                if (!AssetDatabase.CopyAsset(srcPath, PreviewControllerPath))
+                    return null;
+
+                EditorPrefs.SetString(PreviewSourcePrefKey, srcPath);
+                existing = AssetDatabase.LoadAssetAtPath<AnimatorController>(PreviewControllerPath);
+            }
+
+            return existing != null ? existing : source;
+        }
+
+        /// <summary>
+        /// Restore scene Animators from the preview clone back to the track's project controller.
+        /// </summary>
+        public static void RestorePreviewAnimators(FSequence sequence)
+        {
+            if (sequence == null)
+                return;
+
+            for (int c = 0; c < sequence.Containers.Count; ++c)
+            {
+                List<FTimeline> timelines = sequence.Containers[c].Timelines;
+                for (int t = 0; t < timelines.Count; ++t)
+                {
+                    FTimeline timeline = timelines[t];
+                    if (timeline == null || timeline.Owner == null)
+                        continue;
+
+                    Animator animator = timeline.Owner.GetComponent<Animator>();
+                    if (animator == null)
+                        animator = timeline.Owner.GetComponentInChildren<Animator>();
+                    if (animator == null)
+                        continue;
+
+                    RuntimeAnimatorController original = null;
+                    List<FTrack> tracks = timeline.Tracks;
+                    for (int k = 0; k < tracks.Count; ++k)
+                    {
+                        FAnimationTrack animTrack = tracks[k] as FAnimationTrack;
+                        if (animTrack != null && animTrack.AnimatorController != null)
+                        {
+                            original = animTrack.AnimatorController;
+                            break;
+                        }
+                    }
+
+                    if (original != null)
+                        animator.runtimeAnimatorController = original;
+                }
+            }
         }
 
         private static bool VerifyUseAnimatorControllerLayer(AnimatorControllerLayer layer)
