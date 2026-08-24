@@ -1,12 +1,8 @@
 using ACTGameEditor;
+using EGamePlay.Unity;
+using EGamePlay.Unity.Locomotion;
 using System;
 using UnityEngine;
-using XiaoCao;
-#if EGAMEPLAY_ET
-using Unity.Mathematics;
-using Vector3 = Unity.Mathematics.float3;
-using Quaternion = Unity.Mathematics.quaternion;
-#endif
 
 namespace EGamePlay.Combat
 {
@@ -25,14 +21,12 @@ namespace EGamePlay.Combat
         public Transform ModelTrans { get; set; }
         public Transform RootTransform { get; set; }
         public VitalComponent CurrentVital { get; private set; }
-        public ActPlayer AttackPlayer { get; set; }        
-        //执行中的执行体
+        public ActPlayer AttackPlayer { get; set; }
+        //当前运行中的执行体
         public ActSkillRunner SpellingExecution { get; set; }
 
         //施法行动能力
         public SpellActionAbility SpellAbility { get; private set; }
-        ////移动行动能力
-        //public MotionActionAbility MotionAbility { get; private set; }
         //伤害行动能力
         public DamageActionAbility DamageAbility { get; private set; }
         //资源变动行动能力（治疗/资源回复等）
@@ -71,9 +65,6 @@ namespace EGamePlay.Combat
         private int _moveForbidTagIndex;
         private int _skillForbidTagIndex;
         private int _unStoppedTagIndex;
-        //private int _rollTagIndex;
-
-        //public bool IsCanRollTag => !_tagContainer.HasTag(_rollTagIndex) && (CurState != PlayerStateEnum.Dead);
         public bool IsCanCauseHarm => !_tagContainer.HasTag(_attackDamageForbidTagIndex);
         /// <summary>
         /// 是否允许 Locomotion 读入并位移。
@@ -163,7 +154,6 @@ namespace EGamePlay.Combat
             _moveForbidTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffMoveForbid];
             _skillForbidTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffSkillForbid];
             _unStoppedTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffUnStopped];
-            //_rollTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffRoll];
 
             AddComponent<AttributeComponent>().InitializeCharacter(data.CharacterId, data.Level);
             _timeScaleComponent = AddComponent<EntityTimeScaleComponent>();
@@ -375,7 +365,7 @@ namespace EGamePlay.Combat
 #if UNITY
             AnimComponent anim = GetComponent<AnimComponent>();
             anim?.Director?.ForceLocomotion();
-            anim?.Motion?.SetPolicy(ACTGameEditor.Locomotion.MotionPolicy.Locomotion);
+            anim?.Motion?.SetPolicy(MotionPolicy.Locomotion);
             anim?.Motion?.SetSkillSuppressGravity(false);
             ChangeInputMoveState(false);
 #endif

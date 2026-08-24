@@ -1917,12 +1917,49 @@ namespace FluxEditor
             }
             else
             {
+                EnsureEditorAnimationPreview();
+                LastFrame = -1;
                 SetCurrentFrame(frame);
 
                 _isPlaying = true;
             }
 
             FUtility.RepaintGameView();
+        }
+
+        private void EnsureEditorAnimationPreview()
+        {
+            if (Sequence == null)
+                return;
+
+            for (int c = 0; c < Sequence.Containers.Count; ++c)
+            {
+                FContainer container = Sequence.Containers[c];
+                if (container == null)
+                    continue;
+
+                List<FTimeline> timelines = container.Timelines;
+                for (int t = 0; t < timelines.Count; ++t)
+                {
+                    FTimeline timeline = timelines[t];
+                    if (timeline == null)
+                        continue;
+
+                    if (timeline.Owner == null)
+                        timeline.Awake();
+
+                    if (timeline.Owner == null)
+                        continue;
+
+                    List<FTrack> tracks = timeline.Tracks;
+                    for (int k = 0; k < tracks.Count; ++k)
+                    {
+                        FAnimationTrack animTrack = tracks[k] as FAnimationTrack;
+                        if (animTrack != null && animTrack.enabled)
+                            FAnimationTrackInspector.EnsurePreviewReady(animTrack);
+                    }
+                }
+            }
         }
 
         public void Stop()
@@ -2003,7 +2040,7 @@ namespace FluxEditor
                 Sequence.Init();
 
             int frame = (int)(time * Sequence.FrameRate);
-            if(LastFrame == frame && LastFrame!=0)
+            if (LastFrame == frame && LastFrame != 0 && !_isPlaying)
             {
                 return;
             }

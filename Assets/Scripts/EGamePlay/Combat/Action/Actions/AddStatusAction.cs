@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using XiaoCao;
 
 namespace EGamePlay.Combat
 {
@@ -29,7 +28,6 @@ namespace EGamePlay.Combat
     /// </summary>
     public class AddStatusAction : Entity, IActionExecute
     {
-        //public AddStatusEffect AddStatusEffect => TriggerContext.EffectConfig as AddStatusEffect;
         public TriggerContext TriggerContext { get; set; }
 
         /// <summary>释放者</summary>

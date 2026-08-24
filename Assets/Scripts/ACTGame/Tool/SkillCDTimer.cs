@@ -1,7 +1,7 @@
+using EGamePlay;
 using EGamePlay.Combat;
 using System;
 using System.Collections.Generic;
-using XiaoCao;
 using static ACTGameEditor.IdleSkillMapping;
 
 namespace ACTGameEditor

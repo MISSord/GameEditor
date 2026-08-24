@@ -24,8 +24,6 @@ namespace ACTGameEditor
             public int SkillId;
             [Tooltip("技能优先级")]
             public int Sort;
-            [Tooltip("是否要求 IsCanRollTag（如闪避需额外检查）")]
-            public bool RequireRollTag;
             [Tooltip("必须满足的标签")]
             public List<string> RequiredTags = new List<string>();
             [Tooltip("不能有的标签")]

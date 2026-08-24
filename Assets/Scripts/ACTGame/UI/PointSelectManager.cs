@@ -1,5 +1,6 @@
 using UnityEngine;
 using EGamePlay;
+using EGamePlay.Unity;
 using System;
 
 public class PointSelectManager : MonoBehaviour

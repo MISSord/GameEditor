@@ -1,22 +1,21 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
-using XiaoCao;
+using EGamePlay;
 using ACTGameEditor;
 
 #if UNITY_EDITOR
 
 public class SkillEditorScene : MonoBehaviour
 {
-    [Header("Ìí¼ÓÒ»¸öNpc")]
+    [Header("æ·»åŠ ä¸€ä¸ªNpc")]
     public AgentModelType agentName;
     public AgentTag agentTag;
     public Vector3 startPos = Vector3.zero;
 
-    [Button("Ìí¼ÓNpc")]
+    [Button("æ·»åŠ Npc")]
     public void AddNpc()
     {
-        var setting = ResFinder.SoUsingFinder.DebugSo;
-        PlayerManager.Instance.AddFakePlayer(startPos, setting.AI, agentTag);
+        PlayerManager.Instance.AddFakePlayer(startPos, false, agentTag);
     }
 }
 #endif

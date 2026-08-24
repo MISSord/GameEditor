@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EGamePlay
+namespace EGamePlay.Unity
 {
     //非unity编辑器下使用
     public class ComponentView: MonoBehaviour

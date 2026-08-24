@@ -1,14 +1,14 @@
-using ACTGameEditor;
-using ACTGameEditor.Locomotion;
+using EGamePlay;
+using EGamePlay.Combat;
+using EGamePlay.Unity.Locomotion;
 using UnityEngine;
-using XiaoCao;
 
-namespace EGamePlay.Combat
+namespace EGamePlay.Unity
 {
     /// <summary>
-    /// 输入移动组件：薄桥到 <see cref="LocomotionMotor"/>，保留战斗门控与时间缩放。
+    /// 输入移动组件：薄桥到 <see cref="LocomotionMotor"/>；战斗依赖由 <see cref="IInputMoveBinder"/> 注入。
     /// </summary>
-    public class InputMoveComponent : EGamePlay.Component
+    public class InputMoveComponent : Component
     {
         public override bool IsNeedFixedUpdate { get; protected set; } = true;
         public override bool IsNeedUpdate { get; protected set; } = true;
@@ -27,40 +27,20 @@ namespace EGamePlay.Combat
             _controller = data.controller;
             _combatEntity = GetEntity<CombatEntity>();
 
-            Animator animator = _combatEntity.GetComponent<AnimComponent>().animator;
-            LocomotionTuning tuning = LocomotionTuning.FromPlayerMoveSetting(data.playerSetting);
-
-            // RootTransform 在 ActPlayer.Init 里于 AddCombatEntity 之后才赋值，此处用 CC.transform
+            AnimComponent anim = _combatEntity.GetComponent<AnimComponent>();
             Transform root = _controller != null ? _controller.transform : null;
+            Animator animator = anim?.animator;
 
-            _motor.SetTuning(tuning);
-            _motor.Bind(
+            data.inputMoveBinder?.Bind(
+                _motor,
+                anim,
+                _combatEntity,
                 _controller,
                 root,
                 animator,
-                new ConfigurableInputMoveProvider(),
-                new TransformCameraProvider(null),
-                new CombatMoveGate(_combatEntity),
-                new GameTimeLocomotionTimeSource(),
-                new CombatLocomotionStateSink(_combatEntity));
+                data.playerSetting);
+
             _motor.LocomotionEnabled = Enable;
-
-            AnimComponent animComp = _combatEntity.GetComponent<AnimComponent>();
-            CombatAnimDirector director = animComp?.Director;
-            if (animComp?.Motion != null)
-                _motor.BindMotion(animComp.Motion);
-
-            if (director != null)
-            {
-                director.MoveIntentProvider = () =>
-                {
-                    var mgr = ConfigurableInputManager.Instance;
-                    return mgr != null ? mgr.PlayerInput : Vector2.zero;
-                };
-                director.MoveIntentDeadZone = tuning.InputDeadZone;
-                // 技能占轴时 Locomotion 不写 MoveSpeed，避免冲技能 Pose
-                _motor.SetAnimParamWriteGate(() => !director.HasSkillOwner);
-            }
         }
 
         public override void Update(float deltaTime)

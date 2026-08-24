@@ -1,7 +1,8 @@
 using EGamePlay;
 using EGamePlay.Combat;
+using ACTGameEditor.Locomotion;
+using EGamePlay.Unity;
 using UnityEngine;
-using XiaoCao;
 
 namespace ACTGameEditor
 {
@@ -16,6 +17,14 @@ namespace ACTGameEditor
         [HideInInspector]
         public AgentTag Agent;
         public CombatEntity Combat { get; private set; }
+
+        /// <summary>玩家层时间源（与 AnimDirector 共用）。</summary>
+        protected IAnimTimeScaleSource PlayerTimeSource { get; private set; }
+
+        /// <summary>当前玩家层逻辑时间。</summary>
+        protected float PlayerTime => PlayerTimeSource != null
+            ? PlayerTimeSource.PlayerTime
+            : GameTimeManager.PlayerTime;
 
         [Tooltip("角色配置 ID，对应 RoleAttriSetting 表的 CharacterId")]
         public int CharacterId;
@@ -44,9 +53,13 @@ namespace ACTGameEditor
                 animator = _modelShow.GetComponent<Animator>(),
                 controller = transform.GetComponent<CharacterController>(),
                 playerSetting = AssetBundleManager.Instance.LoadAssetSync<PlayerMoveSettingSo>("config_prefab", "MoveSetting"),
+                inputMoveBinder = CombatLocomotionInstaller.Default,
+                animTimeScale = GameTimeAnimTimeScaleSource.Default,
                 CharacterId = CharacterId,
                 Level = Level,
             };
+
+            PlayerTimeSource = data.animTimeScale ?? GameTimeAnimTimeScaleSource.Default;
 
             Combat = CombatContext.Instance.AddCombatEntity(data);
             CombatContext.Instance.Object2Entities.Add(gameObject, Combat);

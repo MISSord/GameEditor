@@ -1,7 +1,6 @@
-using System;
-using System.Collections.Generic;
+using EGamePlay;
 
-namespace EGamePlay
+namespace EGamePlay.Unity
 {
     //unity编辑器下使用
     public sealed class GameObjectComponent : Component

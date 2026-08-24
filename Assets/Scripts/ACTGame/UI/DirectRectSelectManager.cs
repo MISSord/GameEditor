@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using EGamePlay;
+using EGamePlay.Unity;
 
 public class DirectRectSelectManager : MonoBehaviour
 {

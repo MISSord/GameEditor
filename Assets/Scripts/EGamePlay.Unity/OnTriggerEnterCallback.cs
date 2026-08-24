@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using EGamePlay;
 using System;
 
-namespace EGamePlay.Combat
+namespace EGamePlay.Unity
 {
     public class OnTriggerEnterCallback : MonoBehaviour
     {

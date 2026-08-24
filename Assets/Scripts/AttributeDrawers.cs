@@ -7,165 +7,161 @@ using System.Linq;
 using System.Reflection;
 #endif
 
-namespace XiaoCao
+[AttributeUsage(AttributeTargets.Enum | AttributeTargets.Field)]
+public class EnumLabelAttribute : PropertyAttribute
 {
-    [AttributeUsage(AttributeTargets.Enum | AttributeTargets.Field)]
-    public class EnumLabelAttribute : PropertyAttribute
+    public string label;
+    public new int[] order = new int[0];
+    public EnumLabelAttribute(string label = null)
     {
-        public string label;
-        public new int[] order = new int[0];
-        public EnumLabelAttribute(string label = null)
-        {
-            this.label = label;
-        }
-
-        public EnumLabelAttribute(string label, params int[] order)
-        {
-            this.label = label;
-            this.order = order;
-        }
-
+        this.label = label;
     }
 
-    public class XCLabelAttribute : PropertyAttribute
+    public EnumLabelAttribute(string label, params int[] order)
     {
-        public string name;
-
-        /// <summary>
-        ///  π◊÷∂Œ‘⁄Inspector÷–œ‘ æ◊‘∂®“Âµƒ√˚≥∆°£
-        /// </summary>
-        /// <param name="name">◊‘∂®“Â√˚≥∆</param>
-        public XCLabelAttribute(string name)
-        {
-            this.name = name;
-        }
+        this.label = label;
+        this.order = order;
     }
+
+}
+
+public class XCLabelAttribute : PropertyAttribute
+{
+    public string name;
+
+    /// <summary>
+    /// ‰ΩøÂ≠óÊÆµÂú®Inspector‰∏≠ÊòæÁ§∫Ëá™ÂÆö‰πâÁöÑÂêçÁß∞„ÄÇ
+    /// </summary>
+    /// <param name="name">Ëá™ÂÆö‰πâÂêçÁß∞</param>
+    public XCLabelAttribute(string name)
+    {
+        this.name = name;
+    }
+}
 
 
 #if UNITY_EDITOR
-    [CustomPropertyDrawer(typeof(XCLabelAttribute))]
-    public class LabelDrawer : PropertyDrawer
+[CustomPropertyDrawer(typeof(XCLabelAttribute))]
+public class LabelDrawer : PropertyDrawer
+{
+    private GUIContent _label = null;
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        private GUIContent _label = null;
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        if (_label == null)
         {
-            if (_label == null)
-            {
-                string name = (attribute as XCLabelAttribute).name;
-                _label = new GUIContent(name);
-            }
-            EditorGUI.PropertyField(position, property, _label);
+            string name = (attribute as XCLabelAttribute).name;
+            _label = new GUIContent(name);
         }
+        EditorGUI.PropertyField(position, property, _label);
     }
+}
 
 
-    [CustomPropertyDrawer(typeof(EnumLabelAttribute))]
-    public class EnumLabelDrawer : PropertyDrawer
+[CustomPropertyDrawer(typeof(EnumLabelAttribute))]
+public class EnumLabelDrawer : PropertyDrawer
+{
+    private Dictionary<string, string> _customEnumNames = new Dictionary<string, string>();
+
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
     {
-        private Dictionary<string, string> _customEnumNames = new Dictionary<string, string>();
+        SetUpCustomEnumNames(property, property.enumNames);
 
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        if (property.propertyType == SerializedPropertyType.Enum)
         {
-            SetUpCustomEnumNames(property, property.enumNames);
+            EditorGUI.BeginChangeCheck();
+            string[] displayedOptions = property.enumNames
+                    .Where(enumName => _customEnumNames.ContainsKey(enumName))
+                    .Select<string, string>(enumName => _customEnumNames[enumName])
+                    .ToArray();
 
-            if (property.propertyType == SerializedPropertyType.Enum)
+            int[] indexArray = GetIndexArray(enumLabelAttribute.order);
+            if (indexArray.Length != displayedOptions.Length)
             {
-                EditorGUI.BeginChangeCheck();
-                string[] displayedOptions = property.enumNames
-                        .Where(enumName => _customEnumNames.ContainsKey(enumName))
-                        .Select<string, string>(enumName => _customEnumNames[enumName])
-                        .ToArray();
-
-                int[] indexArray = GetIndexArray(enumLabelAttribute.order);
-                if (indexArray.Length != displayedOptions.Length)
-                {
-                    indexArray = new int[displayedOptions.Length];
-                    for (int i = 0; i < indexArray.Length; i++)
-                    {
-                        indexArray[i] = i;
-                    }
-                }
-                string[] items = new string[displayedOptions.Length];
-                items[0] = displayedOptions[0];
-                for (int i = 0; i < displayedOptions.Length; i++)
-                {
-                    items[i] = displayedOptions[indexArray[i]];
-                }
-                int index = -1;
+                indexArray = new int[displayedOptions.Length];
                 for (int i = 0; i < indexArray.Length; i++)
                 {
-                    if (indexArray[i] == property.enumValueIndex)
-                    {
-                        index = i;
-                        break;
-                    }
-                }
-                if ((index == -1) && (property.enumValueIndex != -1)) { SortingError(position, property, label); return; }
-
-                string baseName = enumLabelAttribute.label == null ? property.displayName : enumLabelAttribute.label;
-
-                index = EditorGUI.Popup(position, baseName, index, items);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    if (index >= 0)
-                        property.enumValueIndex = indexArray[index];
+                    indexArray[i] = i;
                 }
             }
-        }
-
-        private EnumLabelAttribute enumLabelAttribute
-        {
-            get
+            string[] items = new string[displayedOptions.Length];
+            items[0] = displayedOptions[0];
+            for (int i = 0; i < displayedOptions.Length; i++)
             {
-                return (EnumLabelAttribute)attribute;
+                items[i] = displayedOptions[indexArray[i]];
             }
-        }
-
-        public void SetUpCustomEnumNames(SerializedProperty property, string[] enumNames)
-        {
-            Type enumType = fieldInfo.FieldType;
-            foreach (var enumName in enumNames)
+            int index = -1;
+            for (int i = 0; i < indexArray.Length; i++)
             {
-                FieldInfo field = enumType.GetField(enumName);
-                EnumLabelAttribute att = field.GetCustomAttribute<EnumLabelAttribute>();
-                if (!_customEnumNames.ContainsKey(enumName))
+                if (indexArray[i] == property.enumValueIndex)
                 {
-                    if (att != null)
-                    {
-                        _customEnumNames.Add(enumName, att.label);
-                    }
-                    else
-                    {
-                        _customEnumNames.Add(enumName, enumName);
-                    }
+                    index = i;
+                    break;
                 }
             }
-        }
+            if ((index == -1) && (property.enumValueIndex != -1)) { SortingError(position, property, label); return; }
 
-        int[] GetIndexArray(int[] order)
-        {
-            int[] indexArray = new int[order.Length];
-            for (int i = 0; i < order.Length; i++)
+            string baseName = enumLabelAttribute.label == null ? property.displayName : enumLabelAttribute.label;
+
+            index = EditorGUI.Popup(position, baseName, index, items);
+            if (EditorGUI.EndChangeCheck())
             {
-                int index = 0;
-                for (int j = 0; j < order.Length; j++)
-                {
-                    if (order[i] > order[j])
-                    {
-                        index++;
-                    }
-                }
-                indexArray[i] = index;
+                if (index >= 0)
+                    property.enumValueIndex = indexArray[index];
             }
-            return (indexArray);
-        }
-
-        void SortingError(Rect position, SerializedProperty property, GUIContent label)
-        {
-            EditorGUI.PropertyField(position, property, new GUIContent(label.text + " (sorting error)"));
-            EditorGUI.EndProperty();
         }
     }
-#endif
 
+    private EnumLabelAttribute enumLabelAttribute
+    {
+        get
+        {
+            return (EnumLabelAttribute)attribute;
+        }
+    }
+
+    public void SetUpCustomEnumNames(SerializedProperty property, string[] enumNames)
+    {
+        Type enumType = fieldInfo.FieldType;
+        foreach (var enumName in enumNames)
+        {
+            FieldInfo field = enumType.GetField(enumName);
+            EnumLabelAttribute att = field.GetCustomAttribute<EnumLabelAttribute>();
+            if (!_customEnumNames.ContainsKey(enumName))
+            {
+                if (att != null)
+                {
+                    _customEnumNames.Add(enumName, att.label);
+                }
+                else
+                {
+                    _customEnumNames.Add(enumName, enumName);
+                }
+            }
+        }
+    }
+
+    int[] GetIndexArray(int[] order)
+    {
+        int[] indexArray = new int[order.Length];
+        for (int i = 0; i < order.Length; i++)
+        {
+            int index = 0;
+            for (int j = 0; j < order.Length; j++)
+            {
+                if (order[i] > order[j])
+                {
+                    index++;
+                }
+            }
+            indexArray[i] = index;
+        }
+        return (indexArray);
+    }
+
+    void SortingError(Rect position, SerializedProperty property, GUIContent label)
+    {
+        EditorGUI.PropertyField(position, property, new GUIContent(label.text + " (sorting error)"));
+        EditorGUI.EndProperty();
+    }
 }
+#endif

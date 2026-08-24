@@ -42,6 +42,9 @@ MonoBehaviour:
         AnimName: MeleeAttackOne
         BlenderLength: 0
         StartOffset: 0
+        ExitPolicy: 0
+        UseRootMotion: 1
+        SuppressGravity: 0
         IsBackToIdle: 1
     MoveEvents:
       Events: []
@@ -52,8 +55,8 @@ MonoBehaviour:
     SwitchEvents:
       Events:
       - Range:
-          _start: 64
-          _end: 73
+          _start: 60
+          _end: 63
         IsLocalTrueOnly: 0
         InputType: 3
     MsgEvents:
@@ -77,8 +80,8 @@ MonoBehaviour:
     SkillInputEvents:
       Events:
       - Range:
-          _start: 40
-          _end: 61
+          _start: 34
+          _end: 72
         IsLocalTrueOnly: 0
         InputDataList:
         - ListernType: 1

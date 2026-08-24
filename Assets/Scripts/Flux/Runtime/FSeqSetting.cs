@@ -1,7 +1,6 @@
-﻿
+
 using UnityEngine;
-using System.Collections.Generic;
-using XiaoCao;
+using EGamePlay;
 
 namespace Flux
 {

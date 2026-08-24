@@ -29,7 +29,7 @@ namespace Flux
 		public bool isBackToIdle;
 
 		[Tooltip("轴自然结束：Locomotion=交回移动；Hold=保持末帧")]
-		public EGamePlay.Combat.AnimExitPolicy ExitPolicy = EGamePlay.Combat.AnimExitPolicy.Locomotion;
+		public EGamePlay.Unity.AnimExitPolicy ExitPolicy = EGamePlay.Unity.AnimExitPolicy.Locomotion;
 
 		public float _speed = 1;
 
@@ -42,14 +42,16 @@ namespace Flux
         //    base.OnInit();
         //}
 
-        protected override void OnTrigger( float timeSinceTrigger )
+		protected override void OnTrigger( float timeSinceTrigger )
 		{
 			_animator = Owner.GetComponent<Animator>();
 			_animTrack = (FAnimationTrack)_track;
 
-			if( _animator.runtimeAnimatorController != _animTrack.AnimatorController )
+			RuntimeAnimatorController desiredController = FAnimationPreviewBridge.GetPreviewController(_animTrack.AnimatorController);
+
+			if( _animator.runtimeAnimatorController != desiredController )
 			{
-				_animator.runtimeAnimatorController = _animTrack.AnimatorController;
+				_animator.runtimeAnimatorController = desiredController;
 			}
 
 			_animator.enabled = _animationClip != null;

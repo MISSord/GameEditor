@@ -1,4 +1,5 @@
 using ACTGameEditor;
+using EGamePlay;
 using EGamePlay.Combat;
 using UnityEngine;
 

@@ -3,9 +3,9 @@ using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
 
-namespace ACTGameEditor
+namespace EGamePlay.Unity
 {
-    public class PlayableGraphComponent : EGamePlay.Component
+    public class PlayableGraphComponent : Component
     {
         private PlayableGraph _graph;
         private AnimationMixerPlayable _mixer;

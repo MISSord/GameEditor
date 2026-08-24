@@ -1,18 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
 using ACTGameEditor;
-using XiaoCao;
-
-#if EGAMEPLAY_ET
-using Unity.Mathematics;
-using Vector3 = Unity.Mathematics.float3;
-using Quaternion = Unity.Mathematics.quaternion;
-using AO;
-using AO.EventType;
-using ET.EventType;
-#else
-using float3 = UnityEngine.Vector3;
-#endif
 
 namespace EGamePlay.Combat
 {

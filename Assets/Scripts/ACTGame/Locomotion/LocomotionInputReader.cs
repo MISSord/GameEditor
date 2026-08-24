@@ -1,6 +1,6 @@
+using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 using UnityEngine.InputSystem;
-
 namespace ACTGameEditor.Locomotion
 {
     /// <summary>

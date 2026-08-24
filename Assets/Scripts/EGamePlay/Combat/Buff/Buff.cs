@@ -1,6 +1,6 @@
 using ACTGameEditor;
+using EGamePlay;
 using UnityEngine;
-using XiaoCao;
 
 namespace EGamePlay.Combat
 {
@@ -86,7 +86,6 @@ namespace EGamePlay.Combat
             //if (passiveConfig != null)
             //{
             //    AddComponent<AbilityEffectComponent>(passiveConfig);
-            //    AddComponent<BuffAbilityTriggerComponent>(passiveConfig.TriggerActions);
             //}
         }
 

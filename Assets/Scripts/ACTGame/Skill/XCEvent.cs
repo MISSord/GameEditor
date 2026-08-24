@@ -1,5 +1,7 @@
 using DG.Tweening;
 using EGamePlay.Combat;
+using EGamePlay.Unity;
+using EGamePlay.Unity.Locomotion;
 using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
@@ -277,7 +279,7 @@ namespace ACTGameEditor
     public class XCMoveEvent : XCLineEvent
     {
         private CharacterController _cc;
-        private ACTGameEditor.Locomotion.MotionDirector _motion;
+        private MotionDirector _motion;
         private Matrix4x4 _m4;
 
         public override void Init(CombatEntity owner, XCNewEventsRunner runner)
@@ -307,7 +309,7 @@ namespace ACTGameEditor
             if (_motion != null)
             {
                 // 曲线可带 Y；是否吃重力由 MotionDirector.GravityEnabled 决定
-                _motion.TryApply(ACTGameEditor.Locomotion.MotionSource.SkillCurve, world, flattenY: false);
+                _motion.TryApply(MotionSource.SkillCurve, world, flattenY: false);
             }
             else if (_cc != null)
             {
@@ -588,12 +590,12 @@ namespace ACTGameEditor
 
             if (eventData.InputType == EventTriggerType.ParentFinish)
             {
-                //通知总运行器
+                //通知总运行器 当前技能主要部分已经运行结束，但依然会运行当前技能后续部分
                 SelfRunner.GetParent<ActSkillRunner>().Finish();
             }
             else if (eventData.InputType == EventTriggerType.ParentExit)
             {
-                //通知总运行器
+                //通知总运行器，当前技能已经全部结束，应回到其他状态。
                 SelfRunner.GetParent<ActSkillRunner>().BreakSkill();
             }
         }

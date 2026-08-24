@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using ACTGameEditor;
-using ACTGameEditor.Locomotion;
+using EGamePlay.Combat;
+using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 
-namespace EGamePlay.Combat
+namespace EGamePlay.Unity
 {
     public enum AnimationEnem
     {
@@ -50,6 +50,7 @@ namespace EGamePlay.Combat
         private CombatEntity _owner;
         private RootMotionDriver _rootMotion;
         private MotionDirector _motion;
+        private IAnimTimeScaleSource _timeScale;
         private int _token;
         private float _skillSpeed = 1f;
         private Action _onTimeScaleChanged;
@@ -84,6 +85,14 @@ namespace EGamePlay.Combat
             _anim = anim;
         }
 
+        /// <summary>绑定玩家层时间源（动画 speed / 反应计时）。</summary>
+        public void BindTimeScale(IAnimTimeScaleSource timeScale)
+        {
+            UnsubscribeTimeScale();
+            _timeScale = timeScale ?? UnityAnimTimeScaleSource.Default;
+            EnsureTimeScaleSubscription();
+        }
+
         /// <summary>绑定战斗实体，用于时间缩放与实体缩放。</summary>
         public void BindOwner(CombatEntity owner)
         {
@@ -109,16 +118,13 @@ namespace EGamePlay.Combat
         /// <summary>解绑并取消时间缩放订阅。</summary>
         public void Unbind()
         {
-            if (_subscribedTimeScale && _onTimeScaleChanged != null)
-            {
-                GameTimeManager.OnTimeScaleChanged -= _onTimeScaleChanged;
-                _subscribedTimeScale = false;
-            }
+            UnsubscribeTimeScale();
 
             ClearMotionSkillOwnership();
             _rootMotion = null;
             _motion = null;
             _owner = null;
+            _timeScale = null;
             MoveIntentProvider = null;
             _clipLengthByHash.Clear();
             _token = 0;
@@ -189,7 +195,7 @@ namespace EGamePlay.Combat
             int token = PlaySkill(stateHash, blendSeconds, 0f, speed, applyRootMotion, suppressGravity);
             float s = speed > 0f ? speed : 1f;
             _autoReleaseToken = token;
-            _autoReleaseAt = GameTimeManager.PlayerTime + len / s;
+            _autoReleaseAt = _timeScale.PlayerTime + len / s;
             return token;
         }
 
@@ -200,6 +206,14 @@ namespace EGamePlay.Combat
         }
 
         /// <summary>驱动反应动画自动交回；由玩家 Update 调用。</summary>
+        public void Tick()
+        {
+            if (_timeScale == null)
+                return;
+            Tick(_timeScale.PlayerTime);
+        }
+
+        /// <summary>驱动反应动画自动交回（显式传入玩家时间）。</summary>
         public void Tick(float playerTime)
         {
             if (_autoReleaseToken == 0)
@@ -248,7 +262,8 @@ namespace EGamePlay.Combat
         public void RefreshSpeedFromOwner()
         {
             float entityScale = _owner != null ? _owner.GetTimeScale() : 1f;
-            RefreshSpeed(GameTimeManager.PlayerScale, entityScale);
+            float playerScale = _timeScale != null ? _timeScale.PlayerScale : 1f;
+            RefreshSpeed(playerScale, entityScale);
         }
 
         /// <summary>写 animator.speed。</summary>
@@ -365,13 +380,28 @@ namespace EGamePlay.Combat
             return axis.sqrMagnitude > dead * dead;
         }
 
+        /// <summary>当前绑定的玩家层时间。</summary>
+        public float PlayerTime => _timeScale != null ? _timeScale.PlayerTime : 0f;
+
         void EnsureTimeScaleSubscription()
         {
-            if (_subscribedTimeScale)
+            if (_subscribedTimeScale || _timeScale == null)
                 return;
             _onTimeScaleChanged = RefreshSpeedFromOwner;
-            GameTimeManager.OnTimeScaleChanged += _onTimeScaleChanged;
+            _timeScale.OnTimeScaleChanged += _onTimeScaleChanged;
             _subscribedTimeScale = true;
+        }
+
+        void UnsubscribeTimeScale()
+        {
+            if (!_subscribedTimeScale || _onTimeScaleChanged == null || _timeScale == null)
+            {
+                _subscribedTimeScale = false;
+                return;
+            }
+
+            _timeScale.OnTimeScaleChanged -= _onTimeScaleChanged;
+            _subscribedTimeScale = false;
         }
     }
 
@@ -394,6 +424,7 @@ namespace EGamePlay.Combat
             Motion.Bind(data.controller);
 
             Director = new CombatAnimDirector(this);
+            Director.BindTimeScale(data.animTimeScale);
             Director.BindOwner(GetEntity<CombatEntity>());
             Director.BindMotion(Motion);
 

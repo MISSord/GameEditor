@@ -1,11 +1,5 @@
 using System;
 using System.Collections.Generic;
-using XiaoCao;
-#if EGAMEPLAY_ET
-using AO;
-using AO.EventType;
-using ET.EventType;
-#endif
 
 namespace EGamePlay.Combat
 {

@@ -2,7 +2,6 @@
 using NaughtyAttributes;
 using UnityEngine;
 using EGamePlay.Combat;
-using XiaoCao;
 
 namespace Flux
 {
