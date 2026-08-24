@@ -1,5 +1,4 @@
 using System;
-using XiaoCao;
 using Sirenix.OdinInspector;
 using System.Collections.Generic;
 using ACTGameEditor;
@@ -38,7 +37,7 @@ public class SkillNewEventData
     [ShowIf(nameof(ShowSwitchEvents))]
     public XCEventOwnerData<XCSwitchEventData> SwitchEvents = new XCEventOwnerData<XCSwitchEventData>();
 
-    ///MsgEvents 用于发送消息,如重力开关 <see cref="PlayEventMsg"/> 
+    ///MsgEvents 用于发送消息,如重力开关 <see cref="EGamePlay.Combat.PlayEventMsg"/> 
     [ShowIf(nameof(ShowMsgEvents))]
     public XCEventOwnerData<XCMsgEventData> MsgEvents = new XCEventOwnerData<XCMsgEventData>();
 

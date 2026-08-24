@@ -42,6 +42,9 @@ MonoBehaviour:
         AnimName: MeleeAttackTwo
         BlenderLength: 0
         StartOffset: 0
+        ExitPolicy: 0
+        UseRootMotion: 1
+        SuppressGravity: 0
         IsBackToIdle: 1
     MoveEvents:
       Events: []
@@ -53,7 +56,7 @@ MonoBehaviour:
       Events:
       - Range:
           _start: 40
-          _end: 49
+          _end: 46
         IsLocalTrueOnly: 0
         InputType: 3
     MsgEvents:
@@ -92,7 +95,7 @@ MonoBehaviour:
       Events:
       - Range:
           _start: 28
-          _end: 40
+          _end: 46
         IsLocalTrueOnly: 0
         InputDataList:
         - ListernType: 1

@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
+using ACTGameEditor;
 using UnityEngine;
 
 namespace XiaoCao
 {
-    public class UIMrg : MonoBehaviour
+    public class UIMrg : MonoBehaviour, ACTGameEditor.IDamageTextPresenter
     {
         protected static UIMrg _instance = null;
         public static UIMrg Instance
@@ -32,7 +33,15 @@ namespace XiaoCao
         {
             _instance = this;
             DontDestroyOnLoad(this);
+            ACTGameEditor.DamageTextPresenter.Register(this);
             Init();
+        }
+
+        private void OnDestroy()
+        {
+            ACTGameEditor.DamageTextPresenter.Unregister(this);
+            if (_instance == this)
+                _instance = null;
         }
 
         private void Init()
@@ -113,10 +122,15 @@ namespace XiaoCao
             return null;
         }
 
+        /// <inheritdoc />
+        public void ShowDamage(float damageValue, Vector3 worldPosition)
+        {
+            MainUIPanel.ShowDamageText(string.Format("-{0}", (int)damageValue), worldPosition);
+        }
+
         public void PlayDamageText(float damageValue, Vector3 vector3)
         {
-            UnityEngine.Debug.LogError($"{damageValue} {vector3}");
-            MainUIPanel.ShowDamageText(string.Format("-{0}", (int)damageValue), vector3);
+            ShowDamage(damageValue, vector3);
         }
     }
 

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EGamePlay
+namespace EGamePlay.Unity
 {
     public static class RaycastHelper
     {

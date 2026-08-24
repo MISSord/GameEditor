@@ -1,5 +1,6 @@
 using EGamePlay;
 using EGamePlay.Combat;
+using EGamePlay.Unity;
 using System.Collections.Generic;
 
 namespace ACTGameEditor
@@ -81,8 +82,7 @@ namespace ACTGameEditor
             else if (State == RunnerState.StopEnd || State == RunnerState.Break)
             {
                 // 自然结束：按 ExitPolicy；Break：不交回（新技能已占 Token）
-                bool returnToLocomotion = State == RunnerState.StopEnd
-                    && AnimExitPolicy != AnimExitPolicy.Hold;
+                bool returnToLocomotion = State == RunnerState.StopEnd && AnimExitPolicy != AnimExitPolicy.Hold;
                 _state = RunnerState.Finish;
                 ReleaseAnimOwnership(returnToLocomotion);
                 DestroyAll();

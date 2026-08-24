@@ -1,6 +1,5 @@
 using System;
 using ACTGameEditor;
-using XiaoCao;
 
 namespace EGamePlay.Combat
 {

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using XiaoCao;
+using EGamePlay;
 
 namespace ACTGameEditor
 {
@@ -28,7 +28,7 @@ namespace ACTGameEditor
 
         #endregion
 
-        #region ===== ÊÂ¼ş =======
+        #region ===== äº‹ä»¶ =======
 
         public delegate void PlayerEvent(uint NetId);
 
@@ -36,7 +36,7 @@ namespace ACTGameEditor
 
         public Action<ActPlayer> AddAckerAct;
 
-        private PlayerEvent OnValueChangeEvent; //Öµ¸Ä±äÊ± ÊÂ¼ş´¥·¢
+        private PlayerEvent OnValueChangeEvent; //å€¼æ”¹å˜æ—¶ äº‹ä»¶è§¦å‘
 
         public void AddListener(ClientEventType eventType, PlayerEvent player)
         {
@@ -58,23 +58,23 @@ namespace ACTGameEditor
 
         #region Switch Cooldown (Honkai3-style)
 
-        /// <summary> ÇĞ»»½ÇÉ«ÀäÈ´Ê±³¤£¨Ãë£©£¬ÀäÈ´ÆÚ¼äÎŞ·¨ÔÙ´ÎÇĞ»»¡£ </summary>
+        /// <summary> åˆ‡æ¢è§’è‰²å†·å´æ—¶é•¿ï¼ˆç§’ï¼‰ï¼Œå†·å´æœŸé—´æ— æ³•å†æ¬¡åˆ‡æ¢ã€‚ </summary>
         public float SwitchCooldownDuration { get; set; } = 5f;
 
-        /// <summary> ÉÏ´ÎÇĞ»»ÊÓ½ÇµÄÊ±¼ä´Á£¨Time.time£©£¬ÓÃÓÚ¼ÆËãÊ£ÓàÀäÈ´¡£ </summary>
+        /// <summary> ä¸Šæ¬¡åˆ‡æ¢è§†è§’çš„æ—¶é—´æˆ³ï¼ˆTime.timeï¼‰ï¼Œç”¨äºè®¡ç®—å‰©ä½™å†·å´ã€‚ </summary>
         private float _lastSwitchTime = -999f;
 
-        /// <summary> µ±Ç°ÉãÏñ»ú¸úËæµÄµ¥Î» NetId£»ÓÃÓÚ UI ¸ßÁÁµ±Ç°ÊÓ½Ç¡£ </summary>
+        /// <summary> å½“å‰æ‘„åƒæœºè·Ÿéšçš„å•ä½ NetIdï¼›ç”¨äº UI é«˜äº®å½“å‰è§†è§’ã€‚ </summary>
         public uint CurrentFollowNetId { get; private set; }
 
-        /// <summary> µ±Ç°Ê£ÓàÇĞ»»ÀäÈ´Ê±¼ä£¨Ãë£©£¬0 ±íÊ¾ÎŞÀäÈ´¡£ </summary>
+        /// <summary> å½“å‰å‰©ä½™åˆ‡æ¢å†·å´æ—¶é—´ï¼ˆç§’ï¼‰ï¼Œ0 è¡¨ç¤ºæ— å†·å´ã€‚ </summary>
         public float GetRemainingSwitchCooldown()
         {
             float elapsed = GameTimeManager.WorldTime - _lastSwitchTime;
             return elapsed >= SwitchCooldownDuration ? 0f : Mathf.Max(0f, SwitchCooldownDuration - elapsed);
         }
 
-        /// <summary> ÊÇ·ñ´¦ÓÚÇĞ»»ÀäÈ´ÖĞ£¨ÀäÈ´ÖĞ²»¿ÉÔÙ´ÎÇĞ»»£©¡£ </summary>
+        /// <summary> æ˜¯å¦å¤„äºåˆ‡æ¢å†·å´ä¸­ï¼ˆå†·å´ä¸­ä¸å¯å†æ¬¡åˆ‡æ¢ï¼‰ã€‚ </summary>
         public bool IsSwitchInCooldown() => GetRemainingSwitchCooldown() > 0f;
 
         #endregion
@@ -160,7 +160,7 @@ namespace ACTGameEditor
             player.Agent = AgentTag.PlayerA;
             player.Init();
 
-            //¸úËæÍæ¼Ò
+            //è·Ÿéšç©å®¶
             CameraManager.Instance.ChangeCurFollowTarget(player);
 
             LocalPlayer = player;
@@ -198,7 +198,7 @@ namespace ACTGameEditor
             return act;
         }
 
-        /// <summary> UI ¹¦ÄÜ£¬ÔÚ±¾µØÍæ¼ÒÓÒ²àÉú³É¼ÙÍæ¼Ò£¬AgentTag Îª PlayerB </summary>
+        /// <summary> UI åŠŸèƒ½ï¼Œåœ¨æœ¬åœ°ç©å®¶å³ä¾§ç”Ÿæˆå‡ç©å®¶ï¼ŒAgentTag ä¸º PlayerB </summary>
         public void AddFakePlayerFromUI()
         {
             Vector3 pos = LocalPlayer != null
@@ -207,7 +207,7 @@ namespace ACTGameEditor
             AddFakePlayer(pos, false, AgentTag.PlayerB, AgentModelType.Player);
         }
 
-        /// <summary> UI ¹¦ÄÜ£¬ÔÚ±¾µØÍæ¼ÒÇ°·½Éú³ÉµĞÈË£¬AgentTag Îª enemy </summary>
+        /// <summary> UI åŠŸèƒ½ï¼Œåœ¨æœ¬åœ°ç©å®¶å‰æ–¹ç”Ÿæˆæ•Œäººï¼ŒAgentTag ä¸º enemy </summary>
         public void AddEnemyFromUI()
         {
             Vector3 pos = LocalPlayer != null
@@ -216,7 +216,7 @@ namespace ACTGameEditor
             AddFakePlayer(pos, false, AgentTag.enemy, AgentModelType.EnemyB);
         }
 
-        /// <summary> ÇĞ»»ÉãÏñ»ú¸úËæÍæ¼Ò£»ÀäÈ´ÖĞÊ±²»»áÇĞ»»¡£ </summary>
+        /// <summary> åˆ‡æ¢æ‘„åƒæœºè·Ÿéšç©å®¶ï¼›å†·å´ä¸­æ—¶ä¸ä¼šåˆ‡æ¢ã€‚ </summary>
         public void SwitchCameraToPlayer(uint netId)
         {
             if (IsSwitchInCooldown()) return;

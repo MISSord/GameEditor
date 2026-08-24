@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using Flux;
 
 using Object = UnityEngine.Object;
-using XiaoCao;
 
 namespace FluxEditor
 {

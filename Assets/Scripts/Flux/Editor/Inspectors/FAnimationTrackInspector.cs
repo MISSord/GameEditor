@@ -11,6 +11,19 @@ using Flux;
 
 namespace FluxEditor
 {
+    [InitializeOnLoad]
+    internal static class FAnimationPreviewBridgeRegistration
+    {
+        static FAnimationPreviewBridgeRegistration()
+        {
+            FAnimationPreviewBridge.ResolvePreviewController = source =>
+            {
+                AnimatorController controller = source as AnimatorController;
+                return controller != null ? FAnimationTrackInspector.GetMutablePreviewController(controller) : source;
+            };
+        }
+    }
+
     [CustomEditor(typeof(FAnimationTrack))]
     public class FAnimationTrackInspector : FTrackInspector
     {
@@ -122,7 +135,6 @@ namespace FluxEditor
 
             if (GUILayout.Button("ReBuild Anim StateMachine"))
             {
-                //XiaoCaoEexample_2.Open();
                 FAnimationTrackInspector.RebuildStateMachine((FAnimationTrack)_animTrack);
             }
 
@@ -426,6 +438,20 @@ namespace FluxEditor
         }
 
         /// <summary>
+        /// Ensure preview controller and cache are ready before editor playback.
+        /// </summary>
+        public static void EnsurePreviewReady(FAnimationTrack track)
+        {
+            if (track == null || track.Owner == null || !track.CanCreateCache())
+                return;
+
+            RebuildStateMachine(track);
+
+            if (!track.HasCache)
+                track.CreateCache();
+        }
+
+        /// <summary>
         /// Restore scene Animators from the preview clone back to the track's project controller.
         /// </summary>
         public static void RestorePreviewAnimators(FSequence sequence)
@@ -433,6 +459,7 @@ namespace FluxEditor
             if (sequence == null)
                 return;
 
+            FAnimationTrack.DeleteAnimationPreviews(sequence);
             for (int c = 0; c < sequence.Containers.Count; ++c)
             {
                 List<FTimeline> timelines = sequence.Containers[c].Timelines;

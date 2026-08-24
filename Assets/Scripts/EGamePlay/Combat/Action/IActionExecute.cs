@@ -1,9 +1,3 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using EGamePlay.Combat;
-using Sirenix.OdinInspector;
-
 namespace EGamePlay.Combat
 {
     /// <summary>

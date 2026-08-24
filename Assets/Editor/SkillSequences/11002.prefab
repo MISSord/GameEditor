@@ -279,7 +279,7 @@ MonoBehaviour:
   _triggerOnSkip: 1
   _frameRange:
     _start: 28
-    _end: 40
+    _end: 46
   InputList:
   - ListernType: 1
     PressType: 0
@@ -402,6 +402,7 @@ MonoBehaviour:
   _startOffset: 0
   _stateHash: -186917087
   isBackToIdle: 1
+  ExitPolicy: 0
   _speed: 1
 --- !u!1 &6889016166023563177
 GameObject:
@@ -485,7 +486,7 @@ MonoBehaviour:
   _triggerOnSkip: 1
   _frameRange:
     _start: 40
-    _end: 49
+    _end: 46
   unMoveFrames: 10
   InputType: 3
 --- !u!1 &6889016166686018153

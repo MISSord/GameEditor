@@ -1,8 +1,8 @@
 using EGamePlay;
 using EGamePlay.Combat;
+using EGamePlay.Unity;
 using System.Collections.Generic;
 using UnityEngine;
-using XiaoCao;
 
 namespace ACTGameEditor
 {
@@ -105,7 +105,7 @@ namespace ACTGameEditor
             if (damageAction == null || Combat == null)
                 return;
 
-            UIMrg.Instance.PlayDamageText(damageAction.DamageValue, this.UINode.position);
+            DamageTextPresenter.Active?.ShowDamage(damageAction.DamageValue, UINode.position);
 
             // 致死伤已在 ApplyDeath 中处理；霸体不进 Hit
             if (Combat.IsDead)
@@ -133,7 +133,7 @@ namespace ACTGameEditor
         void Update()
         {
             // 反应动画自动交回；技能 speed 在 PlaySkill 时写入，时间缩放由 Director 订阅
-            _animComponent?.Director?.Tick(GameTimeManager.PlayerTime);
+            _animComponent?.Director?.Tick();
             CheckInitialInput();
         }
 
@@ -161,7 +161,7 @@ namespace ACTGameEditor
         {
             if (SlotConfig == null || SlotRuntime == null || InputBuffer == null) return;
 
-            InputBuffer.Tick(GameTimeManager.PlayerTime);
+            InputBuffer.Tick(PlayerTime);
             if (!InputBuffer.HasAny()) return;
 
             // ParentFinish 后 IsMainFinish：角色已可 Idle 出招，但 Runner 可能仍在播后摇
@@ -322,7 +322,7 @@ namespace ACTGameEditor
             if (InputBuffer == null)
                 return;
 
-            float now = GameTimeManager.PlayerTime;
+            float now = PlayerTime;
             InputBuffer.Tick(now);
 
             SkillSlotConfig.SlotEntry entry = SlotConfig != null
@@ -346,7 +346,7 @@ namespace ACTGameEditor
         {
             if (InputBuffer == null)
                 return false;
-            float now = GameTimeManager.PlayerTime;
+            float now = PlayerTime;
             InputBuffer.Tick(now);
             float maxAge = customTimeout > 0f ? customTimeout : InputTimeout;
             return InputBuffer.TryConsume(cmd, type, inputCallBackType, now, maxAge);
@@ -356,7 +356,7 @@ namespace ACTGameEditor
         {
             if (InputBuffer == null)
                 return false;
-            InputBuffer.Tick(GameTimeManager.PlayerTime);
+            InputBuffer.Tick(PlayerTime);
             return InputBuffer.HasCommand(cmd, type, inputCallBackType);
         }
 
@@ -369,7 +369,7 @@ namespace ACTGameEditor
         {
             if (InputBuffer == null)
                 return false;
-            InputBuffer.Tick(GameTimeManager.PlayerTime);
+            InputBuffer.Tick(PlayerTime);
             return InputBuffer.HasAny();
         }
 
@@ -384,7 +384,7 @@ namespace ACTGameEditor
             if (edges == null || InputBuffer == null || Combat == null)
                 return false;
 
-            float now = GameTimeManager.PlayerTime;
+            float now = PlayerTime;
             InputBuffer.Tick(now);
             if (!InputBuffer.HasAny())
                 return false;

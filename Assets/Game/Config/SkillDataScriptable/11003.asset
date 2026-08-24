@@ -42,6 +42,9 @@ MonoBehaviour:
         AnimName: MeleeComboAttackThird
         BlenderLength: 0
         StartOffset: 0
+        ExitPolicy: 0
+        UseRootMotion: 1
+        SuppressGravity: 0
         IsBackToIdle: 1
     MoveEvents:
       Events: []
@@ -52,8 +55,8 @@ MonoBehaviour:
     SwitchEvents:
       Events:
       - Range:
-          _start: 52
-          _end: 58
+          _start: 50
+          _end: 56
         IsLocalTrueOnly: 0
         InputType: 3
     MsgEvents:

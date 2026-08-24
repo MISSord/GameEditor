@@ -35,7 +35,6 @@
 
 using DG.Tweening;
 using UnityEngine;
-using XiaoCao;
 
 namespace Flux
 {

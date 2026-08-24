@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using ACTGameEditor;
-using XiaoCao;
 
 namespace EGamePlay.Combat
 {

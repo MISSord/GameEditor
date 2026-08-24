@@ -225,6 +225,7 @@ MonoBehaviour:
   _startOffset: 0
   _stateHash: -186917087
   isBackToIdle: 1
+  ExitPolicy: 0
   _speed: 1
 --- !u!1 &6889016166023563177
 GameObject:
@@ -307,8 +308,8 @@ MonoBehaviour:
   _track: {fileID: 6889016167399735055}
   _triggerOnSkip: 1
   _frameRange:
-    _start: 52
-    _end: 58
+    _start: 50
+    _end: 56
   unMoveFrames: 10
   InputType: 3
 --- !u!1 &6889016166686018153

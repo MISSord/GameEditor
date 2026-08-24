@@ -1,56 +1,18 @@
+using EGamePlay;
+using EGamePlay.Unity.Locomotion;
 using UnityEngine;
-using XiaoCao;
 
 namespace ACTGameEditor.Locomotion
 {
-    /// <summary>
-    /// 角色移动调参。可由 <see cref="LocomotionConfig"/> 或旧版 <see cref="PlayerMoveSettingSo"/> 填充。
-    /// </summary>
-    public struct LocomotionTuning
+    /// <summary>从业务配置映射到 <see cref="LocomotionTuning"/>。</summary>
+    public static class LocomotionTuningBuilder
     {
-        public LayerMask GroundLayers;
-        public float MovingTurnSpeed;
-        public float RunMoveSpeed;
-        public float Gravity;
-        public float GravityOnGroundRate;
-        public float GravityOnAirAddRate;
-        public float GravityMaxRate;
-        public float Acceleration;
-        public float Deceleration;
-        public float AnimSpeedAcceleration;
-        public float MinimumStepTime;
-        public float GroundedOffset;
-        public float GroundedRadius;
-        public float InputDeadZone;
-
-        /// <summary>与旧 InputMoveComponent 硬编码行为对齐的默认值。</summary>
-        public static LocomotionTuning CreateDefault()
-        {
-            return new LocomotionTuning
-            {
-                GroundLayers = 1 << 9,
-                MovingTurnSpeed = 720f,
-                RunMoveSpeed = 5f,
-                Gravity = -9.8f,
-                GravityOnGroundRate = 0.8f,
-                GravityOnAirAddRate = 1f,
-                GravityMaxRate = 4f,
-                Acceleration = 0.25f,
-                Deceleration = 0.05f,
-                AnimSpeedAcceleration = 0.2f,
-                MinimumStepTime = 0.45f,
-                GroundedOffset = -0.14f,
-                GroundedRadius = 0.28f,
-                InputDeadZone = 0.1f,
-            };
-        }
-
         /// <summary>
         /// 从旧 SO 填充；SO 缺失的跑速/加速度等保留默认硬编码值，转向改用 SO（真正生效）。
         /// </summary>
         public static LocomotionTuning FromPlayerMoveSetting(PlayerMoveSettingSo so)
         {
-            LocomotionTuning t = CreateDefault();
+            LocomotionTuning t = LocomotionTuning.CreateDefault();
             if (so == null)
                 return t;
 
@@ -67,7 +29,7 @@ namespace ACTGameEditor.Locomotion
         public static LocomotionTuning FromConfig(LocomotionConfig config)
         {
             if (config == null)
-                return CreateDefault();
+                return LocomotionTuning.CreateDefault();
 
             return new LocomotionTuning
             {

@@ -98,8 +98,6 @@ namespace FluxEditor
 		private static string _fluxEditorPath = null;
 		private static string _fluxSkinPath = null;
 
-		private static EditorWindow _gameView = null;
-
 		private static GUISkin _fluxSkin = null;
 		private static GUIStyle _evtStyle = null;
 		private static GUIStyle _simpleButtonStyle = null;
@@ -272,13 +270,25 @@ namespace FluxEditor
 
 		public static void RepaintGameView()
 		{
-			if( _gameView == null )
-				_gameView = EditorWindow.GetWindow(typeof(EditorWindow).Assembly.GetType( "UnityEditor.GameView" ));
+			EditorWindow gameView = FindExistingGameView();
+			if (gameView != null)
+				gameView.Repaint();
 
-            _gameView.Repaint();
-            SceneView.RepaintAll();
-            //			UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
-        }
+			SceneView.RepaintAll();
+		}
+
+		static EditorWindow FindExistingGameView()
+		{
+			Type gameViewType = typeof(EditorWindow).Assembly.GetType("UnityEditor.GameView");
+			if (gameViewType == null)
+				return null;
+
+			UnityEngine.Object[] views = Resources.FindObjectsOfTypeAll(gameViewType);
+			if (views == null || views.Length == 0)
+				return null;
+
+			return views[0] as EditorWindow;
+		}
 
 		public static string GetTime( int frame, int frameRate )
 		{

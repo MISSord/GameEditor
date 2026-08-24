@@ -1,5 +1,5 @@
+using EGamePlay.Unity.Locomotion;
 using UnityEngine;
-
 namespace ACTGameEditor.Locomotion
 {
     /// <summary>始终允许移动。</summary>

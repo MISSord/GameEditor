@@ -1,5 +1,5 @@
+using EGamePlay.Unity.Locomotion;
 using UnityEngine;
-
 namespace ACTGameEditor.Locomotion
 {
     /// <summary>
@@ -114,7 +114,7 @@ namespace ACTGameEditor.Locomotion
 
             _timeSource ??= new UnityLocomotionTimeSource();
 
-            _motor.SetTuning(LocomotionTuning.FromConfig(config));
+            _motor.SetTuning(LocomotionTuningBuilder.FromConfig(config));
             _motor.Bind(
                 _controller,
                 transform,
