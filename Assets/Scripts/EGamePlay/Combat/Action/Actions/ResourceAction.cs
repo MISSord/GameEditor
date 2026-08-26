@@ -4,21 +4,20 @@ namespace EGamePlay.Combat
 {
     public class ResourceActionAbility : Entity, IActionAbility
     {
-        public CombatEntity OwnerEntity { get { return GetParent<CombatEntity>(); } set { } }
+        public ICombatUnit OwnerEntity => GetParent<Entity>() as ICombatUnit;
         public bool Enable { get; set; }
 
         public bool TryMakeAction(out ResourceAction action)
         {
-            if (Enable == false)
+            if (!Enable)
             {
                 action = null;
+                return false;
             }
-            else
-            {
-                action = (ResourceAction)CombatContext.Instance.AddAction<ResourceAction>();
-                action.Creator = OwnerEntity;
-            }
-            return Enable;
+
+            action = (ResourceAction)CombatContext.Instance.AddAction<ResourceAction>();
+            action.Creator = OwnerEntity;
+            return true;
         }
     }
 
@@ -28,26 +27,19 @@ namespace EGamePlay.Combat
     public class ResourceAction : Entity, IActionExecute
     {
         public CureEffect CureEffect => TriggerContext.EffectConfig as CureEffect;
-        /// 治疗数值
+        /// <summary>治疗数值。</summary>
         public int CureValue { get; set; }
-        /// 行动实体
-        public CombatEntity Creator { get; set; }
-        /// 目标对象
-        public Entity Target { get; set; }
+        /// <summary>行动实体。</summary>
+        public ICombatUnit Creator { get; set; }
+        /// <summary>目标对象。</summary>
+        public ICombatUnit Target { get; set; }
         public TriggerContext TriggerContext { get; set; }
 
-        public void FinishAction()
-        {
-            Entity.Destroy(this);
-        }
+        public void FinishAction() => Entity.Destroy(this);
 
-        //前置处理
-        private void PreProcess()
+        void PreProcess()
         {
-            //这里未来补上接受治疗前和给予治疗前的广播
-
             var cureEff = CureEffect;
-            // 统一走配置/调用方传入的数值（可为正/负），不在这里做额外裁剪。
             CureValue = cureEff != null ? (int)cureEff.CureValueProperty : 0;
         }
 
@@ -55,23 +47,21 @@ namespace EGamePlay.Combat
         {
             PreProcess();
 
-            var healthComp = Target.GetComponent<VitalComponent>();
-            healthComp.ReceiveCure(this);
+            if (Target?.CurrentVital == null)
+            {
+                FinishAction();
+                return;
+            }
 
+            Target.CurrentVital.ReceiveCure(this);
             PostProcess();
-
             FinishAction();
         }
 
-        //后置处理
-        private void PostProcess()
+        void PostProcess()
         {
-            Creator.TriggerActionPoint(ActionPointType.PostGiveCure, this);
-            if (Target.GetType() == typeof(CombatEntity))
-            {
-                CombatEntity target = (CombatEntity)Target;
-                target.TriggerActionPoint(ActionPointType.PostReceiveCure, this);
-            }
+            Creator?.TriggerActionPoint(ActionPointType.PostGiveCure, this);
+            Target?.TriggerActionPoint(ActionPointType.PostReceiveCure, this);
         }
     }
 }

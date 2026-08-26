@@ -117,6 +117,14 @@ namespace EGamePlay.Combat
         private Dictionary<ActionPointType, ActionPoint> ActionPoints { get; set; } = new Dictionary<ActionPointType, ActionPoint>();
 
 
+        /// <summary>注册行动点监听。</summary>
+        public void ListenActionPoint(ActionPointType actionPointType, Action<Entity> action) =>
+            AddListener(actionPointType, action);
+
+        /// <summary>移除行动点监听。</summary>
+        public void UnListenActionPoint(ActionPointType actionPointType, Action<Entity> action) =>
+            RemoveListener(actionPointType, action);
+
         /// <summary>
         /// 添加监听者
         /// </summary>
@@ -144,13 +152,8 @@ namespace EGamePlay.Combat
         /// </summary>
         public void TriggerActionPoint(ActionPointType actionPointType, Entity actionExecution)
         {
-            foreach (var item in ActionPoints)
-            {
-                if (item.Key.HasFlag(actionPointType))
-                {
-                    item.Value.TriggerAllListeners(actionExecution);
-                }
-            }
+            if (ActionPoints.TryGetValue(actionPointType, out ActionPoint actionPoint))
+                actionPoint.TriggerAllListeners(actionExecution);
         }
 
         public override void OnDestroy()

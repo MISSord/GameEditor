@@ -78,7 +78,7 @@ namespace EGamePlay.Combat
             var conditionCheckResult = true;
             ExpressionContext context = new ExpressionContext();
             context.Target = target;
-            context.Caster = Entity.As<Buff>().OwnerEntity;
+            context.Caster = Entity.As<Buff>().OwnerEntity?.Entity;
             context.Skill = Entity;
 
             if (CheckStateExpress.Check(context) == false)
@@ -165,13 +165,10 @@ namespace EGamePlay.Combat
         /// <returns></returns>
         public static bool CheckIsHadFireBigBuff(Entity target, Buff buff)
         {
-            if(target is CombatEntity)
+            if (target != null
+                && target.GetComponent<StatusComponent>()?.HasBigBuffType(4) == true)
             {
-                CombatEntity combatEntity = (CombatEntity)target;
-                if (combatEntity.GetComponent<StatusComponent>().HasBigBuffType(4))
-                {
-                    return true;
-                }
+                return true;
             }
             return false;
         }

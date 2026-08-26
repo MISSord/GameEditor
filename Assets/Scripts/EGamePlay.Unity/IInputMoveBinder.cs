@@ -2,6 +2,7 @@ using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity.Locomotion;
 using UnityEngine;
+using ACTGameEditor.Combat;
 
 namespace EGamePlay.Unity
 {

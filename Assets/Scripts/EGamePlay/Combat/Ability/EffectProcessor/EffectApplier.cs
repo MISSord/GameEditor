@@ -9,7 +9,7 @@ namespace EGamePlay.Combat
     public struct EffectApplyRequest
     {
         public BuffModifySetting Setting;
-        public CombatEntity Caster;
+        public ICombatUnit Caster;
         public Entity Target;
         public Entity TriggerSource;
         public DamageSource DamageSource;
@@ -26,7 +26,7 @@ namespace EGamePlay.Combat
         /// <summary>技能命中/轨道效果入口。</summary>
         public static void ApplySkillInline(
             BuffModifySetting setting,
-            CombatEntity caster,
+            ICombatUnit caster,
             Entity target,
             Ability sourceAbility,
             int damageSegmentIndex)
@@ -36,7 +36,7 @@ namespace EGamePlay.Combat
                 Setting = setting,
                 Caster = caster,
                 Target = target,
-                TriggerSource = caster,
+                TriggerSource = caster?.Entity,
                 DamageSource = DamageSource.Skill,
                 SourceAbility = sourceAbility,
                 DamageSegmentIndex = damageSegmentIndex,
@@ -74,42 +74,45 @@ namespace EGamePlay.Combat
             }
 
             if (type == EffectModifyType.PlayerModify)
-            {
                 ApplyInstantPlayerModify(setting, caster, request.Target);
-            }
         }
 
-        private static void ApplyAddStatus(BuffModifySetting setting, CombatEntity caster, Entity target)
+        static void ApplyAddStatus(BuffModifySetting setting, ICombatUnit caster, Entity target)
         {
-            if (target == null) return;
+            if (target == null || caster?.AddStatusAbility == null)
+                return;
+
             int buffId = setting.ParamInt1;
-            if (buffId <= 0) return;
+            if (buffId <= 0)
+                return;
 
             if (caster.AddStatusAbility.TryMakeAction(out var action))
             {
                 action.Creator = caster;
-                action.Target = target;
+                action.Target = target as ICombatUnit;
                 action.ApplyAddStatusBySetting(buffId, setting.ParamString1);
             }
         }
 
         /// <summary>技能侧一次性属性修饰：认 ApplySide，不记录、不撤销。</summary>
-        private static void ApplyInstantPlayerModify(BuffModifySetting setting, CombatEntity caster, Entity target)
+        static void ApplyInstantPlayerModify(BuffModifySetting setting, ICombatUnit caster, Entity target)
         {
-            var applyEntity = setting.ParamInt3 == DamageActionModifyConfig.ApplySideReceiver
-                ? target as CombatEntity ?? caster
+            ICombatUnit applyUnit = setting.ParamInt3 == DamageActionModifyConfig.ApplySideReceiver
+                ? (target as ICombatUnit ?? caster)
                 : caster;
-            if (applyEntity == null) return;
+            if (applyUnit?.Entity == null)
+                return;
 
             var attrType = (AttributeType)setting.ParamInt1;
-            if (!Enum.IsDefined(typeof(AttributeType), attrType)) return;
+            if (!Enum.IsDefined(typeof(AttributeType), attrType))
+                return;
 
-            var attrComp = applyEntity.GetComponent<AttributeComponent>();
-            if (attrComp == null) return;
+            var attrComp = applyUnit.Entity.GetComponent<AttributeComponent>();
+            if (attrComp == null)
+                return;
 
             var modifier = new FloatModifier { Value = setting.ParamFloat1 };
-            var numeric = attrComp.GetNumeric(attrType);
-            numeric?.AddModifier((ModifyType)setting.ParamInt2, modifier);
+            attrComp.GetNumeric(attrType)?.AddModifier((ModifyType)setting.ParamInt2, modifier);
         }
     }
 }

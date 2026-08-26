@@ -26,3 +26,6 @@ MonoBehaviour:
   GravityOnGrondRate: 0.8
   GravityOnAirAddRate: 1
   GravityMaxRate: 2
+  JumpHeight: 1.2
+  AirControl: 0.65
+  AirMoveSpeedScale: 0.5

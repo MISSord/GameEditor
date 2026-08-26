@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace ACTGameEditor
+namespace EGamePlay
 {
     /// <summary>
     /// 时间流速效果类型，用于区分不同来源的 scale 控制。

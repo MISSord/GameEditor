@@ -2,6 +2,7 @@ using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity.Locomotion;
 using UnityEngine;
+using ACTGameEditor.Combat;
 
 namespace EGamePlay.Unity
 {
@@ -57,5 +58,11 @@ namespace EGamePlay.Unity
 
         /// <summary>临时关闭重力（技能等调用）。</summary>
         public void SetNoGravityT(float time) => _motor.SetNoGravityT(time);
+
+        /// <summary>设置是否允许旋转。</summary>
+        public void SetRotationEnabled(bool enabled) => _motor.RotationEnabled = enabled;
+
+        /// <summary>尝试一段跳。</summary>
+        public bool TryJump() => _motor.TryJump();
     }
 }

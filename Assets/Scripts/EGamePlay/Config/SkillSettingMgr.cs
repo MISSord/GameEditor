@@ -95,6 +95,22 @@ namespace EGamePlay
             return null;
         }
 
+        /// <summary>技能是否在伤害表中有任意段配置。</summary>
+        public bool HasSkillDamageConfig(int skillId)
+        {
+            if (skillId <= 0) return false;
+            var list = CurrentTable.SkillDamageReader.DataList;
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].SkillId == skillId)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>默认技能内联 HP 伤害行（buffmodifyreader EffectModifyID=8）。</summary>
+        public const int DefaultSkillHpDamageEffectId = 8;
+
         /// <summary>当前写死的角色等级，用于属性计算（基础值 + 等级 * 增长值）。</summary>
         public const int DefaultRoleLevel = 1;
 

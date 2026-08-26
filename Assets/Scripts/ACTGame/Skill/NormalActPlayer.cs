@@ -1,3 +1,4 @@
+using ACTGameEditor.Combat;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
@@ -44,14 +45,14 @@ namespace ACTGameEditor
             Combat.ListenActionPoint(ActionPointType.PreSpell, OnPreSpell);
             Combat.ListenActionPoint(ActionPointType.PostSpell, OnPostSpell);
             Combat.ListenActionPoint(ActionPointType.PostReceiveDamage, OnReceiveDamage);
+            Combat.ListenActionPoint(ActionPointType.PostCauseDamage, OnCauseDamage);
             Combat.ListenActionPoint(ActionPointType.PostReceiveCure, OnReceiveCure);
             Combat.ListenActionPoint(ActionPointType.PostReceiveStatus, OnReceiveStatus);
 
-            CDTimer = Combat.GetComponent<SpellComponent>()?.CDTimer;
+            CDTimer = Combat.GetComponent<ActSpellComponent>()?.CDTimer;
             SlotRuntime = new SkillSlotRuntime();
             InputBuffer = new InputBuffer();
 
-            // 缓存动画组件引用
             _animComponent = Combat?.GetComponent<AnimComponent>();
 
             CombatFormComponent formComp = Combat.FormComponent;
@@ -71,6 +72,7 @@ namespace ACTGameEditor
             Combat.UnListenActionPoint(ActionPointType.PreSpell, OnPreSpell);
             Combat.UnListenActionPoint(ActionPointType.PostSpell, OnPostSpell);
             Combat.UnListenActionPoint(ActionPointType.PostReceiveDamage, OnReceiveDamage);
+            Combat.UnListenActionPoint(ActionPointType.PostCauseDamage, OnCauseDamage);
             Combat.UnListenActionPoint(ActionPointType.PostReceiveCure, OnReceiveCure);
             Combat.UnListenActionPoint(ActionPointType.PostReceiveStatus, OnReceiveStatus);
 
@@ -81,17 +83,19 @@ namespace ACTGameEditor
 
         protected virtual void OnPreSpell(Entity combatAction)
         {
-            var spellAction = combatAction as SpellAction;
+            if (combatAction is not ICombatSpellActionContext spellCtx || Combat.ModelTrans == null)
+                return;
+
             Quaternion localRotation;
-            if (spellAction.InputTarget != null)
+            if (spellCtx.InputTarget != null)
             {
-                localRotation = Quaternion.LookRotation(spellAction.InputTarget.Position - Combat.ModelTrans.position);
+                localRotation = Quaternion.LookRotation(spellCtx.InputTarget.Position - Combat.ModelTrans.position);
             }
             else
             {
-                localRotation = Quaternion.LookRotation(spellAction.InputPoint - Combat.ModelTrans.position);
+                localRotation = Quaternion.LookRotation(spellCtx.InputPoint - Combat.ModelTrans.position);
             }
-            transform.rotation = localRotation; //调整角度，对齐目标
+            transform.rotation = localRotation;
         }
 
         protected virtual void OnPostSpell(Entity combatAction)
@@ -99,10 +103,32 @@ namespace ACTGameEditor
 
         }
 
+        protected virtual void OnCauseDamage(Entity combatAction)
+        {
+            if (!Combat.isTruePlayer)
+                return;
+
+            var damageAction = combatAction as DamageAction;
+            if (damageAction == null || damageAction.Target == null)
+                return;
+            if (damageAction.Creator?.Id != Combat.Id)
+                return;
+
+            Vector3 worldPos = ResolveDamageTextPosition(damageAction.Target);
+            DamageTextPresenter.Active?.ShowDamage(damageAction.DamageValue, worldPos);
+        }
+
         protected virtual void OnReceiveDamage(Entity combatAction)
         {
+            if (!Combat.isTruePlayer)
+                return;
+
             var damageAction = combatAction as DamageAction;
             if (damageAction == null || Combat == null)
+                return;
+
+            // 本地玩家作为攻击者时，飘字只走 OnCauseDamage
+            if (damageAction.Creator?.Id == Combat.Id)
                 return;
 
             DamageTextPresenter.Active?.ShowDamage(damageAction.DamageValue, UINode.position);
@@ -113,6 +139,18 @@ namespace ACTGameEditor
 
             long hitSrc = damageAction.Id;
             Combat.TryApplyHitReaction(hitSrc, 0.35f);
+        }
+
+        static Vector3 ResolveDamageTextPosition(ICombatUnit target)
+        {
+            if (target?.Entity is CombatEntity combatEntity
+                && combatEntity.AttackPlayer != null
+                && combatEntity.AttackPlayer.UINode != null)
+            {
+                return combatEntity.AttackPlayer.UINode.position;
+            }
+
+            return target != null ? target.Position : Vector3.zero;
         }
 
         protected virtual void OnReceiveCure(Entity combatAction)
@@ -314,7 +352,7 @@ namespace ACTGameEditor
             info.Point = MathHelper.GetPositionInFront(Combat.Position, Combat.Rotation, 3f);
             info.SkillId = skillId;
             info.Sort = sort;
-            Combat.GetComponent<SpellComponent>().AddSkillSpellInfo(info);
+            Combat.GetComponent<ActSpellComponent>().Enqueue(info);
         }
 
         public void AddInputRecord(InputListernType cmd, PressType type, InputCallBackType inputCallBackType = InputCallBackType.Performed)

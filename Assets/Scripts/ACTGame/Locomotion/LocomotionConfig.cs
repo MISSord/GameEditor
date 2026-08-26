@@ -22,6 +22,9 @@ namespace ACTGameEditor.Locomotion
             t.GravityOnGroundRate = so.GravityOnGrondRate;
             t.GravityOnAirAddRate = so.GravityOnAirAddRate;
             t.GravityMaxRate = so.GravityMaxRate;
+            t.JumpHeight = so.JumpHeight;
+            t.AirControl = so.AirControl;
+            t.AirMoveSpeedScale = so.AirMoveSpeedScale;
             return t;
         }
 
@@ -47,6 +50,9 @@ namespace ACTGameEditor.Locomotion
                 GroundedOffset = config.GroundedOffset,
                 GroundedRadius = config.GroundedRadius,
                 InputDeadZone = config.InputDeadZone,
+                JumpHeight = config.JumpHeight,
+                AirControl = config.AirControl,
+                AirMoveSpeedScale = config.AirMoveSpeedScale,
             };
         }
     }
@@ -76,5 +82,14 @@ namespace ACTGameEditor.Locomotion
 
         [Header("Animation")]
         public float AnimSpeedAcceleration = 0.2f;
+
+        [Header("Jump")]
+        [Tooltip("起跳高度（米），一段跳")]
+        public float JumpHeight = 1.2f;
+        [Tooltip("空中方向控制（0~1）")]
+        [Range(0f, 1f)]
+        public float AirControl = 0.65f;
+        [Tooltip("空中水平速 = RunMoveSpeed × 倍率")]
+        public float AirMoveSpeedScale = 1f;
     }
 }

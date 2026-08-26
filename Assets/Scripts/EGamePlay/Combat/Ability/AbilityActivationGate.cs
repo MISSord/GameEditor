@@ -1,22 +1,22 @@
-using ACTGameEditor;
+using EGamePlay;
 
 namespace EGamePlay.Combat
 {
-        /// <summary>施法 Gate 失败原因。SortBlocked 表示本帧保留队列，其余为丢弃。</summary>
-        public enum ActivateFail : byte
-        {
-            None = 0,
-            NoAbility = 1,
-            Cooldown = 2,
-            Resource = 3,
-            SortBlocked = 4,
-            /// <summary>硬直 / 禁技能 / 受击 / 死亡。</summary>
-            State = 5,
-            /// <summary>技能表 RequiredTags / BlockedTags 不满足。</summary>
-            Tag = 6,
-            /// <summary>TriggerFormula 不通过。</summary>
-            Formula = 7,
-        }
+    /// <summary>施法 Gate 失败原因。SortBlocked 表示本帧保留队列，其余为丢弃。</summary>
+    public enum ActivateFail : byte
+    {
+        None = 0,
+        NoAbility = 1,
+        Cooldown = 2,
+        Resource = 3,
+        SortBlocked = 4,
+        /// <summary>硬直 / 禁技能 / 受击 / 死亡。</summary>
+        State = 5,
+        /// <summary>技能表 RequiredTags / BlockedTags 不满足。</summary>
+        Tag = 6,
+        /// <summary>TriggerFormula 不通过。</summary>
+        Formula = 7,
+    }
 
     /// <summary>
     /// 施法前只读裁决。不扣资源、不转 CD、不改战斗状态。
@@ -27,28 +27,26 @@ namespace EGamePlay.Combat
         /// 裁决一次出手意图。提交时复检硬直/标签；checkCostAndCooldown 为 false 时跳过 CD/资源。
         /// </summary>
         public static ActivateFail Evaluate(
-            CombatEntity actor,
+            ICombatUnit actor,
             int skillId,
             int incomingSort,
-            SkillCDTimer cdTimer,
+            ICooldownQuery cdTimer,
             bool checkCostAndCooldown)
         {
             if (actor == null || actor.IsDisposed)
                 return ActivateFail.NoAbility;
 
-            var abilityComp = actor.GetComponent<AbilityComponent>();
+            var abilityComp = actor.Entity.GetComponent<AbilityComponent>();
             if (abilityComp == null || !abilityComp.IdAbilities.TryGetValue(skillId, out var ability) || ability == null)
                 return ActivateFail.NoAbility;
 
-            // ParentFinish 后残留后摇不算占轴，避免挡住同级普攻循环，并让新技能能 Break 旧 Runner
-            var current = actor.SpellingExecution;
+            ISkillExecutionHandle current = actor.ActiveExecution;
             if (current != null && current.IsMainFinish)
                 current = null;
 
             bool hardInterrupt = current != null
                 && SkillCancelService.IsHardInterrupt(current.Sort, incomingSort);
 
-            // 硬打断不看 UnStopped（普攻霸体不应挡住闪避）；同级连招仍走 IsCanSpellSkill。
             if (hardInterrupt)
             {
                 if (!actor.IsCanSelfCancelSkill)
@@ -82,7 +80,7 @@ namespace EGamePlay.Combat
         }
 
         /// <summary>资源是否足够支付配置消耗。未配置消耗视为足够。</summary>
-        public static bool CanAfford(CombatEntity caster, Ability ability)
+        public static bool CanAfford(ICombatUnit caster, Ability ability)
         {
             if (!TryGetResourceCost(caster, ability, out int need, out var attrType))
                 return false;
@@ -97,7 +95,7 @@ namespace EGamePlay.Combat
         /// 计算本次消耗。未配置消耗时 need=0 且返回 true。
         /// caster/config 非法时返回 false。
         /// </summary>
-        public static bool TryGetResourceCost(CombatEntity caster, Ability ability, out int need, out AttributeType attrType)
+        public static bool TryGetResourceCost(ICombatUnit caster, Ability ability, out int need, out AttributeType attrType)
         {
             need = 0;
             attrType = AttributeType.None;
@@ -127,8 +125,8 @@ namespace EGamePlay.Combat
 
             var ctx = new ResourceFormulaContext
             {
-                Caster = caster,
-                Target = caster,
+                Caster = caster.Entity,
+                Target = caster.Entity,
                 FormulaType = formulaType,
                 AttrOrVitalType = attrType,
                 A = a,

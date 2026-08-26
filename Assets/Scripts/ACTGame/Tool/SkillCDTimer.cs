@@ -14,7 +14,7 @@ namespace ACTGameEditor
     ///   从而自动适配时空断裂 / HitStop / 暂停等时间流速效果。
     /// - UI 可通过 Remaining/Total/Fill 查询并显示倒计时。
     /// </summary>
-    public class SkillCDTimer
+    public class SkillCDTimer : ICooldownQuery
     {
         private readonly Dictionary<int, XCTimer> _skillTimers = new Dictionary<int, XCTimer>(16);
         public float GlobalCdRate { get; private set; } = 1f;
@@ -100,6 +100,8 @@ namespace ACTGameEditor
             timer.Restart();
             timer.Start();
         }
+
+        void ICooldownQuery.StartCooldown(int skillId) => StartCooldown(skillId);
 
         /// <summary> 立即结束指定技能的冷却（例如被动重置CD）。 </summary>
         public void ForceFinishCooldown(int skillId)

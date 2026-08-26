@@ -96,7 +96,7 @@ namespace FluxEditor
                     layer = null;
                 UpdateLayer(layer);
             }
-            #region ¿¨ĞÔÄÜ È¥µô
+            #region å¡æ€§èƒ½ å»æ‰
             //if (controller != null)
             //{
             //    int len = controller.layers.Length;

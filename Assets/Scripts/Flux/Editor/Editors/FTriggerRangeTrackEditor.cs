@@ -11,7 +11,7 @@ namespace FluxEditor
         public List<CubeRange> cubes = new List<CubeRange>();
         //Dictionary<CubeRange, Transform> cubeDic = new Dictionary<CubeRange, Transform>();
 
-        //Scene»æÖÆ
+        //Sceneç»˜åˆ¶
         Test_DrawCube drawCube;
 
         public override void Init(FObject obj, FEditor owner)

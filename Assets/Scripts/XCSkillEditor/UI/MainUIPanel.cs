@@ -312,49 +312,49 @@ namespace XiaoCao
 
         public void ShowDamageText(string num, Vector3 mTarget, bool isBlod = false)
         {
-            //获取屏幕坐标  
-            Vector3 mScreen = UIMrg.Instance.UICamera.WorldToScreenPoint(mTarget);
-            if (mScreen.z < 0)
-            {
+            if (!IsCanvasInited || canvasRect == null || DamageTexts == null || DamageTexts.Count == 0)
                 return;
-            }
 
-            _changeVec2 = Vector2.Scale(DamageUITSetting.randomVec2, Random.insideUnitCircle);  //波动值
+            Camera worldCam = MainCam;
+            if (worldCam == null)
+                return;
+
+            Vector3 screenPoint3 = worldCam.WorldToScreenPoint(mTarget);
+            if (screenPoint3.z < 0)
+                return;
+
+            Camera uiCam = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPoint3, uiCam, out Vector2 anchorPos))
+                return;
+
+            _changeVec2 = Vector2.Scale(DamageUITSetting.randomVec2, Random.insideUnitCircle);
             _changeVec2 += DamageUITSetting.offSet;
+            anchorPos += _changeVec2;
 
-            mScreen.x += _changeVec2.x;
-            mScreen.y += _changeVec2.y;
-
-            UnityEngine.Debug.LogError($"{mScreen}");
-            Sequence tween = DamageTextTweens[_nextText].tween;
+            int textIndex = _nextText;
+            Sequence tween = DamageTextTweens[textIndex].tween;
             if (tween != null)
-            {
                 tween.Kill();
-            }
 
-            DamageTextTweens[_nextText].tween = DOTween.Sequence();
-            tween = DamageTextTweens[_nextText].tween;
+            DamageTextTweens[textIndex].tween = DOTween.Sequence();
+            tween = DamageTextTweens[textIndex].tween;
 
             _nextText++;
             if (_nextText >= DamageTexts.Count)
-            {
                 _nextText = 0;
-            }
 
-            Text t = DamageTextTweens[_nextText].text;
+            Text t = DamageTextTweens[textIndex].text;
+            t.gameObject.SetActive(true);
             t.transform.localScale = Random.Range(DamageUITSetting.randomScaleVec2.x, DamageUITSetting.randomScaleVec2.y) * Vector3.one;
             t.text = num;
-            t.rectTransform.anchoredPosition = mScreen;
+            t.rectTransform.anchoredPosition = anchorPos;
             tween.Join(DOTween.To(x => t.fontSize = (int)x, DamageUITSetting.frontSizeStart, DamageUITSetting.frontSizeEnd, DamageUITSetting.flyTime / 2).SetLoops(2, LoopType.Yoyo));
-            tween.Join(t.rectTransform.DOAnchorPos3DY(mScreen.y + DamageUITSetting.MoveY, DamageUITSetting.flyTime / 2));
+            tween.Join(t.rectTransform.DOAnchorPosY(anchorPos.y + DamageUITSetting.MoveY, DamageUITSetting.flyTime / 2));
 
             t.color = DamageUITSetting.startColor;
 
-            //tween.Join(t.DOColor(DamageUITSetting.endColor, DamageUITSetting.flyTime / 2));
-            //tween.Append(DOTween.To(x => t.fontSize = (int)x, DamageUITSetting.frontSizeMid , DamageUITSetting.frontSizeStart, DamageUITSetting.flyTime/2));
-
             Color ac = Color.white;
-            ac.a = 0;   
+            ac.a = 0;
             tween.OnComplete(() => { t.color = ac; });
 
             gameObject.SetActive(true);

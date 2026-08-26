@@ -1,46 +1,37 @@
+using EGamePlay;
 
 namespace EGamePlay.Combat
 {
     public class MotionActionAbility : Entity, IActionAbility
     {
-        public CombatEntity OwnerEntity { get { return GetParent<CombatEntity>(); } set { } }
+        public ICombatUnit OwnerEntity => GetParent<Entity>() as ICombatUnit;
         public bool Enable { get; set; }
 
         public bool TryMakeAction(out MotionAction action)
         {
-            if (Enable == false)
+            if (!Enable)
             {
                 action = null;
+                return false;
             }
-            else
-            {
-                action = (MotionAction)CombatContext.Instance.AddAction<MotionAction>();
-                action.Creator = OwnerEntity;
-            }
-            return Enable;
+
+            action = (MotionAction)CombatContext.Instance.AddAction<MotionAction>();
+            action.Creator = OwnerEntity;
+            return true;
         }
     }
 
-    /// <summary>
-    /// 动作行动
-    /// </summary>
+    /// <summary>动作行动。</summary>
     public class MotionAction : Entity, IActionExecute
     {
-        /// 行动实体
-        public CombatEntity Creator { get; set; }
-        /// 目标对象
-        public Entity Target { get; set; }
+        /// <summary>行动实体。</summary>
+        public ICombatUnit Creator { get; set; }
+        /// <summary>目标对象。</summary>
+        public ICombatUnit Target { get; set; }
 
-        public void FinishAction()
-        {
-            Entity.Destroy(this);
-        }
+        public void FinishAction() => Entity.Destroy(this);
 
-        //前置处理
-        private void PreProcess()
-        {
-
-        }
+        void PreProcess() { }
 
         public void ApplyMotion()
         {
@@ -48,11 +39,6 @@ namespace EGamePlay.Combat
             PostProcess();
         }
 
-        //后置处理
-        private void PostProcess()
-        {
-            //Creator.TriggerActionPoint(ActionPointType.PostGiveCure, this);
-            //Target.TriggerActionPoint(ActionPointType.PostReceiveCure, this);
-        }
+        void PostProcess() { }
     }
 }

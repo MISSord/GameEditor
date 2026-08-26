@@ -63,7 +63,7 @@ namespace FluxEditor
         {
         }
 
-        //…Ë÷√µ±«∞÷µ
+        //ËÆæÁΩÆÂΩìÂâçÂÄº
         public Vector3 GetPropertyValue()
         {
             FTweenPositionEvent positionEvent = target as FTweenPositionEvent;
@@ -127,7 +127,7 @@ namespace FluxEditor
             }
 
             tweenRect.x = tweenRect.xMax - 180;
-            if (GUI.Button(tweenRect, "∂‘∆Î«∞", EditorStyles.miniButton))
+            if (GUI.Button(tweenRect, "ÂØπÈΩêÂâç", EditorStyles.miniButton))
             {
                 var track = Self.Track;
                 int length = track.Events.Count;
@@ -143,7 +143,7 @@ namespace FluxEditor
                 }
             }
             tweenRect.x = tweenRect.xMax - 180;
-            if (GUI.Button(tweenRect, "∂‘∆Î∫Û", EditorStyles.miniButton))
+            if (GUI.Button(tweenRect, "ÂØπÈΩêÂêé", EditorStyles.miniButton))
             {
                 var track = Self.Track;
                 int length = track.Events.Count;

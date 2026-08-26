@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace EGamePlay.Unity
 {
-    //·Çunity±à¼­Æ÷ÏÂÊ¹ÓÃ
+    // é Unity ç¼–è¾‘å™¨ä¸‹ä½¿ç”¨
     public class ComponentView: MonoBehaviour
     {
         public string Type;

@@ -1,3 +1,4 @@
+using ACTGameEditor.Combat;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
@@ -8,7 +9,7 @@ using UnityEngine;
 namespace ACTGameEditor
 {
     // 新版执行器：将所有 XCEvent 放入单列表统一调度
-    public class XCNewEventsRunner : Entity
+    public class XCNewEventsRunner : Entity, IHitSubRunner
     {
         private const float InitialTimeOffset = -0.1f; // 提前一点，避免第 0 帧边界误差
 
@@ -41,6 +42,7 @@ namespace ACTGameEditor
             this.CastEuler = CastEuler;
             this.CastPos = CastPos;
             _resolvedHits.Clear();
+            _effectSettingsById.Clear();
             // 池化复用时必须重置时间，否则首帧会跳过整段时间轴
             _time = InitialTimeOffset;
             _frame = 0;
@@ -184,42 +186,100 @@ namespace ACTGameEditor
             }
         }
 
-        /// <summary>
-        /// 命中过滤：指定目标、HitGroup 去重、子轴仍在 Update。
-        /// 不扣血、不 Break；通过后由 Pipeline 再落地效果。
-        /// </summary>
-        public HitResultKind TryAcceptHit(CombatEntity defender, XCTriggerEvent triggerEvent)
-        {
-            if (IsDisposed || State != RunnerState.Update)
-                return HitResultKind.Ignored;
-            if (defender == null || defender.IsDisposed)
-                return HitResultKind.Ignored;
-            if (triggerEvent == null || triggerEvent.TriggerEventData == null)
-                return HitResultKind.Ignored;
+        /// <summary>命中过滤：指定目标、HitGroup 去重（只读）、子轴仍在 Update。</summary>
+        public HitResultKind PeekHit(ICombatUnit defender, object triggerEvent) =>
+            PeekHitCore(defender, triggerEvent as XCTriggerEvent);
 
-            CombatEntity designated = _parentRunner?.InputTarget;
-            if (designated != null && defender != designated)
+        /// <summary>落地前去重写入，同一 HitGroup 对同一目标仅首次返回 true。</summary>
+        public bool CommitHit(ICombatUnit defender, object triggerEvent) =>
+            CommitHitCore(defender, triggerEvent as XCTriggerEvent);
+
+        /// <summary>对已通过过滤的命中执行效果列表。</summary>
+        public void ApplyAcceptedHit(ICombatUnit defender, object triggerEvent) =>
+            ApplyAcceptedHitCore(defender, triggerEvent as XCTriggerEvent);
+
+        HitResultKind PeekHitCore(ICombatUnit defender, XCTriggerEvent triggerEvent)
+        {
+            string rejectReason = EvaluateHitRejectReason(defender, triggerEvent, out var key);
+            if (rejectReason != null)
                 return HitResultKind.Ignored;
+            if (_resolvedHits.Contains(key))
+                return HitResultKind.Ignored;
+            return HitResultKind.Land;
+        }
+
+        bool CommitHitCore(ICombatUnit defender, XCTriggerEvent triggerEvent)
+        {
+            string rejectReason = EvaluateHitRejectReason(defender, triggerEvent, out var key);
+            if (rejectReason != null)
+                return false;
+            return _resolvedHits.Add(key);
+        }
+
+        static string EvaluateHitRejectReason(
+            XCNewEventsRunner runner,
+            ActSkillRunner parentRunner,
+            ICombatUnit defender,
+            XCTriggerEvent triggerEvent,
+            out HitKey key)
+        {
+            key = default;
+            if (runner == null || runner.IsDisposed)
+                return "runner-disposed";
+            if (runner.State != RunnerState.Update)
+                return $"runner-state-{runner.State}";
+
+            if (triggerEvent == null || triggerEvent.TriggerEventData == null)
+                return "trigger-null";
+
+            if (defender == null || defender.IsDisposed)
+                return "defender-null";
+            if (defender.IsDead)
+                return "defender-dead";
+
+            ICombatUnit owner = runner.OwnerEntity;
+            if (owner != null && defender.Id == owner.Id)
+                return "self-hit";
+
+            CombatEntity designated = ResolveDesignatedTarget(parentRunner);
+            if (designated != null && defender.Entity != designated)
+                return $"not-designated-target need={designated.Id}";
 
             int group = triggerEvent.TriggerEventData.HitGroupId;
             if (group == 0)
                 group = triggerEvent.HitInstanceId;
 
-            if (!_resolvedHits.Add(new HitKey(group, defender.Id)))
-                return HitResultKind.Ignored;
-
-            return HitResultKind.Land;
+            key = new HitKey(group, defender.Id);
+            return null;
         }
 
-        /// <summary>对已通过过滤的命中执行效果列表。</summary>
-        public void ApplyAcceptedHit(CombatEntity defender, XCTriggerEvent triggerEvent)
+        string EvaluateHitRejectReason(ICombatUnit defender, XCTriggerEvent triggerEvent, out HitKey key) =>
+            EvaluateHitRejectReason(this, _parentRunner, defender, triggerEvent, out key);
+
+        /// <summary>锁定目标优先；已死亡/销毁的指定目标视为无指定，避免后续普攻全部被挡。</summary>
+        static CombatEntity ResolveDesignatedTarget(ActSkillRunner parentRunner)
+        {
+#if UNITY
+            var locked = ACTGameEditor.LockSystem.Instance?.LockedCombatEntity;
+            if (locked != null && !locked.IsDisposed && !locked.IsDead)
+                return locked;
+#endif
+            var input = parentRunner?.InputTarget;
+            if (input != null && !input.IsDisposed && !input.IsDead)
+                return input;
+            return null;
+        }
+
+        void ApplyAcceptedHitCore(ICombatUnit defender, XCTriggerEvent triggerEvent)
         {
             if (IsDisposed || defender == null || defender.IsDisposed)
                 return;
             if (triggerEvent == null || triggerEvent.TriggerEventData == null)
                 return;
+            if (defender.Entity is not CombatEntity targetEntity)
+                return;
 
-            TriggerEffectList(triggerEvent.TriggerEventData.EffectIds, defender,
+            TriggerEffectList(triggerEvent.TriggerEventData.EffectIds, targetEntity,
                 triggerEvent.TriggerEventData.DamageSegmentIndex);
         }
 

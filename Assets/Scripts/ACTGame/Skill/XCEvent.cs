@@ -1,8 +1,8 @@
+using ACTGameEditor.Combat;
 using DG.Tweening;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
 using EGamePlay.Unity.Locomotion;
-using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -435,8 +435,9 @@ namespace ACTGameEditor
         public XCTriggerEventData TriggerEventData;
         private Collider _collider;
         private GameObject _colliderObj;
-        private OnTriggerEnterCallback _callBack;
         private static int _nextHitInstanceId = 1;
+        private static readonly Collider[] OverlapBuffer = new Collider[16];
+        private static readonly HashSet<long> ScanDedup = new HashSet<long>(8);
         private int _hitInstanceId;
 
         public static string colliderBundle = "other_prefab";
@@ -453,35 +454,144 @@ namespace ACTGameEditor
             if (_hitInstanceId == 0)
                 _hitInstanceId = _nextHitInstanceId++;
             FindTrigger(OwnCombat.IsCanCauseHarm);
-            if (OwnCombat.IsCanCauseHarm)
-            {
+            if (OwnCombat.IsCanCauseHarm && _collider != null)
                 _collider.enabled = false;
+        }
 
-                _callBack = _colliderObj.GetOrAddComponent<OnTriggerEnterCallback>();
-                _callBack.OnTriggerEnterCallbackAction = (other) =>
-                {
-                    if (SelfRunner.IsDisposed)
-                        return;
+        public override void OnUpdateEvent(int frame, float timeSinceTrigger)
+        {
+            if (!OwnCombat.IsCanCauseHarm || _collider == null || !_collider.enabled)
+                return;
 
-                    CombatEntity owner = SelfRunner.OwnerEntity;
-                    if (owner == null)
-                        return;
+            ScanExistingOverlaps();
+        }
 
-                    var context = CombatContext.Instance;
-                    if (context == null || context.HitPipeline == null)
-                        return;
-                    if (!context.Object2Entities.TryGetValue(other.gameObject, out var target) || target == owner)
-                        return;
+        void TryEnqueueHit(ICombatUnit target)
+        {
+            if (target == null || SelfRunner == null || SelfRunner.IsDisposed)
+                return;
 
-                    context.HitPipeline.Enqueue(new HitRequest
-                    {
-                        Attacker = owner,
-                        Defender = target,
-                        Runner = SelfRunner,
-                        TriggerEvent = this,
-                    });
-                };
+            CombatEntity owner = SelfRunner.OwnerEntity;
+            if (owner == null || target.Id == owner.Id)
+                return;
+
+            var context = CombatContext.Instance;
+            if (context == null || context.HitPipeline == null)
+                return;
+
+            context.HitPipeline.Enqueue(new HitRequest
+            {
+                Attacker = owner,
+                Defender = target,
+                Runner = SelfRunner,
+                TriggerEvent = this,
+            });
+        }
+
+        static bool IsColliderUnderRoot(Collider col, Transform unitRoot)
+        {
+            if (col == null || unitRoot == null)
+                return false;
+
+            Transform t = col.transform;
+            return t == unitRoot || t.IsChildOf(unitRoot);
+        }
+
+        static void ClearPooledTriggerCallbacks(GameObject colliderObj)
+        {
+            if (colliderObj == null)
+                return;
+
+            var callback = colliderObj.GetComponent<OnTriggerEnterCallback>();
+            if (callback != null)
+                callback.OnTriggerEnterCallbackAction = null;
+        }
+
+        /// <summary>攻击窗口内每帧 Overlap 检测，不依赖 OnTriggerEnter 重入。</summary>
+        void ScanExistingOverlaps()
+        {
+            if (_collider == null || !_collider.enabled)
+                return;
+
+            Physics.SyncTransforms();
+            int count = QueryTriggerOverlapsNonAlloc(_collider, OverlapBuffer);
+            if (count <= 0)
+                return;
+
+            var context = CombatContext.Instance;
+            if (context == null)
+                return;
+
+            ScanDedup.Clear();
+            CombatEntity owner = SelfRunner?.OwnerEntity;
+            Transform ownerRoot = owner?.RootTransform;
+            for (int i = 0; i < count; i++)
+            {
+                Collider hitCollider = OverlapBuffer[i];
+                if (hitCollider == null)
+                    continue;
+                if (ownerRoot != null && IsColliderUnderRoot(hitCollider, ownerRoot))
+                    continue;
+                if (!context.TryResolveCombatUnit(hitCollider.gameObject, out var target)
+                    || target == null)
+                    continue;
+                if (owner != null && target.Id == owner.Id)
+                    continue;
+                if (!ScanDedup.Add(target.Id))
+                    continue;
+
+                TryEnqueueHit(target);
             }
+        }
+
+        static int QueryTriggerOverlapsNonAlloc(Collider collider, Collider[] buffer)
+        {
+            Transform transform = collider.transform;
+            if (collider is BoxCollider box)
+            {
+                Vector3 center = transform.TransformPoint(box.center);
+                Vector3 halfExtents = Vector3.Scale(box.size * 0.5f, transform.lossyScale);
+                return Physics.OverlapBoxNonAlloc(center, halfExtents, buffer, transform.rotation, ~0, QueryTriggerInteraction.Collide);
+            }
+
+            if (collider is SphereCollider sphere)
+            {
+                Vector3 center = transform.TransformPoint(sphere.center);
+                float radius = sphere.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.y, transform.lossyScale.z);
+                return Physics.OverlapSphereNonAlloc(center, radius, buffer, ~0, QueryTriggerInteraction.Collide);
+            }
+
+            if (collider is CapsuleCollider capsule)
+            {
+                GetCapsuleWorldPoints(capsule, out Vector3 point0, out Vector3 point1, out float radius);
+                return Physics.OverlapCapsuleNonAlloc(point0, point1, radius, buffer, ~0, QueryTriggerInteraction.Collide);
+            }
+
+            return 0;
+        }
+
+        static void GetCapsuleWorldPoints(CapsuleCollider capsule, out Vector3 point0, out Vector3 point1, out float radius)
+        {
+            Transform transform = capsule.transform;
+            Vector3 lossyScale = transform.lossyScale;
+            float radiusScale = capsule.direction switch
+            {
+                0 => Mathf.Max(lossyScale.y, lossyScale.z),
+                2 => Mathf.Max(lossyScale.x, lossyScale.y),
+                _ => Mathf.Max(lossyScale.x, lossyScale.z),
+            };
+            radius = capsule.radius * radiusScale;
+            float height = Mathf.Max(capsule.height * lossyScale[capsule.direction], radius * 2f);
+            Vector3 center = transform.TransformPoint(capsule.center);
+            Vector3 axis = capsule.direction switch
+            {
+                0 => transform.right,
+                2 => transform.forward,
+                _ => transform.up,
+            };
+            float halfHeight = height * 0.5f - radius;
+            point0 = center - axis * halfHeight;
+            point1 = center + axis * halfHeight;
         }
 
         //按照配置寻找碰撞体
@@ -503,7 +613,9 @@ namespace ACTGameEditor
                 {
                     _collider = _colliderObj.GetComponent<CapsuleCollider>();
                 }
-                _collider.isTrigger = true;
+
+                ClearPooledTriggerCallbacks(_colliderObj);
+                _collider.isTrigger = false;
                 _colliderObj.transform.SetParent(this.OwnerTF.transform, false);
                 _colliderObj.transform.localPosition = Vector3.zero;
                 _colliderObj.SetActive(true);
@@ -540,12 +652,9 @@ namespace ACTGameEditor
                     capsuleCollider.enabled = true;
                 }
             }
-            else
+            else if (_collider != null)
             {
-                if(_collider != null)
-                {
-                    _collider.enabled = false;
-                }
+                _collider.enabled = false;
             }
         }
 
@@ -553,11 +662,10 @@ namespace ACTGameEditor
         {
             if (_colliderObj != null)
             {
-                _collider.enabled = false;
+                ClearPooledTriggerCallbacks(_colliderObj);
+                if (_collider != null)
+                    _collider.enabled = false;
                 _collider = null;
-
-                _callBack.OnTriggerEnterCallbackAction = null;
-                _callBack = null;
 
                 string path = RunTimePoolManager.GetResPath(colliderBundle, colliderAsset);
                 RunTimePoolManager.Instance.ReCycle(path, _colliderObj);
@@ -627,7 +735,8 @@ namespace ACTGameEditor
                 eventData.MsgName,
                 eventData.FloatdMsg,
                 eventData.BoolMsg,
-                TagSource.Skill(runnerId));
+                TagSource.Skill(runnerId),
+                eventData.StrMsg);
 
             //TODO 修改为本地
             switch (eventData.MsgEType)
@@ -647,6 +756,10 @@ namespace ACTGameEditor
             {
                 if (eventData.SetOppositeOnFinish)
                 {
+                    OwnCombat?.HandleTimelineMessageFinish(
+                        eventData.MsgName,
+                        eventData.BoolMsg,
+                        true);
                     PlayerManager.Instance.SendBool(NetId, eventData.IsLocalTrueOnly, eventData.MsgName, !eventData.BoolMsg);
                 }
             }
@@ -737,7 +850,7 @@ namespace ACTGameEditor
             info.Point = MathHelper.GetPositionInFront(this.OwnCombat.Position, this.OwnCombat.Rotation, 3f);
             info.SkillId = skillId;
             info.Sort = sort;
-            this.OwnCombat.GetComponent<SpellComponent>().AddSkillSpellInfo(info);
+            this.OwnCombat.GetComponent<ACTGameEditor.Combat.ActSpellComponent>().Enqueue(info);
             _isHaveTrigger = true;
         }
     }

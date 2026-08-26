@@ -38,6 +38,10 @@ namespace ACTGameEditor
             map.FindAction(InputListernType.ButtonA.ToString()).performed += OnButtonAPerform;
             map.FindAction(InputListernType.ButtonB.ToString()).performed += OnButtonBPerform;
 
+            InputAction jumpAction = map.FindAction(InputListernType.Jump.ToString());
+            if (jumpAction != null)
+                jumpAction.performed += OnJumpPerform;
+
             //map.FindAction(InputListernType.LongButtonX.ToString()).started += OnLongButtonXStart;
             //map.FindAction(InputListernType.LongButtonX.ToString()).performed += OnLongButtonXPerform;
             //map.FindAction(InputListernType.LongButtonX.ToString()).canceled += OnLongButtonXEnd;
@@ -91,6 +95,15 @@ namespace ACTGameEditor
         {
             if (_curPlayer == null) return;
             _curPlayer.AddInputRecord(InputListernType.ButtonB, PressType.Click, InputCallBackType.Performed);
+        }
+
+        public void OnJumpPerform(InputAction.CallbackContext context)
+        {
+            if (_curPlayer == null)
+                return;
+
+            if (_curPlayer is ActPlayer actPlayer)
+                actPlayer.TryJump();
         }
 
         //长按部分

@@ -5,15 +5,15 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-// ¼ÓÔØÓÅÏÈ¼¶Ã¶¾Ù
+// åŠ è½½ä¼˜å…ˆçº§æšä¸¾
 #if UNITY_EDITOR
 public enum LoadMode
 {
-    Development = 0,    // ¿ª·¢Ä£Ê½
-    Production = 1,     // Éú²úÄ£Ê½
-    Testing = 2,        // ²âÊÔÄ£Ê½
-    Demo = 3,           // ÑİÊ¾Ä£Ê½
-    DebugMode = 4       // µ÷ÊÔÄ£Ê½
+    Development = 0,    // å¼€å‘æ¨¡å¼
+    Production = 1,     // ç”Ÿäº§æ¨¡å¼
+    Testing = 2,        // æµ‹è¯•æ¨¡å¼
+    Demo = 3,           // æ¼”ç¤ºæ¨¡å¼
+    DebugMode = 4       // è°ƒè¯•æ¨¡å¼
 }
 #endif
 
@@ -26,11 +26,11 @@ public enum LoadPriority
     Max = 4
 }
 
-// ×ÊÔ´¼ÓÔØ»Øµ÷
+// èµ„æºåŠ è½½å›è°ƒ
 public delegate void AssetLoadCallback<T>(T asset) where T : UnityEngine.Object;
 public delegate void AssetLoadCallback(UnityEngine.Object asset);
 
-// ×ÊÔ´ÏîĞÅÏ¢
+// èµ„æºé¡¹ä¿¡æ¯
 public class AssetItem
 {
     public string bundleName;
@@ -41,11 +41,11 @@ public class AssetItem
     public DateTime lastUseTime;
     private readonly List<AssetLoadCallback> _callbacks;
 
-    // »Øµ÷ID¹ÜÀí£¬ÓÃÓÚ¾«È·ÒÆ³ıÌØ¶¨»Øµ÷
+    // å›è°ƒIDç®¡ç†ï¼Œç”¨äºç²¾ç¡®ç§»é™¤ç‰¹å®šå›è°ƒ
     private readonly Dictionary<int, AssetLoadCallback> _callbackWithIds;
     private int _callbackIdCounter;
 
-    // ¸´ÓÃ¾²Ì¬ÁĞ±í£¬±ÜÃâÃ¿´Î RemoveCallback ·ÖÅä List
+    // å¤ç”¨é™æ€åˆ—è¡¨ï¼Œé¿å…æ¯æ¬¡ RemoveCallback åˆ†é… List
     private static readonly List<int> TempCallbackIds = new List<int>(8);
 
     public AssetItem(string bundle, string asset)
@@ -76,7 +76,7 @@ public class AssetItem
         {
             _callbacks.Add(callback);
 
-            // Í¬Ê±Ìí¼Óµ½ID¹ÜÀí×Öµä
+            // åŒæ—¶æ·»åŠ åˆ°IDç®¡ç†å­—å…¸
             int callbackId = _callbackIdCounter++;
             _callbackWithIds[callbackId] = callback;
             return callbackId;
@@ -93,7 +93,7 @@ public class AssetItem
         }
     }
 
-    // ĞÂÔö£ºÍ¨¹ı»Øµ÷Î¯ÍĞÊµÀıÒÆ³ıÌØ¶¨»Øµ÷
+    // æ–°å¢ï¼šé€šè¿‡å›è°ƒå§”æ‰˜å®ä¾‹ç§»é™¤ç‰¹å®šå›è°ƒ
     public void RemoveCallback(AssetLoadCallback callback)
     {
         if (callback == null || _callbackWithIds.Count == 0)
@@ -101,10 +101,10 @@ public class AssetItem
             return;
         }
 
-        // ´Ó»Øµ÷ÁĞ±íÒÆ³ı
+        // ä»å›è°ƒåˆ—è¡¨ç§»é™¤
         _callbacks.Remove(callback);
 
-        // ÊÕ¼¯ĞèÒªÒÆ³ıµÄ»Øµ÷ID£¬±ÜÃâ±éÀú×ÖµäÊ±Ö±½ÓĞŞ¸Ä
+        // æ”¶é›†éœ€è¦ç§»é™¤çš„å›è°ƒIDï¼Œé¿å…éå†å­—å…¸æ—¶ç›´æ¥ä¿®æ”¹
         TempCallbackIds.Clear();
         foreach (var kvp in _callbackWithIds)
         {
@@ -114,7 +114,7 @@ public class AssetItem
             }
         }
 
-        // ÅúÁ¿ÒÆ³ı¶ÔÓ¦ ID
+        // æ‰¹é‡ç§»é™¤å¯¹åº” ID
         for (int i = 0; i < TempCallbackIds.Count; i++)
         {
             _callbackWithIds.Remove(TempCallbackIds[i]);
@@ -137,7 +137,7 @@ public class AssetItem
             }
             catch (Exception e)
             {
-                Debug.LogError($"Ö´ĞĞ×ÊÔ´»Øµ÷Ê§°Ü: {assetName}, ´íÎó: {e.Message}");
+                Debug.LogError($"æ‰§è¡Œèµ„æºå›è°ƒå¤±è´¥: {assetName}, é”™è¯¯: {e.Message}");
             }
         }
 
@@ -145,35 +145,35 @@ public class AssetItem
         _callbackWithIds.Clear();
     }
 
-    // ĞÂÔö£º»ñÈ¡»Øµ÷ÊıÁ¿
+    // æ–°å¢ï¼šè·å–å›è°ƒæ•°é‡
     public int GetCallbackCount()
     {
         return _callbacks.Count;
     }
 }
 
-// AB°üĞÅÏ¢
+// ABåŒ…ä¿¡æ¯
 public class BundleInfo
 {
     public string bundleName;
     public AssetBundle bundle;
-    public int referenceCount; //ÕâÀïÒª±£´æÈ«²¿AssetItemµÄreferenceCountÊıÁ¿Ö®ºÍ
+    public int referenceCount; //è¿™é‡Œè¦ä¿å­˜å…¨éƒ¨AssetItemçš„referenceCountæ•°é‡ä¹‹å’Œ
     public DateTime lastUseTime;
     public DateTime loadTime;
     public bool isLoading;
     public bool isLoaded;
     public Dictionary<string, AssetItem> assetItems;
 
-    // ¼ÓÔØÏà¹Ø
+    // åŠ è½½ç›¸å…³
     public LoadPriority loadPriority;
     public AssetBundleCreateRequest bundleRequest;
-    public List<string> pendingAssets; // µÈ´ı¼ÓÔØµÄ×ÊÔ´ÁĞ±í
+    public List<string> pendingAssets; // ç­‰å¾…åŠ è½½çš„èµ„æºåˆ—è¡¨
 
-    // ĞÂÔöÒÀÀµÏà¹Ø×Ö¶Î
-    public List<string> Dependencies; // ÒÀÀµµÄAB°üÁĞ±í
-    public int loadedDependenciesCount; // ÒÑ¼ÓÔØµÄÒÀÀµÊıÁ¿
-    public bool areDependenciesLoaded; // ËùÓĞÒÀÀµÊÇ·ñÒÑ¼ÓÔØ
-    public Action onDependenciesLoaded; // ÒÀÀµ¼ÓÔØÍê³ÉµÄ»Øµ÷
+    // æ–°å¢ä¾èµ–ç›¸å…³å­—æ®µ
+    public List<string> Dependencies; // ä¾èµ–çš„ABåŒ…åˆ—è¡¨
+    public int loadedDependenciesCount; // å·²åŠ è½½çš„ä¾èµ–æ•°é‡
+    public bool areDependenciesLoaded; // æ‰€æœ‰ä¾èµ–æ˜¯å¦å·²åŠ è½½
+    public Action onDependenciesLoaded; // ä¾èµ–åŠ è½½å®Œæˆçš„å›è°ƒ
 
     public BundleInfo(string name)
     {
@@ -186,7 +186,7 @@ public class BundleInfo
         isLoaded = false;
         pendingAssets = new List<string>();
 
-        // ³õÊ¼»¯ĞÂÔö×Ö¶Î
+        // åˆå§‹åŒ–æ–°å¢å­—æ®µ
         Dependencies = new List<string>();
         loadedDependenciesCount = 0;
         areDependenciesLoaded = false;
@@ -225,13 +225,13 @@ public class BundleInfo
         if (!pendingAssets.Contains(assetName))
         {
             pendingAssets.Add(assetName);
-            GameLog.ABInfo($"{assetName} ¼ÓÈë {bundleName} ´ı¼ÓÔØ¶ÓÁĞ");
+            GameLog.ABInfo($"{assetName} åŠ å…¥ {bundleName} å¾…åŠ è½½é˜Ÿåˆ—");
         }
     }
 
     public void RemovePendingAsset(string assetName)
     {
-        GameLog.ABInfo($"{assetName} ´Ó {bundleName} ´ı¼ÓÔØ¶ÓÁĞÒÆ³ı");
+        GameLog.ABInfo($"{assetName} ä» {bundleName} å¾…åŠ è½½é˜Ÿåˆ—ç§»é™¤");
         pendingAssets.Remove(assetName);
     }
 
@@ -243,7 +243,7 @@ public class BundleInfo
             bundle = null;
         }
 
-        // ÇåÀíËùÓĞ×ÊÔ´µÄ»Øµ÷
+        // æ¸…ç†æ‰€æœ‰èµ„æºçš„å›è°ƒ
         foreach (var assetItem in assetItems.Values)
         {
             assetItem.RemoveAllCallbacks();
@@ -254,14 +254,14 @@ public class BundleInfo
         isLoading = false;
     }
 
-    // ĞÂÔö·½·¨£º¼ì²éÒÀÀµÊÇ·ñÈ«²¿¼ÓÔØÍê³É
+    // æ–°å¢æ–¹æ³•ï¼šæ£€æŸ¥ä¾èµ–æ˜¯å¦å…¨éƒ¨åŠ è½½å®Œæˆ
     public void CheckDependenciesLoaded()
     {
         if (Dependencies.Count > 0 && loadedDependenciesCount >= Dependencies.Count)
         {
             areDependenciesLoaded = true;
             onDependenciesLoaded?.Invoke();
-            onDependenciesLoaded = null; // Ö´ĞĞºóÇå¿Õ»Øµ÷
+            onDependenciesLoaded = null; // æ‰§è¡Œåæ¸…ç©ºå›è°ƒ
         }
         else if (Dependencies.Count == 0)
         {
@@ -271,7 +271,7 @@ public class BundleInfo
         }
     }
 
-    // ĞÂÔö·½·¨£ºÒÀÀµ¼ÓÔØÍê³É»Øµ÷
+    // æ–°å¢æ–¹æ³•ï¼šä¾èµ–åŠ è½½å®Œæˆå›è°ƒ
     public void OnDependencyLoaded(string dependencyName)
     {
         if (Dependencies.Contains(dependencyName))
@@ -291,7 +291,7 @@ public struct AssetBaseLoadInfo
 }
 #endif
 
-// AB°ü¼ÓÔØ¹ÜÀíÆ÷
+// ABåŒ…åŠ è½½ç®¡ç†å™¨
 public class AssetBundleManager : Singleton<AssetBundleManager>
 {
     public AssetBundleManager()
@@ -299,41 +299,41 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         _instance = this;
     }
 
-    // AB°üÇåµ¥Êı¾İ
+    // ABåŒ…æ¸…å•æ•°æ®
     private Dictionary<string, CustomAssetBundleInfo> _bundleManifests = new Dictionary<string, CustomAssetBundleInfo>();
 
-    // ÒÑ¼ÓÔØµÄAB°ü
+    // å·²åŠ è½½çš„ABåŒ…
     private Dictionary<string, BundleInfo> _loadedBundles = new Dictionary<string, BundleInfo>();
 
-    //È«²¿µÄAB°üĞÅÏ¢
+    //å…¨éƒ¨çš„ABåŒ…ä¿¡æ¯
     private Dictionary<string, BundleInfo> _allBundleDic = new Dictionary<string, BundleInfo>();
 
-    // ²»Í¬ÓÅÏÈ¼¶µÄ¼ÓÔØ¶ÓÁĞ
+    // ä¸åŒä¼˜å…ˆçº§çš„åŠ è½½é˜Ÿåˆ—
     private Queue<BundleInfo> _lowPriorityQueue = new Queue<BundleInfo>();
     private Queue<BundleInfo> _mediumPriorityQueue = new Queue<BundleInfo>();
     private Queue<BundleInfo> _highPriorityQueue = new Queue<BundleInfo>();
 
-    // ÕıÔÚ¼ÓÔØµÄAB°ü
+    // æ­£åœ¨åŠ è½½çš„ABåŒ…
     private List<BundleInfo> _loadingBundles = new List<BundleInfo>();
 
-    // ×ÊÔ´¼ÓÔØµÈ´ı¶ÓÁĞ
+    // èµ„æºåŠ è½½ç­‰å¾…é˜Ÿåˆ—
     private Queue<AssetItem> _assetLoadingQueue = new Queue<AssetItem>();
 
-    //ÕıÔÚ¼ÓÔØµÄ×ÊÔ´
+    //æ­£åœ¨åŠ è½½çš„èµ„æº
     private List<AssetItem> _loadingAssets = new List<AssetItem>();
 
-    // ¸´ÓÃÁĞ±í£¬±ÜÃâÔÚÒÆ³ı¶ÓÁĞÔªËØÊ±Æµ·±·ÖÅä
+    // å¤ç”¨åˆ—è¡¨ï¼Œé¿å…åœ¨ç§»é™¤é˜Ÿåˆ—å…ƒç´ æ—¶é¢‘ç¹åˆ†é…
     private readonly List<AssetItem> _assetQueueTemp = new List<AssetItem>(64);
 
-    // ¸´ÓÃÁĞ±í£¬ÓÃÓÚÔÚ»Øµ÷ÖĞ°²È«±éÀú pendingAssets
+    // å¤ç”¨åˆ—è¡¨ï¼Œç”¨äºåœ¨å›è°ƒä¸­å®‰å…¨éå† pendingAssets
     private readonly List<string> _pendingAssetsTemp = new List<string>(16);
 
     public int maxConcurrentLoads = 3;
-    public int maxConcurrentAssetLoads = 5; // ×î´óÍ¬Ê±¼ÓÔØ×ÊÔ´ÊıÁ¿
+    public int maxConcurrentAssetLoads = 5; // æœ€å¤§åŒæ—¶åŠ è½½èµ„æºæ•°é‡
     public float unloadCheckInterval = 60f;
     public int unloadReferenceThreshold = 60;
 
-    // ÊÂ¼ş
+    // äº‹ä»¶
     public System.Action<string> OnBundleLoaded;
     public System.Action<string> OnBundleLoadFailed;
 
@@ -353,7 +353,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
     public void DeleteMe()
     {
-        //Çå³ıÊı¾İ
+        //æ¸…é™¤æ•°æ®
         foreach (var bundleInfo in _allBundleDic.Values)
         {
             bundleInfo.Unload(true);
@@ -364,7 +364,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         _mediumPriorityQueue.Clear();
         _highPriorityQueue.Clear();
 
-        // ÇåÀí×ÊÔ´¼ÓÔØÏà¹Ø
+        // æ¸…ç†èµ„æºåŠ è½½ç›¸å…³
         _loadingBundles.Clear();
         _assetLoadingQueue.Clear();
         _loadingAssets.Clear();
@@ -380,9 +380,9 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 #endif
     }
 
-    #region ¹«¹²½Ó¿Ú
+    #region å…¬å…±æ¥å£
 
-    // ÉèÖÃAB°üÇåµ¥
+    // è®¾ç½®ABåŒ…æ¸…å•
     public void SetAssetBundleItem(CustomManifest manifests)
     {
         _bundleManifests.Clear();
@@ -390,11 +390,11 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         {
             _bundleManifests[abInfo.BundleName] = abInfo;
         }
-        GameLog.ABInfo($"Çåµ¥ÉèÖÃÍê³É£¬AB ÊıÁ¿ = {manifests.AssetBundles.Count}");
+        GameLog.ABInfo($"æ¸…å•è®¾ç½®å®Œæˆï¼ŒAB æ•°é‡ = {manifests.AssetBundles.Count}");
     }
 
     /// <summary>
-    /// ·ºĞÍ°æ±¾
+    /// æ³›å‹ç‰ˆæœ¬
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="bundleName"></param>
@@ -412,7 +412,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
                 T typedAsset = asset as T;
                 if (typedAsset == null && asset != null)
                 {
-                    Debug.LogError($"×ÊÔ´ÀàĞÍ²»Æ¥Åä: {assetName}, ÆÚÍû: {typeof(T).Name}, Êµ¼Ê: {asset.GetType().Name}");
+                    Debug.LogError($"èµ„æºç±»å‹ä¸åŒ¹é…: {assetName}, æœŸæœ›: {typeof(T).Name}, å®é™…: {asset.GetType().Name}");
                 }
                 callback?.Invoke(typedAsset);
             };
@@ -436,7 +436,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     }
 
     /// <summary>
-    /// Í¬²½¼ÓÔØ
+    /// åŒæ­¥åŠ è½½
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="bundleName"></param>
@@ -451,7 +451,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             T typedAsset = asset as T;
             if (typedAsset == null && asset != null)
             {
-                Debug.LogError($"×ÊÔ´ÀàĞÍ²»Æ¥Åä: {assetName}, ÆÚÍû: {typeof(T).Name}, Êµ¼Ê: {asset.GetType().Name}");
+                Debug.LogError($"èµ„æºç±»å‹ä¸åŒ¹é…: {assetName}, æœŸæœ›: {typeof(T).Name}, å®é™…: {asset.GetType().Name}");
             }
             return typedAsset;
         }
@@ -480,18 +480,18 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     {
         if (string.IsNullOrEmpty(bundleName) || string.IsNullOrEmpty(assetName))
         {
-            GameLog.ABError("AB °üÃû»ò×ÊÔ´ÃûÎª¿Õ");
+            GameLog.ABError("AB åŒ…åæˆ–èµ„æºåä¸ºç©º");
             callback?.Invoke(null);
             return -1;
         }
 
-        GameLog.ABInfo($"¿ªÊ¼³¢ÊÔ¼ÓÔØ {bundleName} / {assetName}");
+        GameLog.ABInfo($"å¼€å§‹å°è¯•åŠ è½½ {bundleName} / {assetName}");
 
-        // ²éÕÒ»ò´´½¨BundleInfo
+        // æŸ¥æ‰¾æˆ–åˆ›å»ºBundleInfo
         BundleInfo bundleInfo = GetOrCreateBundleInfo(bundleName);
         bundleInfo.AddReference();
 
-        // ²éÕÒ»ò´´½¨AssetItem
+        // æŸ¥æ‰¾æˆ–åˆ›å»ºAssetItem
         AssetItem assetItem = bundleInfo.GetOrCreateAssetItem(assetName);
         assetItem.AddReference();
 
@@ -501,39 +501,39 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             callbackId = assetItem.AddCallback(callback);
         }
 
-        // Èç¹û×ÊÔ´ÒÑ¾­¼ÓÔØ£¬Ö±½Ó·µ»Ø
+        // å¦‚æœèµ„æºå·²ç»åŠ è½½ï¼Œç›´æ¥è¿”å›
         if (assetItem.assetObject != null)
         {
             assetItem.ExecuteCallbacks();
             return callbackId;
         }
 
-        // Èç¹û×ÊÔ´ÕıÔÚ¼ÓÔØ£¬µÈ´ıÍê³É
+        // å¦‚æœèµ„æºæ­£åœ¨åŠ è½½ï¼Œç­‰å¾…å®Œæˆ
         if (assetItem.loadRequest != null && !assetItem.loadRequest.isDone)
         {
-            // ÒÑ¾­ÔÚ¼ÓÔØ¶ÓÁĞÖĞ£¬µÈ´ı¼´¿É
+            // å·²ç»åœ¨åŠ è½½é˜Ÿåˆ—ä¸­ï¼Œç­‰å¾…å³å¯
             return callbackId;
         }
 
-        // Èç¹ûAB°üÒÑ¼ÓÔØ£¬½«×ÊÔ´¼ÓÈë¼ÓÔØ¶ÓÁĞ
+        // å¦‚æœABåŒ…å·²åŠ è½½ï¼Œå°†èµ„æºåŠ å…¥åŠ è½½é˜Ÿåˆ—
         if (bundleInfo.isLoaded)
         {
             StartAssetLoading(assetItem);
             return callbackId;
         }
 
-        // AB°üÎ´¼ÓÔØ£¬ÉèÖÃÓÅÏÈ¼¶²¢¼ÓÔØAB°ü
+        // ABåŒ…æœªåŠ è½½ï¼Œè®¾ç½®ä¼˜å…ˆçº§å¹¶åŠ è½½ABåŒ…
         if (!bundleInfo.isLoading)
         {
             bundleInfo.loadPriority = priority;
             bundleInfo.AddPendingAsset(assetName);
 
-            // ¼ì²éÒÀÀµ²¢¼ÓÔØAB°ü
+            // æ£€æŸ¥ä¾èµ–å¹¶åŠ è½½ABåŒ…
             LoadBundleWithDependencies(bundleName, priority);
         }
         else
         {
-            // AB°üÕıÔÚ¼ÓÔØ£¬½«×ÊÔ´¼ÓÈë´ı¼ÓÔØÁĞ±í
+            // ABåŒ…æ­£åœ¨åŠ è½½ï¼Œå°†èµ„æºåŠ å…¥å¾…åŠ è½½åˆ—è¡¨
             bundleInfo.AddPendingAsset(assetName);
         }
 
@@ -541,36 +541,36 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         return callbackId;
     }
 
-    // ĞÂÔö£ºÈ¡ÏûÌØ¶¨×ÊÔ´µÄ¼ÓÔØ»Øµ÷
+    // æ–°å¢ï¼šå–æ¶ˆç‰¹å®šèµ„æºçš„åŠ è½½å›è°ƒ
     public void CancelAssetLoad(string bundleName, string assetName, int callbackId)
     {
 #if UNITY_EDITOR
         if (_loadMode == LoadMode.Development || _loadMode == LoadMode.DebugMode)
         {
-            //Ä¿Ç°Ôİ²»Ìá¹©
+            //ç›®å‰æš‚ä¸æä¾›
             return;
         }
 #endif
         var assetItem = GetAssetItem(bundleName, assetName);
         if (assetItem != null)
         {
-            // ¼õÉÙÒıÓÃ¼ÆÊı£¨ÒòÎªÈ¡ÏûÁË×ÊÔ´¼ÓÔØ£©
+            // å‡å°‘å¼•ç”¨è®¡æ•°ï¼ˆå› ä¸ºå–æ¶ˆäº†èµ„æºåŠ è½½ï¼‰
             assetItem.RemoveCallback(callbackId);
             assetItem.RemoveReference();
 
             var bundleInfo = GetBundleInfo(bundleName);
             bundleInfo?.RemoveReference();
 
-            // Èç¹ûÃ»ÓĞ»Øµ÷ÇÒ×ÊÔ´Î´¼ÓÔØ£¬Ö±½ÓÈ¡Ïû¼ÓÔØ
+            // å¦‚æœæ²¡æœ‰å›è°ƒä¸”èµ„æºæœªåŠ è½½ï¼Œç›´æ¥å–æ¶ˆåŠ è½½
             if (assetItem.GetCallbackCount() == 0 && assetItem.assetObject == null && assetItem.loadRequest == null)
             {
-                // ´Ó¼ÓÔØ¶ÓÁĞÖĞÒÆ³ı
+                // ä»åŠ è½½é˜Ÿåˆ—ä¸­ç§»é™¤
                 RemoveAssetFromLoadingQueue(assetItem);
             }
         }
     }
 
-    //// ĞÂÔö£ºÈ¡ÏûÌØ¶¨×ÊÔ´µÄ¼ÓÔØ»Øµ÷£¨Í¨¹ıÎ¯ÍĞÊµÀı£©
+    //// æ–°å¢ï¼šå–æ¶ˆç‰¹å®šèµ„æºçš„åŠ è½½å›è°ƒï¼ˆé€šè¿‡å§”æ‰˜å®ä¾‹ï¼‰
     //public void CancelAssetLoad(string bundleName, string assetName, AssetLoadCallback callback)
     //{
     //    var assetItem = GetAssetItem(bundleName, assetName);
@@ -578,13 +578,13 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     //    {
     //        assetItem.RemoveCallback(callback);
 
-    //        // Èç¹ûÃ»ÓĞ»Øµ÷ÇÒ×ÊÔ´Î´¼ÓÔØ£¬¼õÉÙÒıÓÃ¼ÆÊı
+    //        // å¦‚æœæ²¡æœ‰å›è°ƒä¸”èµ„æºæœªåŠ è½½ï¼Œå‡å°‘å¼•ç”¨è®¡æ•°
     //        if (assetItem.GetCallbackCount() == 0 && assetItem.assetObject == null && assetItem.loadRequest == null)
     //        {
-    //            // ´Ó¼ÓÔØ¶ÓÁĞÖĞÒÆ³ı
+    //            // ä»åŠ è½½é˜Ÿåˆ—ä¸­ç§»é™¤
     //            RemoveAssetFromLoadingQueue(assetItem);
 
-    //            // ¼õÉÙÒıÓÃ¼ÆÊı£¨ÒòÎªÈ¡ÏûÁË×ÊÔ´¼ÓÔØ£©
+    //            // å‡å°‘å¼•ç”¨è®¡æ•°ï¼ˆå› ä¸ºå–æ¶ˆäº†èµ„æºåŠ è½½ï¼‰
     //            assetItem.RemoveReference();
     //            var bundleInfo = GetBundleInfo(bundleName);
     //            bundleInfo?.RemoveReference();
@@ -592,7 +592,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     //    }
     //}
 
-    //// ĞÂÔö£ºÈ¡Ïû×ÊÔ´µÄËùÓĞ¼ÓÔØ»Øµ÷
+    //// æ–°å¢ï¼šå–æ¶ˆèµ„æºçš„æ‰€æœ‰åŠ è½½å›è°ƒ
     //public void CancelAllAssetCallbacks(string bundleName, string assetName)
     //{
     //    var assetItem = GetAssetItem(bundleName, assetName);
@@ -600,13 +600,13 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     //    {
     //        assetItem.RemoveAllCallbacks();
 
-    //        // Èç¹û×ÊÔ´Î´¼ÓÔØ£¬¼õÉÙÒıÓÃ¼ÆÊı
+    //        // å¦‚æœèµ„æºæœªåŠ è½½ï¼Œå‡å°‘å¼•ç”¨è®¡æ•°
     //        if (assetItem.assetObject == null && assetItem.loadRequest == null)
     //        {
-    //            // ´Ó¼ÓÔØ¶ÓÁĞÖĞÒÆ³ı
+    //            // ä»åŠ è½½é˜Ÿåˆ—ä¸­ç§»é™¤
     //            RemoveAssetFromLoadingQueue(assetItem);
 
-    //            // ¼õÉÙÒıÓÃ¼ÆÊı£¨ÒòÎªÈ¡ÏûÁË×ÊÔ´¼ÓÔØ£©
+    //            // å‡å°‘å¼•ç”¨è®¡æ•°ï¼ˆå› ä¸ºå–æ¶ˆäº†èµ„æºåŠ è½½ï¼‰
     //            assetItem.RemoveReference();
     //            var bundleInfo = GetBundleInfo(bundleName);
     //            bundleInfo?.RemoveReference();
@@ -614,10 +614,10 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     //    }
     //}
 
-    // ĞÂÔö£º´Ó¼ÓÔØ¶ÓÁĞÖĞÒÆ³ı×ÊÔ´
+    // æ–°å¢ï¼šä»åŠ è½½é˜Ÿåˆ—ä¸­ç§»é™¤èµ„æº
     private void RemoveAssetFromLoadingQueue(AssetItem assetItem)
     {
-        // ´Ó×ÊÔ´¼ÓÔØ¶ÓÁĞÖĞÒÆ³ı£¨Í¨¹ıÁÙÊ±ÁĞ±í¹ıÂË£©
+        // ä»èµ„æºåŠ è½½é˜Ÿåˆ—ä¸­ç§»é™¤ï¼ˆé€šè¿‡ä¸´æ—¶åˆ—è¡¨è¿‡æ»¤ï¼‰
         _assetQueueTemp.Clear();
         while (_assetLoadingQueue.Count > 0)
         {
@@ -625,7 +625,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             if (item.bundleName == assetItem.bundleName &&
                 item.assetName == assetItem.assetName)
             {
-                // Ä¿±ê×ÊÔ´£¬Ìø¹ı£¨¼´É¾³ı£©
+                // ç›®æ ‡èµ„æºï¼Œè·³è¿‡ï¼ˆå³åˆ é™¤ï¼‰
                 continue;
             }
 
@@ -637,7 +637,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             _assetLoadingQueue.Enqueue(_assetQueueTemp[i]);
         }
 
-        // ´ÓÕıÔÚ¼ÓÔØÁĞ±íÖĞÒÆ³ı //ÕâÀï¿ÉÄÜ»áÓĞÒş»¼
+        // ä»æ­£åœ¨åŠ è½½åˆ—è¡¨ä¸­ç§»é™¤ //è¿™é‡Œå¯èƒ½ä¼šæœ‰éšæ‚£
         for (int i = _loadingAssets.Count - 1; i >= 0; i--)
         {
             var item = _loadingAssets[i];
@@ -648,12 +648,12 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             }
         }
 
-        // ´ÓAB°üµÄ´ı¼ÓÔØÁĞ±íÖĞÒÆ³ı
+        // ä»ABåŒ…çš„å¾…åŠ è½½åˆ—è¡¨ä¸­ç§»é™¤
         var bundleInfo = GetBundleInfo(assetItem.bundleName);
         bundleInfo?.RemovePendingAsset(assetItem.assetName);
     }
 
-    // Ğ¶ÔØ×ÊÔ´
+    // å¸è½½èµ„æº
     public void UnloadAsset(string bundleName, string assetName, bool forceUnload = false, int loadId = -1)
     {
         var assetItem = GetAssetItem(bundleName, assetName);
@@ -662,14 +662,14 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             if (loadId != -1) assetItem.RemoveCallback(loadId);
             assetItem.RemoveReference();
 
-            // ¼õÉÙËùÊôAB°üµÄÒıÓÃ¼ÆÊı
+            // å‡å°‘æ‰€å±ABåŒ…çš„å¼•ç”¨è®¡æ•°
             var bundleInfo = GetBundleInfo(bundleName);
             if (bundleInfo != null)
             {
                 bundleInfo.RemoveReference();
             }
 
-            // Èç¹ûÒıÓÃ¼ÆÊıÎª0£¬¿ÉÒÔ¿¼ÂÇĞ¶ÔØ×ÊÔ´£¨µ«±£ÁôÔÚÄÚ´æÖĞ¹©ºóĞø¿ìËÙ¼ÓÔØ£©
+            // å¦‚æœå¼•ç”¨è®¡æ•°ä¸º0ï¼Œå¯ä»¥è€ƒè™‘å¸è½½èµ„æºï¼ˆä½†ä¿ç•™åœ¨å†…å­˜ä¸­ä¾›åç»­å¿«é€ŸåŠ è½½ï¼‰
             if (forceUnload && assetItem.loadRequest == null && assetItem.referenceCount <= 0)
             {
                 bundleInfo?.assetItems.Remove(assetName);
@@ -681,44 +681,44 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     {
         if (!_allBundleDic.TryGetValue(bundleName, out BundleInfo bundleInfo))
         {
-            GameLog.ABError($"Bundle ÒÀÀµÃ»ÕÒµ½£¬ÎŞ·¨¼õÉÙÒıÓÃ: {bundleName}");
+            GameLog.ABError($"Bundle ä¾èµ–æ²¡æ‰¾åˆ°ï¼Œæ— æ³•å‡å°‘å¼•ç”¨: {bundleName}");
             return;
         }
 
-        // ¼õÉÙ×ÔÉíÒıÓÃ¼ÆÊı
+        // å‡å°‘è‡ªèº«å¼•ç”¨è®¡æ•°
         bundleInfo.RemoveReference();
 
-        // ¼õÉÙËùÓĞÒÀÀµµÄÒıÓÃ¼ÆÊı
+        // å‡å°‘æ‰€æœ‰ä¾èµ–çš„å¼•ç”¨è®¡æ•°
         if (bundleInfo.Dependencies != null)
         {
             foreach (string dependency in bundleInfo.Dependencies)
             {
                 if (_allBundleDic.TryGetValue(dependency, out BundleInfo depBundle))
                 {
-                    depBundle.RemoveReference(); // ¼õÉÙÒÀÀµ°üµÄÒıÓÃ¼ÆÊı
+                    depBundle.RemoveReference(); // å‡å°‘ä¾èµ–åŒ…çš„å¼•ç”¨è®¡æ•°
                 }
             }
         }
     }
 
-    // Ğ¶ÔØAB°ü
+    // å¸è½½ABåŒ…
     public void UnloadBundle(string bundleName, bool forceUnload = false)
     {
         if (_allBundleDic.TryGetValue(bundleName, out BundleInfo bundleInfo))
         {
             if (forceUnload || bundleInfo.referenceCount <= 0)
             {
-                // ÔÚĞ¶ÔØÇ°ÏÈ¼õÉÙÒÀÀµµÄÒıÓÃ¼ÆÊı
+                // åœ¨å¸è½½å‰å…ˆå‡å°‘ä¾èµ–çš„å¼•ç”¨è®¡æ•°
                 RemoveBundleAndDependenciesReferences(bundleName);
 
                 bundleInfo.Unload(true);
                 _loadedBundles.Remove(bundleName);
-                GameLog.ABInfo($"Ğ¶ÔØ AB °ü: {bundleName}");
+                GameLog.ABInfo($"å¸è½½ AB åŒ…: {bundleName}");
             }
         }
     }
 
-    //// Ç¿ÖÆ»ØÊÕËùÓĞÎ´Ê¹ÓÃµÄAB°ü
+    //// å¼ºåˆ¶å›æ”¶æ‰€æœ‰æœªä½¿ç”¨çš„ABåŒ…
     //public void ForceUnloadUnusedBundles()
     //{
     //    List<string> toUnload = new List<string>();
@@ -736,12 +736,12 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     //        UnloadBundle(bundleName, true);
     //    }
 
-    //    Debug.Log($"Ç¿ÖÆ»ØÊÕÁË {toUnload.Count} ¸öÎ´Ê¹ÓÃµÄAB°ü");
+    //    Debug.Log($"å¼ºåˆ¶å›æ”¶äº† {toUnload.Count} ä¸ªæœªä½¿ç”¨çš„ABåŒ…");
     //}
 
     #endregion
 
-    #region ºËĞÄ¼ÓÔØÂß¼­
+    #region æ ¸å¿ƒåŠ è½½é€»è¾‘
 
     private BundleInfo GetOrCreateBundleInfo(string bundleName)
     {
@@ -750,10 +750,10 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             return bundleInfo;
         }
 
-        // ´´½¨ĞÂµÄBundleInfo²¢ÉèÖÃÒÀÀµĞÅÏ¢
+        // åˆ›å»ºæ–°çš„BundleInfoå¹¶è®¾ç½®ä¾èµ–ä¿¡æ¯
         bundleInfo = new BundleInfo(bundleName);
 
-        // Èç¹ûÓĞÇåµ¥ĞÅÏ¢£¬Ô¤ÏÈÉèÖÃÒÀÀµ
+        // å¦‚æœæœ‰æ¸…å•ä¿¡æ¯ï¼Œé¢„å…ˆè®¾ç½®ä¾èµ–
         if (_bundleManifests.TryGetValue(bundleName, out CustomAssetBundleInfo manifest))
         {
             if (manifest.Dependencies != null)
@@ -771,18 +771,18 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     {
         if (!_bundleManifests.TryGetValue(bundleName, out CustomAssetBundleInfo manifest))
         {
-            GameLog.ABError($"AB °ü²»ÔÚÇåµ¥ÖĞ: {bundleName}");
+            GameLog.ABError($"AB åŒ…ä¸åœ¨æ¸…å•ä¸­: {bundleName}");
             return;
         }
 
-        // ¼ì²é±¾µØÊÇ·ñ´æÔÚ
+        // æ£€æŸ¥æœ¬åœ°æ˜¯å¦å­˜åœ¨
         if (File.Exists(AssetBundlePathHelper.GetLocalLZ4Path(bundleName)) == false)
         {
             DownloadBundle(bundleName, (bool isSucee, string message) =>
             {
                 if (isSucee)
                 {
-                    // ÏÂÔØÍê³ÉºóÖØĞÂ³¢ÊÔ¼ÓÔØ
+                    // ä¸‹è½½å®Œæˆåé‡æ–°å°è¯•åŠ è½½
                     LoadBundleWithDependencies(bundleName, priority);
                 }
             });
@@ -792,21 +792,21 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         BundleInfo bundleInfo = GetOrCreateBundleInfo(bundleName);
         bundleInfo.loadPriority = priority;
 
-        // ÉèÖÃÒÀÀµÁĞ±í
+        // è®¾ç½®ä¾èµ–åˆ—è¡¨
         if (manifest.Dependencies != null && manifest.Dependencies.Length > 0)
         {
             bundleInfo.Dependencies.Clear();
             bundleInfo.Dependencies.AddRange(manifest.Dependencies);
         }
 
-        // ÉèÖÃÒÀÀµ¼ÓÔØÍê³ÉµÄ»Øµ÷
+        // è®¾ç½®ä¾èµ–åŠ è½½å®Œæˆçš„å›è°ƒ
         bundleInfo.onDependenciesLoaded = () =>
         {
-            // ËùÓĞÒÀÀµ¼ÓÔØÍê³Éºó²Å¼ÓÔØ×ÔÉí
+            // æ‰€æœ‰ä¾èµ–åŠ è½½å®Œæˆåæ‰åŠ è½½è‡ªèº«
             LoadBundleInternal(bundleName, priority);
         };
 
-        // ¼ì²é²¢¼ÓÔØÒÀÀµ
+        // æ£€æŸ¥å¹¶åŠ è½½ä¾èµ–
         LoadDependencies(bundleInfo, priority);
     }
 
@@ -814,7 +814,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     {
         if (bundleInfo.Dependencies == null || bundleInfo.Dependencies.Count == 0)
         {
-            // Ã»ÓĞÒÀÀµ£¬Ö±½Ó±ê¼ÇÎªÒÀÀµÒÑ¼ÓÔØ
+            // æ²¡æœ‰ä¾èµ–ï¼Œç›´æ¥æ ‡è®°ä¸ºä¾èµ–å·²åŠ è½½
             bundleInfo.areDependenciesLoaded = true;
             bundleInfo.onDependenciesLoaded?.Invoke();
             return;
@@ -824,22 +824,22 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
         foreach (string dependency in bundleInfo.Dependencies)
         {
-            // ¼ì²éÒÀÀµÊÇ·ñÒÑ¾­¼ÓÔØ
+            // æ£€æŸ¥ä¾èµ–æ˜¯å¦å·²ç»åŠ è½½
             if (_loadedBundles.TryGetValue(dependency, out BundleInfo depBundle))
             {
-                // ÒÀÀµÒÑ¼ÓÔØ£¬Ôö¼ÓÒıÓÃ¼ÆÊı£¨ÒòÎªÕâ¸öAB°üÒÀÀµËü£©
+                // ä¾èµ–å·²åŠ è½½ï¼Œå¢åŠ å¼•ç”¨è®¡æ•°ï¼ˆå› ä¸ºè¿™ä¸ªABåŒ…ä¾èµ–å®ƒï¼‰
                 depBundle.AddReference();
                 bundleInfo.OnDependencyLoaded(dependency);
             }
             else
             {
-                // ÒÀÀµÎ´¼ÓÔØ£¬¿ªÊ¼¼ÓÔØ
+                // ä¾èµ–æœªåŠ è½½ï¼Œå¼€å§‹åŠ è½½
                 allDependenciesLoaded = false;
                 LoadDependencyBundle(dependency, bundleInfo, priority);
             }
         }
 
-        // Èç¹ûËùÓĞÒÀÀµ¶¼ÒÑ¾­¼ÓÔØÍê³É
+        // å¦‚æœæ‰€æœ‰ä¾èµ–éƒ½å·²ç»åŠ è½½å®Œæˆ
         if (allDependenciesLoaded)
         {
             bundleInfo.areDependenciesLoaded = true;
@@ -849,38 +849,38 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
     private void LoadDependencyBundle(string dependencyName, BundleInfo parentBundle, LoadPriority priority)
     {
-        // ÏÈÔö¼ÓÒıÓÃ¼ÆÊı£¨ÔÚÒÀÀµ¼ÓÔØ¹ı³ÌÖĞÒ²Òª¼ÆÊı£©
+        // å…ˆå¢åŠ å¼•ç”¨è®¡æ•°ï¼ˆåœ¨ä¾èµ–åŠ è½½è¿‡ç¨‹ä¸­ä¹Ÿè¦è®¡æ•°ï¼‰
         var dependencyBundle = GetOrCreateBundleInfo(dependencyName);
-        dependencyBundle.AddReference(); // ÒòÎª±»ÒÀÀµ¶øÔö¼ÓÒıÓÃ¼ÆÊı
+        dependencyBundle.AddReference(); // å› ä¸ºè¢«ä¾èµ–è€Œå¢åŠ å¼•ç”¨è®¡æ•°
 
-        // µİ¹é¼ÓÔØÒÀÀµµÄÒÀÀµ
+        // é€’å½’åŠ è½½ä¾èµ–çš„ä¾èµ–
         LoadBundleWithDependencies(dependencyName, priority);
 
-        // ¼àÌıÒÀÀµ°ü¼ÓÔØÍê³ÉÊÂ¼ş
+        // ç›‘å¬ä¾èµ–åŒ…åŠ è½½å®Œæˆäº‹ä»¶
         System.Action<string> onDependencyLoaded = null;
         onDependencyLoaded = (bundleName) =>
         {
             if (bundleName == dependencyName)
             {
-                // ÒÀÀµ°ü¼ÓÔØÍê³É£¬Í¨Öª¸¸°ü
+                // ä¾èµ–åŒ…åŠ è½½å®Œæˆï¼Œé€šçŸ¥çˆ¶åŒ…
                 parentBundle.OnDependencyLoaded(dependencyName);
-                OnBundleLoaded -= onDependencyLoaded; // ÒÆ³ı¼àÌı
+                OnBundleLoaded -= onDependencyLoaded; // ç§»é™¤ç›‘å¬
             }
         };
 
         OnBundleLoaded += onDependencyLoaded;
     }
 
-    // ĞÂÔö·½·¨£ºÄÚ²¿¼ÓÔØAB°üÂß¼­
+    // æ–°å¢æ–¹æ³•ï¼šå†…éƒ¨åŠ è½½ABåŒ…é€»è¾‘
     private void LoadBundleInternal(string bundleName, LoadPriority priority)
     {
-        // Èç¹ûÒÑ¾­¼ÓÔØ»òÕıÔÚ¼ÓÔØ£¬Ö»Ôö¼ÓÒıÓÃ¼ÆÊı£¨ÒÑ¾­ÔÚLoadAssetÖĞ´¦Àí£©
+        // å¦‚æœå·²ç»åŠ è½½æˆ–æ­£åœ¨åŠ è½½ï¼Œåªå¢åŠ å¼•ç”¨è®¡æ•°ï¼ˆå·²ç»åœ¨LoadAssetä¸­å¤„ç†ï¼‰
         if (_loadedBundles.TryGetValue(bundleName, out BundleInfo loadedBundle))
         {
             return;
         }
 
-        // ¼ì²éÊÇ·ñÒÑ¾­ÔÚ¼ÓÔØ¶ÓÁĞÖĞ
+        // æ£€æŸ¥æ˜¯å¦å·²ç»åœ¨åŠ è½½é˜Ÿåˆ—ä¸­
         for (int i = 0; i < _loadingBundles.Count; i++)
         {
             if (_loadingBundles[i].bundleName == bundleName)
@@ -891,10 +891,10 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
         BundleInfo bundleInfo = GetOrCreateBundleInfo(bundleName);
 
-        // ¼ì²éÒÀÀµÊÇ·ñÈ«²¿¼ÓÔØÍê³É
+        // æ£€æŸ¥ä¾èµ–æ˜¯å¦å…¨éƒ¨åŠ è½½å®Œæˆ
         if (!bundleInfo.areDependenciesLoaded && bundleInfo.Dependencies.Count > 0)
         {
-            GameLog.ABWarn($"³¢ÊÔ¼ÓÔØ AB °ü {bundleName} µ«ÒÀÀµÉĞÎ´È«²¿¼ÓÔØÍê³É");
+            GameLog.ABWarn($"å°è¯•åŠ è½½ AB åŒ… {bundleName} ä½†ä¾èµ–å°šæœªå…¨éƒ¨åŠ è½½å®Œæˆ");
             return;
         }
 
@@ -908,42 +908,42 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         var bundleInfo = GetBundleInfo(assetItem.bundleName);
         if (bundleInfo == null || !bundleInfo.isLoaded)
         {
-            GameLog.ABError($"AB Î´¼ÓÔØ£¬ÎŞ·¨¼ÓÔØ×ÊÔ´: {assetItem.assetName}");
+            GameLog.ABError($"AB æœªåŠ è½½ï¼Œæ— æ³•åŠ è½½èµ„æº: {assetItem.assetName}");
             return;
         }
 
-        // Èç¹û×ÊÔ´ÒÑ¾­ÔÚ¼ÓÔØ¶ÓÁĞ»òÕıÔÚ¼ÓÔØ£¬²»ÔÙÖØ¸´Ìí¼Ó
+        // å¦‚æœèµ„æºå·²ç»åœ¨åŠ è½½é˜Ÿåˆ—æˆ–æ­£åœ¨åŠ è½½ï¼Œä¸å†é‡å¤æ·»åŠ 
         if (IsAssetInLoadingQueue(assetItem) || _loadingAssets.Contains(assetItem))
         {
             return;
         }
 
-        // ½«×ÊÔ´¼ÓÈë¼ÓÔØ¶ÓÁĞ
+        // å°†èµ„æºåŠ å…¥åŠ è½½é˜Ÿåˆ—
         _assetLoadingQueue.Enqueue(assetItem);
         bundleInfo.RemovePendingAsset(assetItem.assetName);
 
-        GameLog.ABInfo($"×ÊÔ´¼ÓÈë¼ÓÔØ¶ÓÁĞ: {assetItem.assetName}, ¶ÓÁĞÎ»ÖÃ: {_assetLoadingQueue.Count}");
+        GameLog.ABInfo($"èµ„æºåŠ å…¥åŠ è½½é˜Ÿåˆ—: {assetItem.assetName}, é˜Ÿåˆ—ä½ç½®: {_assetLoadingQueue.Count}");
     }
 
-    // ĞÂÔö·½·¨£ºÁ¢¼´¿ªÊ¼¼ÓÔØ×ÊÔ´£¨²»¾­¹ı¶ÓÁĞ£©
+    // æ–°å¢æ–¹æ³•ï¼šç«‹å³å¼€å§‹åŠ è½½èµ„æºï¼ˆä¸ç»è¿‡é˜Ÿåˆ—ï¼‰
     private void StartAssetLoadingImmediate(AssetItem assetItem)
     {
         var bundleInfo = GetBundleInfo(assetItem.bundleName);
         if (bundleInfo == null || !bundleInfo.isLoaded)
         {
-            GameLog.ABError($"AB Î´¼ÓÔØ£¬ÎŞ·¨¼ÓÔØ×ÊÔ´: {assetItem.assetName}");
+            GameLog.ABError($"AB æœªåŠ è½½ï¼Œæ— æ³•åŠ è½½èµ„æº: {assetItem.assetName}");
             assetItem.ExecuteCallbacks();
             return;
         }
 
-        // ¿ªÊ¼Òì²½¼ÓÔØ×ÊÔ´
+        // å¼€å§‹å¼‚æ­¥åŠ è½½èµ„æº
         assetItem.loadRequest = bundleInfo.bundle.LoadAssetAsync(assetItem.assetName);
         _loadingAssets.Add(assetItem);
 
-        GameLog.ABInfo($"¿ªÊ¼¼ÓÔØ×ÊÔ´: {assetItem.assetName}, ÕıÔÚ¼ÓÔØµÄ×ÊÔ´Êı: {_loadingAssets.Count}");
+        GameLog.ABInfo($"å¼€å§‹åŠ è½½èµ„æº: {assetItem.assetName}, æ­£åœ¨åŠ è½½çš„èµ„æºæ•°: {_loadingAssets.Count}");
     }
 
-    // ĞÂÔö·½·¨£º¼ì²é×ÊÔ´ÊÇ·ñÔÚ¼ÓÔØ¶ÓÁĞÖĞ
+    // æ–°å¢æ–¹æ³•ï¼šæ£€æŸ¥èµ„æºæ˜¯å¦åœ¨åŠ è½½é˜Ÿåˆ—ä¸­
     private bool IsAssetInLoadingQueue(AssetItem assetItem)
     {
         foreach (var item in _assetLoadingQueue)
@@ -960,9 +960,9 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
     #endregion
 
-    #region ¸üĞÂÑ­»·
+    #region æ›´æ–°å¾ªç¯
 
-    // ¸üĞÂAB°ü¼ÓÔØ×´Ì¬
+    // æ›´æ–°ABåŒ…åŠ è½½çŠ¶æ€
     private void UpdateBundleLoading()
     {
         int currentLoading = _loadingBundles.Count;
@@ -987,17 +987,17 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         }
     }
 
-    // ĞÂÔö·½·¨£º¸üĞÂ×ÊÔ´¼ÓÔØ×´Ì¬
+    // æ–°å¢æ–¹æ³•ï¼šæ›´æ–°èµ„æºåŠ è½½çŠ¶æ€
     private void UpdateAssetLoading()
     {
-        // ¼ì²éµ±Ç°¼ÓÔØÊıÁ¿£¬Èç¹ûÎ´´ïµ½ÉÏÏŞ£¬´Ó¶ÓÁĞÖĞÈ¡³ö×ÊÔ´¿ªÊ¼¼ÓÔØ
+        // æ£€æŸ¥å½“å‰åŠ è½½æ•°é‡ï¼Œå¦‚æœæœªè¾¾åˆ°ä¸Šé™ï¼Œä»é˜Ÿåˆ—ä¸­å–å‡ºèµ„æºå¼€å§‹åŠ è½½
         while (_loadingAssets.Count < maxConcurrentAssetLoads && _assetLoadingQueue.Count > 0)
         {
             AssetItem nextAsset = _assetLoadingQueue.Dequeue();
             StartAssetLoadingImmediate(nextAsset);
         }
 
-        // ¸üĞÂÕıÔÚ¼ÓÔØµÄ×ÊÔ´×´Ì¬
+        // æ›´æ–°æ­£åœ¨åŠ è½½çš„èµ„æºçŠ¶æ€
         for (int i = _loadingAssets.Count - 1; i >= 0; i--)
         {
             AssetItem assetItem = _loadingAssets[i];
@@ -1009,7 +1009,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         }
     }
 
-    // »ñÈ¡ÏÂÒ»¸öÒª¼ÓÔØµÄAB°ü
+    // è·å–ä¸‹ä¸€ä¸ªè¦åŠ è½½çš„ABåŒ…
     private BundleInfo GetNextBundleToLoad()
     {
         if (_highPriorityQueue.Count > 0)
@@ -1022,16 +1022,16 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         return null;
     }
 
-    // ĞŞ¸ÄStartLoadingBundle·½·¨£¬Ìí¼ÓÒÀÀµ¼ì²é
+    // ä¿®æ”¹StartLoadingBundleæ–¹æ³•ï¼Œæ·»åŠ ä¾èµ–æ£€æŸ¥
     private void StartLoadingBundle(BundleInfo bundleInfo)
     {
         if (bundleInfo.isLoading || bundleInfo.isLoaded)
             return;
 
-        // ÔÙ´ÎÈ·ÈÏÒÀÀµÒÑÈ«²¿¼ÓÔØ
+        // å†æ¬¡ç¡®è®¤ä¾èµ–å·²å…¨éƒ¨åŠ è½½
         if (!bundleInfo.areDependenciesLoaded && bundleInfo.Dependencies.Count > 0)
         {
-            GameLog.ABError($"AB °ü {bundleInfo.bundleName} µÄÒÀÀµÉĞÎ´È«²¿¼ÓÔØÍê³É£¬ÎŞ·¨¿ªÊ¼¼ÓÔØ");
+            GameLog.ABError($"AB åŒ… {bundleInfo.bundleName} çš„ä¾èµ–å°šæœªå…¨éƒ¨åŠ è½½å®Œæˆï¼Œæ— æ³•å¼€å§‹åŠ è½½");
             return;
         }
 
@@ -1042,20 +1042,20 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
         if (bundleInfo.loadPriority == LoadPriority.Sync)
         {
-            // Í¬²½¼ÓÔØ
+            // åŒæ­¥åŠ è½½
             bundleInfo.bundle = AssetBundle.LoadFromFile(path);
             OnBundleLoadComplete(bundleInfo);
         }
         else
         {
-            // Òì²½¼ÓÔØ
+            // å¼‚æ­¥åŠ è½½
             bundleInfo.bundleRequest = AssetBundle.LoadFromFileAsync(path);
         }
 
-        GameLog.ABInfo($"¿ªÊ¼¼ÓÔØ AB: {bundleInfo.bundleName}, ÓÅÏÈ¼¶: {bundleInfo.loadPriority}, ÒÀÀµÊı: {bundleInfo.Dependencies.Count}");
+        GameLog.ABInfo($"å¼€å§‹åŠ è½½ AB: {bundleInfo.bundleName}, ä¼˜å…ˆçº§: {bundleInfo.loadPriority}, ä¾èµ–æ•°: {bundleInfo.Dependencies.Count}");
     }
 
-    // ĞŞ¸ÄOnBundleLoadComplete·½·¨£¬ÔÚAB°ü¼ÓÔØÊ§°ÜÊ±¼õÉÙÒıÓÃ¼ÆÊı
+    // ä¿®æ”¹OnBundleLoadCompleteæ–¹æ³•ï¼Œåœ¨ABåŒ…åŠ è½½å¤±è´¥æ—¶å‡å°‘å¼•ç”¨è®¡æ•°
     private void OnBundleLoadComplete(BundleInfo bundleInfo)
     {
         bundleInfo.isLoading = false;
@@ -1069,9 +1069,9 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
             bundleInfo.loadTime = DateTime.Now;
 
             _loadedBundles[bundleInfo.bundleName] = bundleInfo;
-            GameLog.ABInfo($"AB ¼ÓÔØÍê³É: {bundleInfo.bundleName}, ´ı¼ÓÔØ×ÊÔ´Êı: {bundleInfo.pendingAssets.Count}");
+            GameLog.ABInfo($"AB åŠ è½½å®Œæˆ: {bundleInfo.bundleName}, å¾…åŠ è½½èµ„æºæ•°: {bundleInfo.pendingAssets.Count}");
 
-            // ¼ÓÔØËùÓĞµÈ´ıÖĞµÄ×ÊÔ´£¬Ê¹ÓÃÁÙÊ±ÁĞ±í¿ìÕÕ£¬±ÜÃâ±éÀúÖĞĞŞ¸ÄÔ­ÁĞ±í
+            // åŠ è½½æ‰€æœ‰ç­‰å¾…ä¸­çš„èµ„æºï¼Œä½¿ç”¨ä¸´æ—¶åˆ—è¡¨å¿«ç…§ï¼Œé¿å…éå†ä¸­ä¿®æ”¹åŸåˆ—è¡¨
             _pendingAssetsTemp.Clear();
             _pendingAssetsTemp.AddRange(bundleInfo.pendingAssets);
             for (int i = 0; i < _pendingAssetsTemp.Count; i++)
@@ -1088,22 +1088,22 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         }
         else
         {
-            GameLog.ABError($"AB ¼ÓÔØÊ§°Ü: {bundleInfo.bundleName}");
+            GameLog.ABError($"AB åŠ è½½å¤±è´¥: {bundleInfo.bundleName}");
             OnBundleLoadFailed?.Invoke(bundleInfo.bundleName);
 
-            //// AB°ü¼ÓÔØÊ§°Ü£¬¼õÉÙËùÓĞµÈ´ı×ÊÔ´µÄÒıÓÃ¼ÆÊı
+            //// ABåŒ…åŠ è½½å¤±è´¥ï¼Œå‡å°‘æ‰€æœ‰ç­‰å¾…èµ„æºçš„å¼•ç”¨è®¡æ•°
             //foreach (string assetName in bundleInfo.pendingAssets.ToList())
             //{
             //    var assetItem = bundleInfo.GetAssetItem(assetName);
             //    if (assetItem != null)
             //    {
-            //        // ¼õÉÙ×ÊÔ´ÒıÓÃ¼ÆÊı
+            //        // å‡å°‘èµ„æºå¼•ç”¨è®¡æ•°
             //        assetItem.RemoveReference();
 
-            //        // ¼õÉÙAB°üÒıÓÃ¼ÆÊı£¨ÒòÎª×ÊÔ´¼ÓÔØÊ§°Ü£©
+            //        // å‡å°‘ABåŒ…å¼•ç”¨è®¡æ•°ï¼ˆå› ä¸ºèµ„æºåŠ è½½å¤±è´¥ï¼‰
             //        bundleInfo.RemoveReference();
 
-            //        // Ö´ĞĞ»Øµ÷
+            //        // æ‰§è¡Œå›è°ƒ
             //        assetItem?.ExecuteCallbacks();
             //    }
             //}
@@ -1118,14 +1118,14 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         if (assetItem.loadRequest.asset != null)
         {
             assetItem.assetObject = assetItem.loadRequest.asset;
-            GameLog.ABInfo($"×ÊÔ´¼ÓÔØÍê³É: {assetItem.assetName}");
+            GameLog.ABInfo($"èµ„æºåŠ è½½å®Œæˆ: {assetItem.assetName}");
             isSuccess = true;
         }
         else
         {
-            GameLog.ABError($"×ÊÔ´¼ÓÔØÊ§°Ü: {assetItem.assetName}");
+            GameLog.ABError($"èµ„æºåŠ è½½å¤±è´¥: {assetItem.assetName}");
 
-            // ×ÊÔ´¼ÓÔØÊ§°Ü£¬¼õÉÙÒıÓÃ¼ÆÊı
+            // èµ„æºåŠ è½½å¤±è´¥ï¼Œå‡å°‘å¼•ç”¨è®¡æ•°
             assetItem.RemoveReference();
 
             var bundleInfo = GetBundleInfo(assetItem.bundleName);
@@ -1140,7 +1140,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         }
     }
 
-    //// ĞÂÔö·½·¨£ºÅúÁ¿ÊÍ·Å¶à¸ö×ÊÔ´
+    //// æ–°å¢æ–¹æ³•ï¼šæ‰¹é‡é‡Šæ”¾å¤šä¸ªèµ„æº
     //public void ReleaseAssets(List<(string bundleName, string assetName)> assets)
     //{
     //    foreach (var (bundleName, assetName) in assets)
@@ -1149,7 +1149,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
     //    }
     //}
 
-    //// ĞÂÔö·½·¨£ºÊÍ·ÅÕû¸öAB°üµÄËùÓĞ×ÊÔ´
+    //// æ–°å¢æ–¹æ³•ï¼šé‡Šæ”¾æ•´ä¸ªABåŒ…çš„æ‰€æœ‰èµ„æº
     //public void ReleaseAllAssetsInBundle(string bundleName)
     //{
     //    var bundleInfo = GetBundleInfo(bundleName);
@@ -1164,9 +1164,9 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
     #endregion
 
-    #region ¹¤¾ß·½·¨
+    #region å·¥å…·æ–¹æ³•
 
-    // ½«AB°ü¼ÓÈë¼ÓÔØ¶ÓÁĞ
+    // å°†ABåŒ…åŠ å…¥åŠ è½½é˜Ÿåˆ—
     private void AddBundleToQueue(BundleInfo bundleInfo, LoadPriority priority)
     {
         switch (priority)
@@ -1181,26 +1181,26 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
                 _highPriorityQueue.Enqueue(bundleInfo);
                 break;
             case LoadPriority.Sync:
-                // Í¬²½¼ÓÔØÁ¢¼´Ö´ĞĞ
+                // åŒæ­¥åŠ è½½ç«‹å³æ‰§è¡Œ
                 StartLoadingBundle(bundleInfo);
                 break;
         }
     }
 
-    // ÏÂÔØAB°ü
+    // ä¸‹è½½ABåŒ…
     private void DownloadBundle(string bundleName, System.Action<bool, string> onDownloadComplete)
     {
         //if (AssetBundleDownloader.Instance == null)
         //{
-        //    Debug.LogError("ABÏÂÔØÆ÷Î´ÉèÖÃ");
+        //    Debug.LogError("ABä¸‹è½½å™¨æœªè®¾ç½®");
         //    return;
         //}
 
-        //Debug.Log($"¿ªÊ¼ÏÂÔØAB°ü: {bundleName}");
+        //Debug.Log($"å¼€å§‹ä¸‹è½½ABåŒ…: {bundleName}");
         //AssetBundleDownloader.Instance.DownloadBundle(bundleName, false, onDownloadComplete);
     }
 
-    // Ğ¶ÔØ¼ì²éĞ­³Ì
+    // å¸è½½æ£€æŸ¥åç¨‹
     private IEnumerator UnloadCheckCoroutine()
     {
         while (true)
@@ -1210,7 +1210,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         }
     }
 
-    // ¼ì²é²¢Ğ¶ÔØÎ´Ê¹ÓÃµÄAB°ü
+    // æ£€æŸ¥å¹¶å¸è½½æœªä½¿ç”¨çš„ABåŒ…
     private void CheckAndUnloadUnusedBundles()
     {
         int unloadedCount = 0;
@@ -1237,13 +1237,13 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
 
         if (unloadedCount > 0)
         {
-            GameLog.ABInfo($"×Ô¶¯Ğ¶ÔØÁË {unloadedCount} ¸öÎ´Ê¹ÓÃµÄ AB °ü");
+            GameLog.ABInfo($"è‡ªåŠ¨å¸è½½äº† {unloadedCount} ä¸ªæœªä½¿ç”¨çš„ AB åŒ…");
         }
     }
 
     #endregion
 
-    #region ²éÑ¯·½·¨
+    #region æŸ¥è¯¢æ–¹æ³•
 
     public BundleInfo GetBundleInfo(string bundleName)
     {
@@ -1257,7 +1257,7 @@ public class AssetBundleManager : Singleton<AssetBundleManager>
         return bundleInfo?.GetAssetItem(assetName);
     }
 
-    // ĞÂÔö£º»ñÈ¡×ÊÔ´µÄ»Øµ÷ÊıÁ¿£¨ÓÃÓÚµ÷ÊÔ£©
+    // æ–°å¢ï¼šè·å–èµ„æºçš„å›è°ƒæ•°é‡ï¼ˆç”¨äºè°ƒè¯•ï¼‰
     public int GetAssetCallbackCount(string bundleName, string assetName)
     {
         var assetItem = GetAssetItem(bundleName, assetName);

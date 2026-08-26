@@ -33,6 +33,9 @@ namespace EGamePlay.Combat
         /// <summary>当前实体时间流速乘数（不含世界 scale）。无 modifier 时为 1。仅在增减 modifier 时重算。</summary>
         public float EntityScale => _cachedScale;
 
+        /// <summary>当前实体时间流速乘数（<see cref="EntityScale"/> 别名）。</summary>
+        public float GetTimeScale() => EntityScale;
+
         private void Recalculate()
         {
             if (_modifiers.Count == 0)
@@ -47,13 +50,16 @@ namespace EGamePlay.Combat
         }
 
         /// <summary>添加时间流速 modifier，可叠加多个。</summary>
-        /// <param name="sourceId">来源 ID，用于 RemoveBySource。0 表示无来源。</param>
-        /// <param name="scale">乘数，如 0.5=半速，1.5=1.5 倍速。</param>
+        public void AddTimeScaleModifier(int sourceId, float scale) => AddModifier(sourceId, scale);
+
         public void AddModifier(int sourceId, float scale)
         {
             _modifiers.Add(new TimeScaleModifier(sourceId, scale));
             Recalculate();
         }
+
+        /// <summary>移除指定来源的所有时间流速 modifier。</summary>
+        public void RemoveTimeScaleModifierBySource(int sourceId) => RemoveBySource(sourceId);
 
         /// <summary>移除指定来源的所有 modifier。</summary>
         public void RemoveBySource(int sourceId)

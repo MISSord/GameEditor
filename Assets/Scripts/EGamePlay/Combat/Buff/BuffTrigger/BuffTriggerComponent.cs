@@ -55,7 +55,7 @@ namespace EGamePlay.Combat
             var owner = Entity.As<Buff>()?.OwnerEntity;
             if (owner == null || owner.IsDisposed) return;
 
-            var actionPointComp = owner.GetComponent<ActionPointComponent>();
+            var actionPointComp = owner.Entity?.GetComponent<ActionPointComponent>();
             if (actionPointComp == null) return;
 
             foreach (var reg in Registrations)
@@ -75,7 +75,7 @@ namespace EGamePlay.Combat
             var owner = Entity.As<Buff>()?.OwnerEntity;
             if (owner != null && !owner.IsDisposed)
             {
-                var actionPointComp = owner.GetComponent<ActionPointComponent>();
+                var actionPointComp = owner.Entity?.GetComponent<ActionPointComponent>();
                 if (actionPointComp != null)
                 {
                     foreach (var reg in Registrations)
@@ -92,7 +92,7 @@ namespace EGamePlay.Combat
             var owner = Entity.As<Buff>()?.OwnerEntity;
             if (owner != null && !owner.IsDisposed)
             {
-                var actionPointComp = owner.GetComponent<ActionPointComponent>();
+                var actionPointComp = owner.Entity?.GetComponent<ActionPointComponent>();
                 if (actionPointComp != null)
                 {
                     foreach (var reg in Registrations)

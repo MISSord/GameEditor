@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using EGamePlay.Combat;
+using ACTGameEditor.Combat;
 using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 
@@ -38,6 +38,7 @@ namespace EGamePlay.Unity
         static readonly int IdleHash = Animator.StringToHash("Idle");
         static readonly int MoveSpeedId = Animator.StringToHash("MoveSpeed");
         static readonly int IsRunId = Animator.StringToHash("IsRun");
+        static readonly int JumpHash = Animator.StringToHash("Jump");
         static readonly int DamageHash = Animator.StringToHash("Damage");
 
         const float DefaultLocomotionBlendSeconds = 0.08f;
@@ -203,6 +204,24 @@ namespace EGamePlay.Unity
         public int PlayDamageReaction(float blendSeconds = 0.05f)
         {
             return PlayReaction(DamageHash, blendSeconds);
+        }
+
+        /// <summary>
+        /// Locomotion 一段跳：不占技能 Token。Controller 无 Jump State 时返回 false。
+        /// </summary>
+        public bool TryPlayLocomotionJump(float blendSeconds = 0.05f)
+        {
+            if (HasSkillOwner)
+                return false;
+
+            Animator animator = _anim.animator;
+            if (animator == null || !HasAnimatorState(animator, JumpHash))
+                return false;
+
+            float blend = blendSeconds > 0f ? blendSeconds : 0.05f;
+            animator.CrossFadeInFixedTime(JumpHash, blend, 0, 0f);
+            RefreshSpeedFromOwner();
+            return true;
         }
 
         /// <summary>驱动反应动画自动交回；由玩家 Update 调用。</summary>

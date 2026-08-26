@@ -1,6 +1,6 @@
 using UnityEngine;
 using System.Collections;
-using ACTGameEditor;
+using EGamePlay;
 
 namespace Flux
 {

@@ -5,11 +5,11 @@ using UnityEngine;
 public class PrefabABPathPostprocessor : AssetPostprocessor
 {
     /// <summary>
-    /// ÔÚµ¼ÈëÈÎºÎ×ÊÔ´Ö®Ç°µ÷ÓÃ£¬ÓÃÓÚÉèÖÃAssetBundleÂ·¾¶
+    /// åœ¨å¯¼å…¥ä»»ä½•èµ„æºä¹‹å‰è°ƒç”¨ï¼Œç”¨äºè®¾ç½®AssetBundleè·¯å¾„
     /// </summary>
     void OnPreprocessAsset()
     {
-        // Ö»ÔÚAssetsÄ¿Â¼ÏÂ
+        // åªåœ¨Assetsç›®å½•ä¸‹
         if (!assetPath.StartsWith("Assets/"))
             return;
 
@@ -20,7 +20,7 @@ public class PrefabABPathPostprocessor : AssetPostprocessor
         bool isNeed = assetPath.Contains("Actors") || assetPath.Contains("Effects") || assetPath.Contains("UI") | assetPath.Contains("Other");
         if (isNeed && assetPath.EndsWith(".prefab"))
         {
-            // ¸ù¾İÎÄ¼ş¼ĞÂ·¾¶Éú³ÉAssetBundleÃû³Æ
+            // æ ¹æ®æ–‡ä»¶å¤¹è·¯å¾„ç”ŸæˆAssetBundleåç§°
             string bundleName = GenerateBundleNameFromFolder(assetPath);
             if (string.IsNullOrEmpty(bundleName))
                 return;
@@ -28,7 +28,7 @@ public class PrefabABPathPostprocessor : AssetPostprocessor
         }
         else if(assetPath.Contains("UI/RawImage"))
         {
-            // ¸ù¾İÎÄ¼ş¼ĞÂ·¾¶Éú³ÉAssetBundleÃû³Æ
+            // æ ¹æ®æ–‡ä»¶å¤¹è·¯å¾„ç”ŸæˆAssetBundleåç§°
             string bundleName = GenerateBundleNameFromFolder(assetPath);
             if (string.IsNullOrEmpty(bundleName))
                 return;
@@ -37,7 +37,7 @@ public class PrefabABPathPostprocessor : AssetPostprocessor
         }
         else if (assetPath.EndsWith(".asset") || assetPath.EndsWith(".wav") || assetPath.EndsWith(".mp3"))
         {
-            // ¸ù¾İÎÄ¼ş¼ĞÂ·¾¶Éú³ÉAssetBundleÃû³Æ
+            // æ ¹æ®æ–‡ä»¶å¤¹è·¯å¾„ç”ŸæˆAssetBundleåç§°
             string bundleName = GenerateBundleNameFromFolder(assetPath);
             if (string.IsNullOrEmpty(bundleName))
                 return;
@@ -50,24 +50,24 @@ public class PrefabABPathPostprocessor : AssetPostprocessor
     }
 
     /// <summary>
-    /// ¸ù¾İ×ÊÔ´Â·¾¶Éú³É»ùÓÚÎÄ¼ş¼ĞµÄAssetBundleÃû³Æ
+    /// æ ¹æ®èµ„æºè·¯å¾„ç”ŸæˆåŸºäºæ–‡ä»¶å¤¹çš„AssetBundleåç§°
     /// </summary>
     public static string GenerateBundleNameFromFolder(string assetPath)
     {
-        // »ñÈ¡ÎÄ¼şËùÔÚÄ¿Â¼£¨È¥µôÎÄ¼şÃû£©
+        // è·å–æ–‡ä»¶æ‰€åœ¨ç›®å½•ï¼ˆå»æ‰æ–‡ä»¶åï¼‰
         string directory = Path.GetDirectoryName(assetPath);
 
         if (string.IsNullOrEmpty(directory))
             return null;
 
-        // ÒÆ³ı"Assets/"Ç°×º£¬µÃµ½Ïà¶ÔÂ·¾¶
+        // ç§»é™¤"Assets/"å‰ç¼€ï¼Œå¾—åˆ°ç›¸å¯¹è·¯å¾„
         string relativePath = directory;
         if (relativePath.StartsWith("Assets\\Game\\"))
         {
-            relativePath = relativePath.Substring(12); // ÒÆ³ı"Assets/Game/"
+            relativePath = relativePath.Substring(12); // ç§»é™¤"Assets/Game/"
         }
 
-        // Èç¹ûÖ±½ÓÔÚAssets¸ùÄ¿Â¼£¬Ê¹ÓÃÌØÊâÃû³Æ
+        // å¦‚æœç›´æ¥åœ¨Assetsæ ¹ç›®å½•ï¼Œä½¿ç”¨ç‰¹æ®Šåç§°
         if (string.IsNullOrEmpty(relativePath))
         {
             relativePath = "root_assets";
@@ -78,7 +78,7 @@ public class PrefabABPathPostprocessor : AssetPostprocessor
     }
 
     /// <summary>
-    /// ´¦Àí×ÊÔ´ÒÆ¶¯ºóµÄABÂ·¾¶¸üĞÂ
+    /// å¤„ç†èµ„æºç§»åŠ¨åçš„ABè·¯å¾„æ›´æ–°
     /// </summary>
     static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
     {
@@ -86,7 +86,7 @@ public class PrefabABPathPostprocessor : AssetPostprocessor
         {
             if (movedAsset.EndsWith(".prefab"))
             {
-                // ÖØĞÂÓ¦ÓÃABÂ·¾¶ÉèÖÃ
+                // é‡æ–°åº”ç”¨ABè·¯å¾„è®¾ç½®
                 AssetImporter importer = AssetImporter.GetAtPath(movedAsset);
                 if (importer != null)
                 {
@@ -94,7 +94,7 @@ public class PrefabABPathPostprocessor : AssetPostprocessor
                     if (!string.IsNullOrEmpty(newBundleName))
                     {
                         importer.assetBundleName = newBundleName.ToLower().Replace('\\', '/');
-                        //Debug.Log($"ÒÆ¶¯ºó¸üĞÂABÂ·¾¶: {movedAsset} -> {newBundleName}");
+                        //Debug.Log($"ç§»åŠ¨åæ›´æ–°ABè·¯å¾„: {movedAsset} -> {newBundleName}");
                     }
                 }
             }

@@ -1,4 +1,4 @@
-using EGamePlay.Combat;
+using ACTGameEditor.Combat;
 using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 
@@ -14,6 +14,16 @@ namespace ACTGameEditor.Locomotion
         public bool CanMove => _entity != null && _entity.IsCanMove;
     }
 
+    /// <summary>战斗实体可跳跃门控。</summary>
+    public sealed class CombatJumpGate : IJumpGate
+    {
+        readonly CombatEntity _entity;
+
+        public CombatJumpGate(CombatEntity entity) => _entity = entity;
+
+        public bool CanJump => _entity != null && _entity.IsCanJump;
+    }
+
     /// <summary>把移动意图报给 CombatStateDirector，不直接写 CurState。</summary>
     public sealed class CombatLocomotionStateSink : ILocomotionStateSink
     {
@@ -26,6 +36,16 @@ namespace ACTGameEditor.Locomotion
             if (_entity == null)
                 return;
             _entity.StateDirector?.NotifyLocomotion(isMoving, isRun);
+        }
+
+        public void NotifyJumpStarted()
+        {
+            _entity?.StateDirector?.NotifyJumpStarted();
+        }
+
+        public void SyncAirborneState(bool isGrounded, bool isFalling)
+        {
+            _entity?.StateDirector?.SyncAirborne(isGrounded, isFalling);
         }
     }
 

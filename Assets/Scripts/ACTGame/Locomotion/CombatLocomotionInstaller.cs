@@ -1,3 +1,4 @@
+using ACTGameEditor.Combat;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
@@ -36,6 +37,8 @@ namespace ACTGameEditor.Locomotion
                 new CombatMoveGate(entity),
                 new GameTimeLocomotionTimeSource(),
                 new CombatLocomotionStateSink(entity));
+
+            motor.SetJumpGate(new CombatJumpGate(entity));
 
             CombatAnimDirector director = anim?.Director;
             if (anim?.Motion != null)
