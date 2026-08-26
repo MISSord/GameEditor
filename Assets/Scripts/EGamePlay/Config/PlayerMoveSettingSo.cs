@@ -21,5 +21,14 @@ namespace EGamePlay
         public float GravityOnGrondRate = 0.8f; //
         public float GravityOnAirAddRate = 1f;//在空中重力增强应该更大
         public float GravityMaxRate = 4f;//重力上限
+
+        [Header("Jump")]
+        [Tooltip("起跳高度（米），一段跳")]
+        public float JumpHeight = 1.2f;
+        [Tooltip("空中方向控制（0~1），越高越易改向")]
+        [Range(0f, 1f)]
+        public float AirControl = 0.65f;
+        [Tooltip("空中水平速上限 = RunMoveSpeed × 此倍率")]
+        public float AirMoveSpeedScale = 1f;
     }
 }

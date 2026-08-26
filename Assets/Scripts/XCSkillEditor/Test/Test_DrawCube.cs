@@ -5,7 +5,7 @@ using EGamePlay.Combat;
 using Debug = UnityEngine.Debug;
 
 /// <summary>
-/// »­³öÅö×²ºÐ
+/// ç”»å‡ºç¢°æ’žç›’
 /// </summary>
 public class Test_DrawCube : MonoBehaviour
 {
@@ -73,7 +73,7 @@ public class Test_DrawCube : MonoBehaviour
         }
     }
 
-    //»­³öÅö×²Ìå
+    //ç”»å‡ºç¢°æ’žä½“
     void DrawCollider(Vector3 center, Vector3 size, Vector3 rota, Transform targetTran)
     {
         var rotation = targetTran.rotation;

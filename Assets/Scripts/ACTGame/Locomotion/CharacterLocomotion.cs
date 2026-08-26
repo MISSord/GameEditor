@@ -97,6 +97,9 @@ namespace ACTGameEditor.Locomotion
         /// <summary>临时关闭重力。</summary>
         public void SetNoGravityT(float time) => _motor.SetNoGravityT(time);
 
+        /// <summary>尝试一段跳。</summary>
+        public bool TryJump() => _motor.TryJump();
+
         void EnsureBound()
         {
             if (_bound)

@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using System.Collections;
 using System.Collections.Generic;
-using ACTGameEditor;
+using EGamePlay;
 
 /**
  * @brief Flux is top namespace for everything pertaining to the runtime.

@@ -72,19 +72,16 @@ namespace EGamePlay.Combat
             FloatNumeric numeric = _attributeComponent.GetNumeric(AttributeMaxType[type]);
             if (numeric != null)
             {
-                VitalNameNumerics[type] = MathF.Max(VitalNameNumerics[type] + value, numeric.Value);
+                float next = VitalNameNumerics[type] + value;
+                VitalNameNumerics[type] = MathF.Min(next, numeric.Value);
             }
         }
 
-        /// <summary>
-        /// 减少数值
-        /// </summary>
-        /// <param name="type"></param>
-        /// <param name="value"></param>
+        /// <summary>减少数值，结果钳制在 [0, max]。</summary>
         public void MinusValue(AttributeType type, int value)
         {
             GameLog.CombatDebug($"MinusValue {type}: {value}");
-            VitalNameNumerics[type] = MathF.Min(VitalNameNumerics[type] - Math.Abs(value), 0);
+            VitalNameNumerics[type] = MathF.Max(VitalNameNumerics[type] - Math.Abs(value), 0f);
         }
 
         //获取某个属性现有百分比

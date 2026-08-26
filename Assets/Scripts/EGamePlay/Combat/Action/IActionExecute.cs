@@ -10,8 +10,9 @@ namespace EGamePlay.Combat
     public interface IActionExecute
     {
         /// 行动实体
-        public CombatEntity Creator { get; set; }
+        ICombatUnit Creator { get; set; }
+
         /// 目标对象
-        public Entity Target { get; set; }
+        ICombatUnit Target { get; set; }
     }
 }

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace ACTGameEditor
+namespace EGamePlay
 {
     /// <summary>
     /// 时间层：不同系统使用不同时间缩放，UI 始终不受影响。

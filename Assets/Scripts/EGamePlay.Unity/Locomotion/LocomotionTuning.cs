@@ -23,6 +23,15 @@ namespace EGamePlay.Unity.Locomotion
         public float GroundedRadius;
         public float InputDeadZone;
 
+        /// <summary>起跳高度（米）。由 v = sqrt(2·|g|·h) 换算初速度。</summary>
+        public float JumpHeight;
+
+        /// <summary>空中方向控制权重（0~1）。鸣潮/绝区零类：保留起跳惯性 + 较低加减速。</summary>
+        public float AirControl;
+
+        /// <summary>空中最高水平速相对地面的倍率（1=与跑步相同）。</summary>
+        public float AirMoveSpeedScale;
+
         /// <summary>与旧 InputMoveComponent 硬编码行为对齐的默认值。</summary>
         public static LocomotionTuning CreateDefault()
         {
@@ -42,6 +51,9 @@ namespace EGamePlay.Unity.Locomotion
                 GroundedOffset = -0.14f,
                 GroundedRadius = 0.28f,
                 InputDeadZone = 0.1f,
+                JumpHeight = 1.2f,
+                AirControl = 0.65f,
+                AirMoveSpeedScale = 1f,
             };
         }
     }

@@ -1,7 +1,7 @@
 using System;
-using EGamePlay.Unity;
+using EGamePlay;
 
-namespace ACTGameEditor
+namespace EGamePlay.Unity
 {
     /// <summary>将 <see cref="GameTimeManager"/> 桥接为动画时间源。</summary>
     public sealed class GameTimeAnimTimeScaleSource : IAnimTimeScaleSource

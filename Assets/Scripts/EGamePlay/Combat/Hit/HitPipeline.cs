@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ACTGameEditor;
+using EGamePlay;
 
 namespace EGamePlay.Combat
 {
@@ -19,6 +19,8 @@ namespace EGamePlay.Combat
             if (request.Attacker == null || request.Attacker.IsDisposed)
                 return;
             if (request.Defender == null || request.Defender.IsDisposed)
+                return;
+            if (request.Attacker.Id == request.Defender.Id)
                 return;
             if (request.Runner == null || request.Runner.IsDisposed)
                 return;
@@ -45,8 +47,10 @@ namespace EGamePlay.Combat
             _landed.Clear();
             for (int i = 0; i < count; i++)
             {
-                if (Filter(_processing[i]) == HitResultKind.Land)
-                    _landed.Add(_processing[i]);
+                HitRequest req = _processing[i];
+                HitResultKind result = Filter(req);
+                if (result == HitResultKind.Land)
+                    _landed.Add(req);
             }
             _processing.Clear();
 
@@ -54,6 +58,8 @@ namespace EGamePlay.Combat
             {
                 HitRequest request = _landed[i];
                 if (!CanApply(request))
+                    continue;
+                if (!request.Runner.CommitHit(request.Defender, request.TriggerEvent))
                     continue;
                 request.Runner.ApplyAcceptedHit(request.Defender, request.TriggerEvent);
             }
@@ -90,11 +96,11 @@ namespace EGamePlay.Combat
             if (request.TriggerEvent == null)
                 return HitResultKind.Ignored;
 
-            return request.Runner.TryAcceptHit(request.Defender, request.TriggerEvent);
+            return request.Runner.PeekHit(request.Defender, request.TriggerEvent);
         }
 
         /// <summary>进攻侧：已销毁或已死亡的攻击者不再造成后续命中。</summary>
-        private static HitResultKind FilterAttack(CombatEntity attacker)
+        private static HitResultKind FilterAttack(ICombatUnit attacker)
         {
             if (attacker == null || attacker.IsDisposed || attacker.IsDead)
                 return HitResultKind.Ignored;
@@ -102,9 +108,11 @@ namespace EGamePlay.Combat
         }
 
         /// <summary>防守侧：已销毁或已死亡忽略。格挡/霸体在此按 HitResultKind 扩展。</summary>
-        private static HitResultKind FilterDefend(CombatEntity defender)
+        private static HitResultKind FilterDefend(ICombatUnit defender)
         {
-            if (defender == null || defender.IsDisposed || defender.IsDead)
+            if (defender == null || defender.IsDisposed)
+                return HitResultKind.Ignored;
+            if (defender.IsDead)
                 return HitResultKind.Ignored;
             return HitResultKind.Land;
         }

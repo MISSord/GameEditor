@@ -1,5 +1,4 @@
 using System;
-using ACTGameEditor;
 using UnityEngine;
 
 namespace EGamePlay.Combat
@@ -74,7 +73,7 @@ namespace EGamePlay.Combat
 
             if (reg.Config.EffectModifyType == EffectModifyType.PlayerControll && reg.ControlApplied)
             {
-                var tagContainer = buff.OwnerEntity?.GetComponent<StatusComponent>()?.TagContainer;
+                var tagContainer = buff.OwnerEntity?.Entity?.GetComponent<StatusComponent>()?.TagContainer;
                 if (tagContainer != null && reg.Config.ParamString1 != null)
                 {
                     var src = TagSource.Modify(buff.Id);
@@ -89,7 +88,7 @@ namespace EGamePlay.Combat
 
             if (reg.Config.EffectModifyType == EffectModifyType.PlayerModify && reg.AttributeApplied && reg.AttributeModifier != null)
             {
-                var attrComp = buff.OwnerEntity?.GetComponent<AttributeComponent>();
+                var attrComp = buff.OwnerEntity?.Entity?.GetComponent<AttributeComponent>();
                 if (attrComp != null)
                 {
                     var attrType = (AttributeType)reg.Config.ParamInt1;
@@ -106,7 +105,7 @@ namespace EGamePlay.Combat
         private static void ApplyPlayerControl(ModifyRegistration reg, Buff buff)
         {
             if (reg.ControlApplied) return;
-            var tagContainer = buff.OwnerEntity?.GetComponent<StatusComponent>()?.TagContainer;
+            var tagContainer = buff.OwnerEntity?.Entity?.GetComponent<StatusComponent>()?.TagContainer;
             if (tagContainer == null || reg.Config.ParamString1 == null) return;
             var src = TagSource.Modify(buff.Id);
             foreach (var tag in reg.Config.ParamString1)
@@ -123,7 +122,7 @@ namespace EGamePlay.Combat
             var attrType = (AttributeType)reg.Config.ParamInt1;
             if (!Enum.IsDefined(typeof(AttributeType), attrType)) return;
 
-            var attrComp = buff.OwnerEntity?.GetComponent<AttributeComponent>();
+            var attrComp = buff.OwnerEntity?.Entity?.GetComponent<AttributeComponent>();
             if (attrComp == null) return;
 
             float value = reg.Config.ParamFloat1;
@@ -144,7 +143,7 @@ namespace EGamePlay.Combat
         /// </summary>
         private static void ApplyFireAndForget(ModifyRegistration reg, Buff buff, Entity target)
         {
-            var caster = buff.Caster as CombatEntity;
+            var caster = buff.Caster as ICombatUnit;
             var creator = caster ?? buff.OwnerEntity;
             if (reg.Config.EffectModifyType == EffectModifyType.BuffAddStatus)
             {

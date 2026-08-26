@@ -15,14 +15,14 @@ namespace EGamePlay.Combat
         /// </summary>
         public static void ExecuteHpDamage(
             BuffModifySetting setting,
-            CombatEntity caster,
+            ICombatUnit caster,
             Entity target,
             Entity triggerSource,
             DamageSource damageSource,
             Ability sourceAbility = null,
             int damageSegmentIndex = 0)
         {
-            if (setting == null || caster == null || target is not CombatEntity targetEntity)
+            if (setting == null || caster == null || target == null)
                 return;
 
             var formulaType = (DamageCalcuFormulaType)setting.ParamInt1;
@@ -43,11 +43,11 @@ namespace EGamePlay.Combat
                 EffectConfig = dmgEffect,
                 SourceAbility = sourceAbility,
                 TriggerSource = triggerSource,
-                Target = targetEntity,
+                Target = target,
                 DamageSegmentIndex = damageSegmentIndex,
             };
 
-            if (caster.DamageAbility.TryMakeAction(out var damageAction))
+            if (caster.DamageAbility != null && caster.DamageAbility.TryMakeAction(out var damageAction))
             {
                 damageAction.TriggerContext = context;
                 damageAction.DamageSource = damageSource;
@@ -62,12 +62,12 @@ namespace EGamePlay.Combat
         /// </summary>
         public static void ExecuteResource(
             BuffModifySetting setting,
-            CombatEntity caster,
+            ICombatUnit caster,
             Entity target,
             Entity triggerSource,
             DamageSource damageSource)
         {
-            if (setting == null || caster == null || target is not CombatEntity targetEntity)
+            if (setting == null || caster == null || target == null)
                 return;
 
             var formulaType = (ResourceFormulaType)setting.ParamInt1;
@@ -77,8 +77,8 @@ namespace EGamePlay.Combat
 
             var ctx = new ResourceFormulaContext
             {
-                Caster = caster,
-                Target = targetEntity,
+                Caster = caster.Entity,
+                Target = target,
                 FormulaType = formulaType,
                 AttrOrVitalType = attrType,
                 A = a,
@@ -106,17 +106,17 @@ namespace EGamePlay.Combat
                         EffectConfig = cureEffect,
                         SourceAbility = null,
                         TriggerSource = triggerSource,
-                        Target = targetEntity,
+                        Target = target,
                     };
 
-                    cureAction.Target = targetEntity;
+                    cureAction.Target = target as ICombatUnit;
                     cureAction.TriggerContext = triggerContext;
                     cureAction.ApplyCure();
                     return;
                 }
             }
 
-            var vital = targetEntity.GetComponent<VitalComponent>();
+            var vital = target.GetComponent<VitalComponent>();
             if (vital == null) return;
 
             if (delta > 0)
@@ -201,4 +201,3 @@ namespace EGamePlay.Combat
         //}
     }
 }
-

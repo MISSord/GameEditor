@@ -9,7 +9,7 @@ namespace EGamePlay.Combat
     public sealed class CombatFormComponent : Component
     {
         private readonly Dictionary<int, SkillFormConfig> _forms = new Dictionary<int, SkillFormConfig>(4);
-        private CombatEntity _actor;
+        ICombatUnit _actor;
 
         /// <summary>当前形态 ID，0 为默认槽位表。</summary>
         public int ActiveFormId { get; private set; }
@@ -19,7 +19,7 @@ namespace EGamePlay.Combat
 
         public override void Awake()
         {
-            _actor = GetEntity<CombatEntity>();
+            _actor = Entity as ICombatUnit;
         }
 
         public override void OnDestroy()
@@ -112,20 +112,20 @@ namespace EGamePlay.Combat
 
         private void TryPushTag(TagSource src, string tag)
         {
-            if (string.IsNullOrEmpty(tag) || _actor == null)
+            if (string.IsNullOrEmpty(tag) || _actor?.TagHost == null)
                 return;
             if (TagCollection.TagToIndexDic == null || !TagCollection.TagToIndexDic.ContainsKey(tag))
                 return;
-            _actor.PushTag(src, tag);
+            _actor.TagHost.PushTag(src, tag);
         }
 
         private void TryPopTag(TagSource src, string tag)
         {
-            if (string.IsNullOrEmpty(tag) || _actor == null)
+            if (string.IsNullOrEmpty(tag) || _actor?.TagHost == null)
                 return;
             if (TagCollection.TagToIndexDic == null || !TagCollection.TagToIndexDic.ContainsKey(tag))
                 return;
-            _actor.PopTag(src, tag);
+            _actor.TagHost.PopTag(src, tag);
         }
     }
 }

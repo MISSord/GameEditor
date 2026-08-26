@@ -1,5 +1,4 @@
 using UnityEngine;
-using ACTGameEditor;
 #if EGAMEPLAY_ET
 using SkillConfig = cfg.Skill.SkillCfg;
 using AO;
@@ -12,7 +11,7 @@ namespace EGamePlay.Combat
     /// </summary>
     public interface IAbility
     {
-        CombatEntity OwnerEntity { get; }
+        ICombatUnit OwnerEntity { get; }
         bool Enable { get; }
         void Activate();
         void Deactivate();
@@ -24,7 +23,7 @@ namespace EGamePlay.Combat
     /// </summary>
     public abstract class AbilityBase : Entity, IAbility
     {
-        public CombatEntity OwnerEntity => GetParent<CombatEntity>();
+        public ICombatUnit OwnerEntity => GetParent<Entity>() as ICombatUnit;
         public bool Enable { get; protected set; }
 
         public virtual void Activate()
@@ -65,8 +64,9 @@ namespace EGamePlay.Combat
     {
         /// <summary>共享定义，同一 skillId 全局复用。</summary>
         public AbilityDefinition Definition { get; private set; }
-        public SkillAllEventData SkillData => Definition?.SkillData;
         public int SkillID => Definition?.SkillID ?? 0;
+        /// <summary>是否需要 ACT 层时间轴表现。</summary>
+        public bool RequiresTimeline => Definition?.RequiresTimeline ?? false;
 
         public override void Awake(object initData)
         {

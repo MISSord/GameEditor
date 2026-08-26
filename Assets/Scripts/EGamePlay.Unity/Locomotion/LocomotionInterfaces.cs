@@ -26,6 +26,13 @@ namespace EGamePlay.Unity.Locomotion
         bool CanMove { get; }
     }
 
+    /// <summary>跳跃门控（技能占轴、禁移、空中等）。</summary>
+    public interface IJumpGate
+    {
+        /// <summary>当前是否允许起跳（仅一段跳，落地后才能再次跳）。</summary>
+        bool CanJump { get; }
+    }
+
     /// <summary>移动时间源（支持时间缩放）。</summary>
     public interface ILocomotionTimeSource
     {
@@ -42,10 +49,16 @@ namespace EGamePlay.Unity.Locomotion
         float FixedPlayerDelta { get; }
     }
 
-    /// <summary>移动状态回调（Idle/Moving、是否跑步）。</summary>
+    /// <summary>移动状态回调（地面移动 / 跳跃 / 空中）。</summary>
     public interface ILocomotionStateSink
     {
-        /// <summary>同步移动表现状态。</summary>
+        /// <summary>同步地面移动意图（Run/Idle）。</summary>
         void SetLocomotionState(bool isMoving, bool isRun);
+
+        /// <summary>Locomotion 一段跳成功。</summary>
+        void NotifyJumpStarted();
+
+        /// <summary>每帧同步是否落地；空中时区分 Jump（主动起跳）与 Falling（滑落）。</summary>
+        void SyncAirborneState(bool isGrounded, bool isFalling);
     }
 }

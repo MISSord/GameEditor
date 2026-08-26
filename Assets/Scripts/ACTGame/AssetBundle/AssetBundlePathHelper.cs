@@ -2,8 +2,8 @@ using System.IO;
 using UnityEngine;
 
 /// <summary>
-/// AssetBundleÂ·¾¶¹ÜÀí¹¤¾ß
-/// Ìá¹©Í³Ò»µÄÂ·¾¶»ñÈ¡·½·¨£¬Ö§³Ö¶àÆ½Ì¨
+/// AssetBundleè·¯å¾„ç®¡ç†å·¥å…·
+/// æä¾›ç»Ÿä¸€çš„è·¯å¾„è·å–æ–¹æ³•ï¼Œæ”¯æŒå¤šå¹³å°
 /// </summary>
 public static class AssetBundlePathHelper
 {
@@ -16,7 +16,7 @@ public static class AssetBundlePathHelper
     }
 
     /// <summary>
-    /// »ñÈ¡±¾µØLZ4¸ñÊ½AB°üÂ·¾¶
+    /// è·å–æœ¬åœ°LZ4æ ¼å¼ABåŒ…è·¯å¾„
     /// </summary>
     public static string GetLocalLZ4Path(string bundleName)
     {
@@ -24,12 +24,12 @@ public static class AssetBundlePathHelper
     }
 
 //    /// <summary>
-//    /// »ñÈ¡AssetBundle¸ùÄ¿Â¼
+//    /// è·å–AssetBundleæ ¹ç›®å½•
 //    /// </summary>
 //    public static string GetAssetBundleRootPath()
 //    {
 //#if UNITY_EDITOR
-//        // ÔÚ±à¼­Æ÷ÖĞ£¬Ê¹ÓÃÏîÄ¿Ä¿Â¼
+//        // åœ¨ç¼–è¾‘å™¨ä¸­ï¼Œä½¿ç”¨é¡¹ç›®ç›®å½•
 //        return Path.Combine(Application.dataPath, "..", localSavePath);
 //#elif UNITY_STANDALONE
 //        return Path.Combine(Application.dataPath, "..", localSavePath);
@@ -41,25 +41,25 @@ public static class AssetBundlePathHelper
 //    }
 
     /// <summary>
-    /// »ñÈ¡ÔËĞĞÊ±¼ÓÔØÂ·¾¶
+    /// è·å–è¿è¡Œæ—¶åŠ è½½è·¯å¾„
     /// </summary>
     public static string GetRuntimeLoadPath(string bundleName)
     {
         string platformFolder = GetRuntimePlatformFolder();
         string fileName = GetBundleFileName(bundleName);
 
-        // ÓÅÏÈ¼ì²éÈÈ¸üĞÂÂ·¾¶£¨³Ö¾Ã»¯Êı¾İÂ·¾¶£©
+        // ä¼˜å…ˆæ£€æŸ¥çƒ­æ›´æ–°è·¯å¾„ï¼ˆæŒä¹…åŒ–æ•°æ®è·¯å¾„ï¼‰
         string persistentPath = Path.Combine(Application.persistentDataPath, localSavePath, platformFolder, fileName);
         if (File.Exists(persistentPath))
         {
             return persistentPath;
         }
 
-        // Ê¹ÓÃÄÚÖÃ×ÊÔ´Â·¾¶
+        // ä½¿ç”¨å†…ç½®èµ„æºè·¯å¾„
         string streamingPath = Path.Combine(Application.streamingAssetsPath, localSavePath, platformFolder, fileName);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-        // AndroidÆ½Ì¨ÏÂ£¬StreamingAssetsÖĞµÄÎÄ¼ş²»ÄÜÖ±½ÓÊ¹ÓÃFile.Exists¼ì²é
+        // Androidå¹³å°ä¸‹ï¼ŒStreamingAssetsä¸­çš„æ–‡ä»¶ä¸èƒ½ç›´æ¥ä½¿ç”¨File.Existsæ£€æŸ¥
         return Path.Combine(Application.streamingAssetsPath, "AssetBundles", platformFolder, fileName);
 #else
         if (File.Exists(streamingPath))
@@ -72,7 +72,7 @@ public static class AssetBundlePathHelper
     }
 
     /// <summary>
-    /// »ñÈ¡µ±Ç°ÔËĞĞÆ½Ì¨µÄÎÄ¼ş¼ĞÃû³Æ
+    /// è·å–å½“å‰è¿è¡Œå¹³å°çš„æ–‡ä»¶å¤¹åç§°
     /// </summary>
     public static string GetRuntimePlatformFolder()
     {
@@ -90,16 +90,16 @@ public static class AssetBundlePathHelper
     }
 
     /// <summary>
-    /// »ñÈ¡ÍêÕûµÄBundleÎÄ¼şÃû
+    /// è·å–å®Œæ•´çš„Bundleæ–‡ä»¶å
     /// </summary>
     public static string GetBundleFileName(string bundleName)
     {
-        // Unity»á×Ô¶¯Ìí¼ÓÆ½Ì¨ºó×º£¬µ«»ù´¡Ãû³Æ±£³Ö²»±ä
+        // Unityä¼šè‡ªåŠ¨æ·»åŠ å¹³å°åç¼€ï¼Œä½†åŸºç¡€åç§°ä¿æŒä¸å˜
         return bundleName.ToLower();
     }
 
     /// <summary>
-    /// ¼ì²éÎÄ¼şÔÚ³Ö¾Ã»¯Â·¾¶ÖĞÊÇ·ñ´æÔÚ
+    /// æ£€æŸ¥æ–‡ä»¶åœ¨æŒä¹…åŒ–è·¯å¾„ä¸­æ˜¯å¦å­˜åœ¨
     /// </summary>
     public static bool ExistsInPersistentData(string bundleName)
     {
@@ -108,7 +108,7 @@ public static class AssetBundlePathHelper
     }
 
     ///// <summary>
-    ///// ¿½±´ÎÄ¼şµ½³Ö¾Ã»¯Êı¾İÂ·¾¶£¨ÓÃÓÚÈÈ¸üĞÂ£©
+    ///// æ‹·è´æ–‡ä»¶åˆ°æŒä¹…åŒ–æ•°æ®è·¯å¾„ï¼ˆç”¨äºçƒ­æ›´æ–°ï¼‰
     ///// </summary>
     //public static void CopyToPersistentPath(string sourcePath, string bundleName)
     //{
@@ -121,18 +121,18 @@ public static class AssetBundlePathHelper
     //    }
 
     //    File.Copy(sourcePath, targetPath, true);
-    //    Debug.Log($"ÒÑ¿½±´µ½³Ö¾Ã»¯Â·¾¶: {targetPath}");
+    //    Debug.Log($"å·²æ‹·è´åˆ°æŒä¹…åŒ–è·¯å¾„: {targetPath}");
     //}
 
     ///// <summary>
-    ///// »ñÈ¡ËùÓĞ¿ÉÓÃµÄAssetBundleÂ·¾¶£¨ÓÃÓÚµ÷ÊÔ£©
+    ///// è·å–æ‰€æœ‰å¯ç”¨çš„AssetBundleè·¯å¾„ï¼ˆç”¨äºè°ƒè¯•ï¼‰
     ///// </summary>
     //public static void PrintAllPaths(string bundleName = "")
     //{
-    //    Debug.Log("=== AssetBundleÂ·¾¶ĞÅÏ¢ ===");
-    //    Debug.Log($"Êı¾İÂ·¾¶: {Application.dataPath}");
-    //    Debug.Log($"³Ö¾Ã»¯Êı¾İÂ·¾¶: {Application.persistentDataPath}");
-    //    Debug.Log($"StreamingAssetsÂ·¾¶: {Application.streamingAssetsPath}");
+    //    Debug.Log("=== AssetBundleè·¯å¾„ä¿¡æ¯ ===");
+    //    Debug.Log($"æ•°æ®è·¯å¾„: {Application.dataPath}");
+    //    Debug.Log($"æŒä¹…åŒ–æ•°æ®è·¯å¾„: {Application.persistentDataPath}");
+    //    Debug.Log($"StreamingAssetsè·¯å¾„: {Application.streamingAssetsPath}");
 
     //    if (!string.IsNullOrEmpty(bundleName))
     //    {
@@ -142,8 +142,8 @@ public static class AssetBundlePathHelper
     //        string persistentPath = Path.Combine(Application.persistentDataPath, "AssetBundles", platformFolder, fileName);
     //        string streamingPath = Path.Combine(Application.streamingAssetsPath, "AssetBundles", platformFolder, fileName);
 
-    //        Debug.Log($"³Ö¾Ã»¯Â·¾¶: {persistentPath} (´æÔÚ: {File.Exists(persistentPath)})");
-    //        Debug.Log($"StreamingÂ·¾¶: {streamingPath} (´æÔÚ: {File.Exists(streamingPath)})");
+    //        Debug.Log($"æŒä¹…åŒ–è·¯å¾„: {persistentPath} (å­˜åœ¨: {File.Exists(persistentPath)})");
+    //        Debug.Log($"Streamingè·¯å¾„: {streamingPath} (å­˜åœ¨: {File.Exists(streamingPath)})");
     //    }
     //}
 }

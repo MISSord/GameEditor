@@ -4,7 +4,7 @@ namespace EGamePlay.Combat
 {
     public class DamageActionAbility : Entity, IActionAbility
     {
-        public CombatEntity OwnerEntity { get { return GetParent<CombatEntity>(); } set { } }
+        public ICombatUnit OwnerEntity => GetParent<Entity>() as ICombatUnit;
         public bool Enable { get; set; }
 
         public bool TryMakeAction(out DamageAction action)
@@ -32,31 +32,33 @@ namespace EGamePlay.Combat
         public TriggerContext TriggerContext { get; set; }
         public DamageSource DamageSource { get; set; }
         public int DamageValue { get; set; }
-        public CombatEntity Creator { get; set; }
-        public Entity Target { get; set; }
+        public ICombatUnit Creator { get; set; }
+        public ICombatUnit Target { get; set; }
         public DamageActionEffect DamageActionEffect { get; set; }
         public DamageEffect DamageEffect => TriggerContext.EffectConfig as DamageEffect;
 
         public void FinishAction() => Entity.Destroy(this);
 
-        private void PreProcess()
+        void PreProcess()
         {
-            Target = TriggerContext.Target;
+            Target = TriggerContext.Target as ICombatUnit;
             var segmentIndex = TriggerContext.DamageSegmentIndex;
             var skillId = TriggerContext.SourceAbility?.SkillID ?? 0;
+            Entity creatorEntity = Creator?.Entity;
+            Entity targetEntity = Target?.Entity;
 
             if (skillId > 0 && segmentIndex > 0)
             {
-                DamageValue = DamageCalcuFormula.CalculateBySkillConfig(Creator, Target, skillId, segmentIndex);
+                DamageValue = DamageCalcuFormula.CalculateBySkillConfig(
+                    creatorEntity, targetEntity, skillId, segmentIndex);
             }
             else
             {
-                // 无技能 ID 或段索引时，说明应该是Buff造成的，仍按 DamageEffect 计算。
-                DamageValue = DamageCalcuFormula.Calculate(Creator, Target, DamageEffect);
+                DamageValue = DamageCalcuFormula.Calculate(creatorEntity, targetEntity, DamageEffect);
             }
-            Creator.TriggerActionPoint(ActionPointType.PreCauseDamage, this);
-            if (Target is CombatEntity target)
-                target.TriggerActionPoint(ActionPointType.PreReceiveDamage, this);
+
+            Creator?.TriggerActionPoint(ActionPointType.PreCauseDamage, this);
+            Target?.TriggerActionPoint(ActionPointType.PreReceiveDamage, this);
         }
 
         public void ApplyDamage()
@@ -71,43 +73,48 @@ namespace EGamePlay.Combat
                 return;
             }
 
-            var healthComp = Target.GetComponent<VitalComponent>();
-            healthComp.ReceiveDamage(this);
+            if (Target == null || Target.CurrentVital == null)
+            {
+                FinishAction();
+                return;
+            }
 
-            bool isDead = healthComp.CheckDead();
-            if (isDead && Target is CombatEntity combatTarget)
-                combatTarget.ApplyDeath();
+            Target.CurrentVital.ReceiveDamage(this);
+
+            bool isDead = Target.CurrentVital.CheckDead();
+            if (isDead)
+                Target.ApplyDeath();
 
             PostProcess();
 
             if (isDead)
             {
-                var deadEvent = new EntityDeadEvent() { DeadEntity = Target };
-                Target.Publish(deadEvent);
+                var deadEvent = new EntityDeadEvent { DeadEntity = Target.Entity };
+                Target.Entity.Publish(deadEvent);
                 CombatContext.Instance.Publish(deadEvent);
             }
 
             FinishAction();
         }
 
-        private bool ShouldApplyDamageToTarget()
+        bool ShouldApplyDamageToTarget()
         {
             return !DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
                 && !DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
                 && !DamageActionEffect.HasFlag(DamageActionEffect.Immunity);
         }
 
-        private void PostProcess()
+        void PostProcess()
         {
-            Creator.TriggerActionPoint(ActionPointType.PostCauseDamage, this);
-            if (!Target.IsDisposed && Target is CombatEntity target)
-                target.TriggerActionPoint(ActionPointType.PostReceiveDamage, this);
+            Creator?.TriggerActionPoint(ActionPointType.PostCauseDamage, this);
+            if (Target != null && !Target.IsDisposed)
+                Target.TriggerActionPoint(ActionPointType.PostReceiveDamage, this);
         }
     }
 
     public enum DamageSource
     {
-        Skill,/// 技能
-        Buff,/// Buff
+        Skill, /// 技能
+        Buff,  /// Buff
     }
 }

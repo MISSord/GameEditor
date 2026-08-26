@@ -8,7 +8,7 @@ namespace EGamePlay.Combat
         /// <summary>执行一条技能内联效果（开火即忘）。</summary>
         public static void Execute(
             BuffModifySetting setting,
-            CombatEntity caster,
+            ICombatUnit caster,
             Entity target,
             Ability sourceAbility = null,
             int damageSegmentIndex = 0)

@@ -1,3 +1,4 @@
+using ACTGameEditor.Combat;
 using EGamePlay.Combat;
 
 namespace ACTGameEditor

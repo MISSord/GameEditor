@@ -5,8 +5,8 @@ using UnityEngine.Events;
 
 namespace Flux
 {
-    //Õâ¸öÊÂ¼şºÃÏñÃ»ÓĞÊ²Ã´ÓÃÁË
-    //Ô­ÓÃ´¦ÊÇ: ÔÚÖ¸¶¨³¤¶ÈÄÚ´¥·¢ ¹ìµÀenableµÄ¿ØÖÆ
+    //è¿™ä¸ªäº‹ä»¶å¥½åƒæ²¡æœ‰ä»€ä¹ˆç”¨äº†
+    //åŸç”¨å¤„æ˜¯: åœ¨æŒ‡å®šé•¿åº¦å†…è§¦å‘ è½¨é“enableçš„æ§åˆ¶
     //[FEvent("Sequence/InputEvent", typeof(FInputTrack))]
     //public class FInputEvent : FEvent
     //{

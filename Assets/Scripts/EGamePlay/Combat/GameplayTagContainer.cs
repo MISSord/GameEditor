@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using EGamePlay.Combat;
 
-namespace ACTGameEditor
+namespace EGamePlay.Combat
 {
     /// <summary>Tag 来源种类。</summary>
     public enum TagSourceKind : byte
@@ -56,11 +55,11 @@ namespace ACTGameEditor
 
         public static bool Check(TagMask current, TagMask required, TagMask blocked)
         {
-            bool hasRequired = (current.Part0 & required.Part0) == required.Part0 &&
-                               (current.Part1 & required.Part1) == required.Part1;
+            bool hasRequired = (current.Part0 & required.Part0) == required.Part0
+                && (current.Part1 & required.Part1) == required.Part1;
 
-            bool hasBlocked = (current.Part0 & blocked.Part0) != 0 ||
-                              (current.Part1 & blocked.Part1) != 0;
+            bool hasBlocked = (current.Part0 & blocked.Part0) != 0
+                || (current.Part1 & blocked.Part1) != 0;
 
             return hasRequired && !hasBlocked;
         }
@@ -107,7 +106,6 @@ namespace ACTGameEditor
                 return;
             }
 
-            // 无记录时仍尝试 Remove（兼容旧路径），防负数
             TryRemoveTagInternal(tagName);
         }
 
@@ -125,10 +123,7 @@ namespace ACTGameEditor
         }
 
         /// <summary>兼容旧 API：等价 Manual 源 Push。</summary>
-        public void AddTag(string tagName)
-        {
-            Push(TagSource.Manual(), tagName);
-        }
+        public void AddTag(string tagName) => Push(TagSource.Manual(), tagName);
 
         /// <summary>兼容旧 API：无 Source 时按叶子名减计数（防负数）。</summary>
         public void RemoveTag(string tagName)
@@ -198,10 +193,8 @@ namespace ACTGameEditor
             return _tagCounts[tagIndex] > 0;
         }
 
-        public bool CanSpellSkill(TagMask required, TagMask blocked)
-        {
-            return TagMask.Check(_currentMask, required, blocked);
-        }
+        public bool CanSpellSkill(TagMask required, TagMask blocked) =>
+            TagMask.Check(_currentMask, required, blocked);
 
         public bool CanSpellSkillWithTagLists(List<string> required, List<string> blocked)
         {

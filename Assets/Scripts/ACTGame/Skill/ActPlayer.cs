@@ -1,6 +1,7 @@
+using ACTGameEditor.Combat;
+using ACTGameEditor.Locomotion;
 using EGamePlay;
 using EGamePlay.Combat;
-using ACTGameEditor.Locomotion;
 using EGamePlay.Unity;
 using UnityEngine;
 
@@ -61,7 +62,7 @@ namespace ACTGameEditor
 
             PlayerTimeSource = data.animTimeScale ?? GameTimeAnimTimeScaleSource.Default;
 
-            Combat = CombatContext.Instance.AddCombatEntity(data);
+            Combat = CombatContext.Instance.AddCombatUnit<CombatEntity>(data);
             CombatContext.Instance.Object2Entities.Add(gameObject, Combat);
             Combat.ModelTrans = _modelShow;
             Combat.RootTransform = transform;
@@ -147,6 +148,19 @@ namespace ACTGameEditor
 
             var afterimage = GetComponent<AfterimageController>();
             afterimage?.RefreshSources(_modelShow);
+        }
+
+        /// <summary>Locomotion 一段跳：不走路由技能轴，不占 Token。</summary>
+        public virtual void TryJump()
+        {
+            if (Combat == null || !Combat.IsCanJump)
+                return;
+
+            InputMoveComponent inputMove = Combat.GetComponent<InputMoveComponent>();
+            if (inputMove == null || !inputMove.TryJump())
+                return;
+
+            Combat.GetComponent<AnimComponent>()?.Director?.TryPlayLocomotionJump();
         }
     }
 }

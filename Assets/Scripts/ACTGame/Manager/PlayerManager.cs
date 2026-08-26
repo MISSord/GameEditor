@@ -94,7 +94,7 @@ namespace ACTGameEditor
             }
             else
             {
-                Debug.LogError($"????????? NetId:{netID}");
+                Debug.LogError($"重复注册攻击者 NetId:{netID}");
             }
             AddAckerAct?.Invoke(attacker);
         }
@@ -107,7 +107,7 @@ namespace ACTGameEditor
             }
             else
             {
-                Debug.LogError($"????????? NetId:{netID}");
+                Debug.LogError($"注销攻击者失败，未找到 NetId:{netID}");
             }
             RemoveAckerAct?.Invoke(netID);
         }

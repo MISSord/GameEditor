@@ -1,22 +1,14 @@
 using EGamePlay;
 using EGamePlay.Combat;
+using ACTGameEditor.Combat;
 using EGamePlay.Unity;
 using System.Collections.Generic;
 
 namespace ACTGameEditor
 {
-    public enum RunnerState
-    {
-        Update,
-        Stop,    //这个给未来可能会有的效果暂停
-        StopEnd, //这个是全部事件触发后的自我停止
-        Break,   //技能打断，外部强制性关闭技能
-        Finish,  //执行器完成运行后一直处于这个状态，直到重新回收利用
-    }
-
     //结合XCEventsRunner与AbilityExecution
     //作为执行体的上层管理器，方便外部统一处理
-    public class ActSkillRunner : Entity
+    public class ActSkillRunner : Entity, ISkillExecutionHandle
     {
         public Ability AbilityEntity { get; set; }
         public CombatEntity OwnerEntity { get; set; }
@@ -28,6 +20,12 @@ namespace ACTGameEditor
 
         private RunnerState _state;
         public RunnerState State { get => _state; }
+
+        long ISkillExecutionHandle.Id => Id;
+        int ISkillExecutionHandle.Sort => Sort;
+        bool ISkillExecutionHandle.IsFinished => _state == RunnerState.Finish;
+
+        void ISkillExecutionHandle.Tick(float deltaTime) => Update(deltaTime);
 
         //优先级
         public int Sort = 0;

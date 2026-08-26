@@ -229,7 +229,7 @@ namespace EGamePlay.Combat
             var stateCheckResult = true;
             if (TryGet(out BuffStateCheckComponent component))
             {
-                stateCheckResult = component.CheckTargetState(this.OwnerEntity);
+                stateCheckResult = component.CheckTargetState(OwnerEntity.Entity);
             }
 
             //如果当前Buff有CD设置，判断CD是否结束
@@ -247,7 +247,7 @@ namespace EGamePlay.Combat
             if (stateCheckResult)
             {
                 if (TryGet(out BuffModifyComponent modifyCom))
-                    modifyCom.OnTriggerModify(this.OwnerEntity);
+                    modifyCom.OnTriggerModify(OwnerEntity.Entity);
                 //次数耗尽
                 if (Setting.BuffType.HasFlag(BuffType.NumberBuff) && _frequency != null && _frequency.ConsumeStack())
                 {

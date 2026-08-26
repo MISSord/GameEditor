@@ -34,13 +34,13 @@ namespace FluxEditor
                 switch (targetEvent.InputType)
                 {
                     //case InputEventType.Switch:
-                    //    EditorGUILayout.PropertyField(_toFrame,new GUIContent("Ä¿µÄÇĞ»»Ö¡"));
-                    //    EditorGUILayout.PropertyField(_swFrame,new GUIContent("´¥·¢Ö¡"));
+                    //    EditorGUILayout.PropertyField(_toFrame,new GUIContent("ç›®çš„åˆ‡æ¢å¸§"));
+                    //    EditorGUILayout.PropertyField(_swFrame,new GUIContent("è§¦å‘å¸§"));
                     //    break;
                     case EventTriggerType.Exit:
                         break;
                     case EventTriggerType.Finish:
-                        EditorGUILayout.PropertyField(_unMoveFrames, new GUIContent("½ûÖ¹ÒÆ¶¯Ö¡Êı"));
+                        EditorGUILayout.PropertyField(_unMoveFrames, new GUIContent("ç¦æ­¢ç§»åŠ¨å¸§æ•°"));
                         break;
                     default:
                         break;

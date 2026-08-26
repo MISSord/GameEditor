@@ -1,5 +1,3 @@
-using ACTGameEditor;
-
 namespace EGamePlay.Combat
 {
     /// <summary>命中裁决结果。格挡/霸体在 HitPipeline.FilterDefend 扩展时再增加枚举值。</summary>
@@ -14,9 +12,9 @@ namespace EGamePlay.Combat
     /// </summary>
     public struct HitRequest
     {
-        public CombatEntity Attacker;
-        public CombatEntity Defender;
-        public XCNewEventsRunner Runner;
-        public XCTriggerEvent TriggerEvent;
+        public ICombatUnit Attacker;
+        public ICombatUnit Defender;
+        public IHitSubRunner Runner;
+        public object TriggerEvent;
     }
 }

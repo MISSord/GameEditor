@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ACTGameEditor.Combat;
 using EGamePlay.Combat;
 using UnityEngine;
 
@@ -70,7 +71,7 @@ namespace ACTGameEditor
             var go = target.GetPlayerTransform()?.gameObject;
             if (go == null) return null;
             return CombatContext.Instance != null && CombatContext.Instance.Object2Entities.TryGetValue(go, out var entity)
-                ? entity
+                ? entity as CombatEntity
                 : null;
         }
 

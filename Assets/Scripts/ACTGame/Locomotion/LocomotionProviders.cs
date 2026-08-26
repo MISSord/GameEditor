@@ -23,15 +23,6 @@ namespace ACTGameEditor.Locomotion
         public void Tick() => _playerTime += Time.deltaTime;
     }
 
-    /// <summary>桥接 <see cref="GameTimeManager"/>（战斗场景）。</summary>
-    public sealed class GameTimeLocomotionTimeSource : ILocomotionTimeSource
-    {
-        public float PlayerTime => GameTimeManager.PlayerTime;
-        public float PlayerDelta => GameTimeManager.PlayerDelta;
-        public float PlayerScale => GameTimeManager.PlayerScale;
-        public float FixedPlayerDelta => Time.fixedDeltaTime * GameTimeManager.PlayerScale;
-    }
-
     /// <summary>从指定 Camera 取平面朝向；未指定时回退 Camera.main。</summary>
     public sealed class TransformCameraProvider : IMoveCameraProvider
     {
@@ -86,5 +77,7 @@ namespace ACTGameEditor.Locomotion
     {
         public static readonly NullLocomotionStateSink Instance = new();
         public void SetLocomotionState(bool isMoving, bool isRun) { }
+        public void NotifyJumpStarted() { }
+        public void SyncAirborneState(bool isGrounded, bool isFalling) { }
     }
 }

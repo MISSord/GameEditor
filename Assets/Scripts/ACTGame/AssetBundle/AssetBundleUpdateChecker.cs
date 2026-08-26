@@ -7,7 +7,7 @@ using UnityEngine.Networking;
 using System.Security.Cryptography;
 
 /// <summary>
-/// ¼ÇÂ¼µ¥¸öAB°üĞÅÏ¢
+/// è®°å½•å•ä¸ªABåŒ…ä¿¡æ¯
 /// </summary>
 [System.Serializable]
 public class CustomAssetBundleInfo
@@ -21,7 +21,7 @@ public class CustomAssetBundleInfo
 }
 
 /// <summary>
-/// Çåµ¥Àà
+/// æ¸…å•ç±»
 /// </summary>
 [System.Serializable]
 public class CustomManifest
@@ -31,7 +31,7 @@ public class CustomManifest
     public string BuildTime;
     public long buildTime;
     /// <summary>
-    /// Ñ¹Ëõ¸ñÊ½ 0ÎªLZMA£¬1ÎªLZ4£¬2ÎªÎŞÑ¹Ëõ
+    /// å‹ç¼©æ ¼å¼ 0ä¸ºLZMAï¼Œ1ä¸ºLZ4ï¼Œ2ä¸ºæ— å‹ç¼©
     /// </summary>
     public int CompressedFormat = 0; 
     public List<CustomAssetBundleInfo> AssetBundles = new List<CustomAssetBundleInfo>();
@@ -41,9 +41,9 @@ public class CustomManifest
 //public class UpdateCheckResult
 //{
 //    public CustomManifest customManifest;
-//    public List<CustomAssetBundleInfo> bundlesToDownload = new List<CustomAssetBundleInfo>(); //ĞÂÔöÁĞ±í
-//    public List<CustomAssetBundleInfo> bundlesToUpdate = new List<CustomAssetBundleInfo>(); //ĞèÒª¸üĞÂµÄÁĞ±í
-//    public List<CustomAssetBundleInfo> upToDateBundles = new List<CustomAssetBundleInfo>(); //ÎŞĞè¸üĞÂµÄÁĞ±í
+//    public List<CustomAssetBundleInfo> bundlesToDownload = new List<CustomAssetBundleInfo>(); //æ–°å¢åˆ—è¡¨
+//    public List<CustomAssetBundleInfo> bundlesToUpdate = new List<CustomAssetBundleInfo>(); //éœ€è¦æ›´æ–°çš„åˆ—è¡¨
+//    public List<CustomAssetBundleInfo> upToDateBundles = new List<CustomAssetBundleInfo>(); //æ— éœ€æ›´æ–°çš„åˆ—è¡¨
 //    public long totalDownloadSize = 0;
 //    public bool hasChanges = false;
 //    public float progress = 0f;
@@ -55,23 +55,23 @@ public class CustomManifest
 
 //public class AssetBundleUpdateChecker
 //{
-//    // ×´Ì¬»úÃ¶¾Ù
+//    // çŠ¶æ€æœºæšä¸¾
 //    public enum CheckerState
 //    {
-//        Idle,                   // ¿ÕÏĞ×´Ì¬
-//        DownloadingManifest,    // ÏÂÔØÔ¶³ÌÇåµ¥
-//        LoadingLocalManifest,   // ¼ÓÔØ±¾µØÇåµ¥
-//        ComparingManifests,     // ¶Ô±ÈÇåµ¥
-//        VerifyingFiles,         // ÑéÖ¤ÎÄ¼ş
-//        Complete,               // Íê³É
-//        Error                   // ´íÎó
+//        Idle,                   // ç©ºé—²çŠ¶æ€
+//        DownloadingManifest,    // ä¸‹è½½è¿œç¨‹æ¸…å•
+//        LoadingLocalManifest,   // åŠ è½½æœ¬åœ°æ¸…å•
+//        ComparingManifests,     // å¯¹æ¯”æ¸…å•
+//        VerifyingFiles,         // éªŒè¯æ–‡ä»¶
+//        Complete,               // å®Œæˆ
+//        Error                   // é”™è¯¯
 //    }
 
-//    [Header("ĞÔÄÜÅäÖÃ")]
-//    public int bundlesPerFrame = 5;           // Ã¿Ö¡´¦ÀíµÄAB°üÊıÁ¿
-//    public float timeSlicePerFrame = 0.005f;  // Ã¿Ö¡×î´ó´¦ÀíÊ±¼ä(Ãë)
+//    [Header("æ€§èƒ½é…ç½®")]
+//    public int bundlesPerFrame = 5;           // æ¯å¸§å¤„ç†çš„ABåŒ…æ•°é‡
+//    public float timeSlicePerFrame = 0.005f;  // æ¯å¸§æœ€å¤§å¤„ç†æ—¶é—´(ç§’)
 
-//    [Header("Ğ£ÑéÅäÖÃ")]
+//    [Header("æ ¡éªŒé…ç½®")]
 //    public VerifyMethod verifyMethod = VerifyMethod.HashOnly;
 
 //    public enum VerifyMethod
@@ -81,22 +81,22 @@ public class CustomManifest
 //        CRCAndHash
 //    }
 
-//    // ×´Ì¬±äÁ¿
+//    // çŠ¶æ€å˜é‡
 //    private CheckerState m_CurrentState = CheckerState.Idle;
-//    private CustomManifest m_RemoteManifest; // ·şÎñ¶ËµÄAB°üÇåµ¥
-//    private CustomManifest m_LocalManifest;  // ±¾µØµÄAB°üÇåµ¥
+//    private CustomManifest m_RemoteManifest; // æœåŠ¡ç«¯çš„ABåŒ…æ¸…å•
+//    private CustomManifest m_LocalManifest;  // æœ¬åœ°çš„ABåŒ…æ¸…å•
 //    private string m_LocalManifestPath;
-//    private UpdateCheckResult m_CurrentResult; // Ğ£Ñé½á¹û
+//    private UpdateCheckResult m_CurrentResult; // æ ¡éªŒç»“æœ
 //    private Action<UpdateCheckResult> m_OnCompleteCallback;
 //    private string m_RemoteManifestUrl;
 
-//    // ·ÖÖ¡´¦Àí±äÁ¿
+//    // åˆ†å¸§å¤„ç†å˜é‡
 //    private List<CustomAssetBundleInfo> m_RemainingBundlesToCheck;
 //    private int m_CurrentBundleIndex = 0;
 //    private float m_Progress = 0f;
 //    private string m_CurrentOperation = "";
 
-//    // ¹«¹²ÊôĞÔ
+//    // å…¬å…±å±æ€§
 //    public CheckerState CurrentState => m_CurrentState;
 //    public float Progress => m_Progress;
 //    public string CurrentOperation => m_CurrentOperation;
@@ -105,13 +105,13 @@ public class CustomManifest
 //                           m_CurrentState != CheckerState.Error;
 
 //    /// <summary>
-//    /// ¿ªÊ¼¼ì²é¸üĞÂ£¨Òì²½£¬Í¨¹ıUpdateÇı¶¯£©
+//    /// å¼€å§‹æ£€æŸ¥æ›´æ–°ï¼ˆå¼‚æ­¥ï¼Œé€šè¿‡Updateé©±åŠ¨ï¼‰
 //    /// </summary>
 //    public void StartUpdateCheck(string remoteManifestUrl, Action<UpdateCheckResult> onComplete)
 //    {
 //        if (IsRunning)
 //        {
-//            Debug.LogWarning("¼ì²éÆ÷ÕıÔÚÔËĞĞ£¬ÇëµÈ´ıÍê³É");
+//            Debug.LogWarning("æ£€æŸ¥å™¨æ­£åœ¨è¿è¡Œï¼Œè¯·ç­‰å¾…å®Œæˆ");
 //            return;
 //        }
 
@@ -120,14 +120,14 @@ public class CustomManifest
 //        m_OnCompleteCallback = onComplete;
 
 //        ChangeState(CheckerState.DownloadingManifest);
-//        Debug.Log(string.Format("¿ªÊ¼ÏÂÔØÇåµ¥ {0}", m_RemoteManifestUrl));
+//        Debug.Log(string.Format("å¼€å§‹ä¸‹è½½æ¸…å• {0}", m_RemoteManifestUrl));
 
-//        // ¿ªÊ¼ÏÂÔØÇåµ¥£¨Ğ­³Ì£©
+//        // å¼€å§‹ä¸‹è½½æ¸…å•ï¼ˆåç¨‹ï¼‰
 //        SRPScheduler.StartRunCoroutine(DownloadRemoteManifestCoroutine());
 //    }
 
 //    /// <summary>
-//    /// ×´Ì¬»ú¸üĞÂÇı¶¯
+//    /// çŠ¶æ€æœºæ›´æ–°é©±åŠ¨
 //    /// </summary>
 //    public void Update()
 //    {
@@ -146,49 +146,49 @@ public class CustomManifest
 //    }
 
 //    /// <summary>
-//    /// ×´Ì¬×ª»»
+//    /// çŠ¶æ€è½¬æ¢
 //    /// </summary>
 //    private void ChangeState(CheckerState newState)
 //    {
 //        if (m_CurrentState == newState) return;
 
-//        Debug.Log($"×´Ì¬×ª»»: {m_CurrentState} -> {newState}");
+//        Debug.Log($"çŠ¶æ€è½¬æ¢: {m_CurrentState} -> {newState}");
 //        m_CurrentState = newState;
 
 //        if(newState == CheckerState.LoadingLocalManifest)
 //        {
-//            m_CurrentOperation = "¼ÓÔØ±¾µØÇåµ¥...";
+//            m_CurrentOperation = "åŠ è½½æœ¬åœ°æ¸…å•...";
 //            ExecuteLoadLocalManifest();
 //        }
 //        else if (newState == CheckerState.ComparingManifests)
 //        {
-//            m_CurrentOperation = "¶Ô±ÈÇåµ¥ÎÄ¼ş...";
+//            m_CurrentOperation = "å¯¹æ¯”æ¸…å•æ–‡ä»¶...";
 //            PrepareComparison();
 //        }
 //        else if (newState == CheckerState.VerifyingFiles)
 //        {
-//            m_CurrentOperation = "ÑéÖ¤ÎÄ¼şÍêÕûĞÔ...";
+//            m_CurrentOperation = "éªŒè¯æ–‡ä»¶å®Œæ•´æ€§...";
 //            PrepareVerification();
 //        }
 //        else if (newState == CheckerState.Complete)
 //        {
-//            m_CurrentOperation = "¼ì²éÍê³É";
+//            m_CurrentOperation = "æ£€æŸ¥å®Œæˆ";
 //            m_Progress = 1f;
 //            OnCheckComplete();
 //        }
 //        else if (newState == CheckerState.Error)
 //        {
-//            m_CurrentOperation = "·¢Éú´íÎó";
+//            m_CurrentOperation = "å‘ç”Ÿé”™è¯¯";
 //            OnCheckError();
 //        }
 //    }
 
 //    /// <summary>
-//    /// ÏÂÔØÔ¶³ÌÇåµ¥£¨Ğ­³Ì£©
+//    /// ä¸‹è½½è¿œç¨‹æ¸…å•ï¼ˆåç¨‹ï¼‰
 //    /// </summary>
 //    private IEnumerator DownloadRemoteManifestCoroutine()
 //    {
-//        m_CurrentOperation = "ÏÂÔØÔ¶³ÌÇåµ¥...";
+//        m_CurrentOperation = "ä¸‹è½½è¿œç¨‹æ¸…å•...";
 
 //        using (UnityWebRequest www = UnityWebRequest.Get(m_RemoteManifestUrl))
 //        {
@@ -197,7 +197,7 @@ public class CustomManifest
 
 //            while (!operation.isDone)
 //            {
-//                m_Progress = operation.progress * 0.3f; // ÏÂÔØÕ¼30%½ø¶È
+//                m_Progress = operation.progress * 0.3f; // ä¸‹è½½å 30%è¿›åº¦
 //                yield return null;
 //            }
 
@@ -207,18 +207,18 @@ public class CustomManifest
 //                try
 //                {
 //                    m_RemoteManifest = JsonUtility.FromJson<CustomManifest>(www.downloadHandler.text);
-//                    Debug.Log($"Ô¶³ÌÇåµ¥¼ÓÔØ³É¹¦£¬°üº¬ {m_RemoteManifest.AssetBundles?.Count} ¸öAB°ü");
+//                    Debug.Log($"è¿œç¨‹æ¸…å•åŠ è½½æˆåŠŸï¼ŒåŒ…å« {m_RemoteManifest.AssetBundles?.Count} ä¸ªABåŒ…");
 //                    state = CheckerState.LoadingLocalManifest;
 //                }
 //                catch (Exception e)
 //                {
-//                    Debug.LogError($"½âÎöÔ¶³ÌÇåµ¥Ê§°Ü: {e.Message}");
+//                    Debug.LogError($"è§£æè¿œç¨‹æ¸…å•å¤±è´¥: {e.Message}");
 //                    state = CheckerState.Error;
 //                }
 //            }
 //            else
 //            {
-//                Debug.LogError($"ÏÂÔØÔ¶³ÌÇåµ¥Ê§°Ü: {www.error}");
+//                Debug.LogError($"ä¸‹è½½è¿œç¨‹æ¸…å•å¤±è´¥: {www.error}");
 //                state = CheckerState.Error;
 //            }
 //            ChangeState(state);
@@ -226,7 +226,7 @@ public class CustomManifest
 //    }
 
 //    /// <summary>
-//    /// Ö´ĞĞ¼ÓÔØ±¾µØÇåµ¥
+//    /// æ‰§è¡ŒåŠ è½½æœ¬åœ°æ¸…å•
 //    /// </summary>
 //    private void ExecuteLoadLocalManifest()
 //    {
@@ -239,32 +239,32 @@ public class CustomManifest
 //            {
 //                string localJson = File.ReadAllText(m_LocalManifestPath);
 //                m_LocalManifest = JsonUtility.FromJson<CustomManifest>(localJson);
-//                Debug.Log($"±¾µØÇåµ¥¼ÓÔØ³É¹¦£¬°üº¬ {m_LocalManifest.AssetBundles?.Count} ¸öAB°ü");
+//                Debug.Log($"æœ¬åœ°æ¸…å•åŠ è½½æˆåŠŸï¼ŒåŒ…å« {m_LocalManifest.AssetBundles?.Count} ä¸ªABåŒ…");
 //            }
 //            else
 //            {
 //                m_LocalManifest = new CustomManifest { AssetBundles = new List<CustomAssetBundleInfo>() };
-//                Debug.Log("±¾µØÇåµ¥²»´æÔÚ£¬½«ÏÂÔØËùÓĞAB°ü");
+//                Debug.Log("æœ¬åœ°æ¸…å•ä¸å­˜åœ¨ï¼Œå°†ä¸‹è½½æ‰€æœ‰ABåŒ…");
 //            }
 //        }
 //        catch (Exception e)
 //        {
-//            Debug.LogError($"¼ÓÔØ±¾µØÇåµ¥Ê§°Ü: {e.Message}");
+//            Debug.LogError($"åŠ è½½æœ¬åœ°æ¸…å•å¤±è´¥: {e.Message}");
 //            m_LocalManifest = new CustomManifest { AssetBundles = new List<CustomAssetBundleInfo>() };
 //        }
 
-//        m_Progress = 0.4f; // ±¾µØ¼ÓÔØÍê³É£¬½ø¶Èµ½40%
+//        m_Progress = 0.4f; // æœ¬åœ°åŠ è½½å®Œæˆï¼Œè¿›åº¦åˆ°40%
 //        ChangeState(CheckerState.ComparingManifests);
 //    }
 
 //    /// <summary>
-//    /// ×¼±¸Çåµ¥¶Ô±È
+//    /// å‡†å¤‡æ¸…å•å¯¹æ¯”
 //    /// </summary>
 //    private void PrepareComparison()
 //    {
 //        if (m_RemoteManifest?.AssetBundles == null)
 //        {
-//            Debug.LogError("Ô¶³ÌÇåµ¥Îª¿Õ£¬ÎŞ·¨¶Ô±È");
+//            Debug.LogError("è¿œç¨‹æ¸…å•ä¸ºç©ºï¼Œæ— æ³•å¯¹æ¯”");
 //            ChangeState(CheckerState.Error);
 //            return;
 //        }
@@ -276,14 +276,14 @@ public class CustomManifest
 
 //        if (m_RemoteManifest != null && m_RemoteManifest.ManifestVersion == m_LocalManifest.ManifestVersion)
 //        {
-//            Debug.Log("Çåµ¥°æ±¾Ò»ÖÂ£¬ÎŞĞè¶Ô±È£¬Ö±½ÓÌøµ½Íê³É");
+//            Debug.Log("æ¸…å•ç‰ˆæœ¬ä¸€è‡´ï¼Œæ— éœ€å¯¹æ¯”ï¼Œç›´æ¥è·³åˆ°å®Œæˆ");
 //            ChangeState(CheckerState.Complete);
 //            return;
 //        }
 //    }
 
 //    /// <summary>
-//    /// Ö´ĞĞÇåµ¥¶Ô±È£¨·ÖÖ¡£©
+//    /// æ‰§è¡Œæ¸…å•å¯¹æ¯”ï¼ˆåˆ†å¸§ï¼‰
 //    /// </summary>
 //    private void ExecuteCompareManifests()
 //    {
@@ -296,7 +296,7 @@ public class CustomManifest
 //        float startTime = Time.realtimeSinceStartup;
 //        int processedCount = 0;
 
-//        // ·ÖÖ¡´¦Àí£ºÊıÁ¿ÏŞÖÆ + Ê±¼äÆ¬ÏŞÖÆ
+//        // åˆ†å¸§å¤„ç†ï¼šæ•°é‡é™åˆ¶ + æ—¶é—´ç‰‡é™åˆ¶
 //        while (m_RemainingBundlesToCheck.Count > 0 &&
 //               processedCount < bundlesPerFrame &&
 //               (Time.realtimeSinceStartup - startTime) < timeSlicePerFrame)
@@ -304,18 +304,18 @@ public class CustomManifest
 //            var remoteBundle = m_RemainingBundlesToCheck[0];
 //            m_RemainingBundlesToCheck.RemoveAt(0);
 
-//            // ²éÕÒ±¾µØ¶ÔÓ¦µÄAB°ü
+//            // æŸ¥æ‰¾æœ¬åœ°å¯¹åº”çš„ABåŒ…
 //            var localBundle = FindLocalBundle(remoteBundle.AssetName);
 
 //            if (localBundle == null)
 //            {
-//                // ĞÂÔöµÄAB°ü
+//                // æ–°å¢çš„ABåŒ…
 //                m_CurrentResult.bundlesToDownload.Add(remoteBundle);
 //                m_CurrentResult.totalDownloadSize += remoteBundle.Size;
 //            }
 //            else
 //            {
-//                // ¼ì²éÎÄ¼şÊÇ·ñ´æÔÚ£¬Èç¹û²»´æÔÚÒ²¼ÓÈëÏÂÔØÁĞ±í
+//                // æ£€æŸ¥æ–‡ä»¶æ˜¯å¦å­˜åœ¨ï¼Œå¦‚æœä¸å­˜åœ¨ä¹ŸåŠ å…¥ä¸‹è½½åˆ—è¡¨
 //                string localFilePath = AssetBundlePathHelper.GetLocalLZ4Path(remoteBundle.BundleName);
 //                if (!File.Exists(localFilePath))
 //                {
@@ -324,7 +324,7 @@ public class CustomManifest
 //                }
 //                else
 //                {
-//                    // ĞèÒªÑéÖ¤µÄ°ü¼ÓÈë´ıÑéÖ¤ÁĞ±í
+//                    // éœ€è¦éªŒè¯çš„åŒ…åŠ å…¥å¾…éªŒè¯åˆ—è¡¨
 //                    m_CurrentResult.bundlesToUpdate.Add(remoteBundle);
 //                }
 //            }
@@ -333,34 +333,34 @@ public class CustomManifest
 //            m_CurrentBundleIndex++;
 //        }
 
-//        // ¸üĞÂ½ø¶È
+//        // æ›´æ–°è¿›åº¦
 //        int totalBundles = m_RemoteManifest.AssetBundles.Count;
-//        m_Progress = 0.5f + 0.2f * (m_CurrentBundleIndex / (float)totalBundles); // ¶Ô±ÈÕ¼20%½ø¶È
+//        m_Progress = 0.5f + 0.2f * (m_CurrentBundleIndex / (float)totalBundles); // å¯¹æ¯”å 20%è¿›åº¦
 
-//        m_CurrentOperation = $"¶Ô±ÈÇåµ¥ÎÄ¼ş... ({m_CurrentBundleIndex}/{totalBundles})";
+//        m_CurrentOperation = $"å¯¹æ¯”æ¸…å•æ–‡ä»¶... ({m_CurrentBundleIndex}/{totalBundles})";
 
-//        // Èç¹û´¦ÀíÍê³É£¬½øÈëÏÂÒ»×´Ì¬
+//        // å¦‚æœå¤„ç†å®Œæˆï¼Œè¿›å…¥ä¸‹ä¸€çŠ¶æ€
 //        if (m_RemainingBundlesToCheck.Count == 0)
 //        {
-//            Debug.Log($"Çåµ¥¶Ô±ÈÍê³É: ĞÂÔö{m_CurrentResult.bundlesToDownload.Count}¸ö, ´ıÑéÖ¤{m_CurrentResult.bundlesToUpdate.Count}¸ö");
+//            Debug.Log($"æ¸…å•å¯¹æ¯”å®Œæˆ: æ–°å¢{m_CurrentResult.bundlesToDownload.Count}ä¸ª, å¾…éªŒè¯{m_CurrentResult.bundlesToUpdate.Count}ä¸ª");
 //            ChangeState(CheckerState.VerifyingFiles);
 //        }
 //    }
 
 //    ///// <summary>
-//    ///// ×¼±¸ÎÄ¼şÑéÖ¤
+//    ///// å‡†å¤‡æ–‡ä»¶éªŒè¯
 //    ///// </summary>
 //    private void PrepareVerification()
 //    {
-//        // ½«´ıÑéÖ¤µÄ°ü×ªÒÆµ½Ê£Óà¼ì²éÁĞ±í
+//        // å°†å¾…éªŒè¯çš„åŒ…è½¬ç§»åˆ°å‰©ä½™æ£€æŸ¥åˆ—è¡¨
 //        m_RemainingBundlesToCheck = new List<CustomAssetBundleInfo>(m_CurrentResult.bundlesToUpdate);
-//        m_CurrentResult.bundlesToUpdate.Clear(); // Çå¿Õ£¬ºóÃæÖØĞÂÌí¼Ó
+//        m_CurrentResult.bundlesToUpdate.Clear(); // æ¸…ç©ºï¼Œåé¢é‡æ–°æ·»åŠ 
 //        m_CurrentBundleIndex = 0;
-//        m_Progress = 0.7f; // ÑéÖ¤½×¶Î´Ó70%¿ªÊ¼
+//        m_Progress = 0.7f; // éªŒè¯é˜¶æ®µä»70%å¼€å§‹
 //    }
 
 //    /// <summary>
-//    /// Ö´ĞĞÎÄ¼şÑéÖ¤£¨·ÖÖ¡£©
+//    /// æ‰§è¡Œæ–‡ä»¶éªŒè¯ï¼ˆåˆ†å¸§ï¼‰
 //    /// </summary>
 //    private void ExecuteVerifyFiles()
 //    {
@@ -398,18 +398,18 @@ public class CustomManifest
 //            m_CurrentBundleIndex++;
 //        }
 
-//        // ¸üĞÂ½ø¶È
+//        // æ›´æ–°è¿›åº¦
 //        int totalBundlesToVerify = m_CurrentResult.bundlesToUpdate.Count + m_CurrentResult.upToDateBundles.Count + m_RemainingBundlesToCheck.Count;
 //        if (totalBundlesToVerify > 0)
 //        {
-//            m_Progress = 0.7f + 0.3f * (m_CurrentBundleIndex / (float)totalBundlesToVerify); // ÑéÖ¤Õ¼30%½ø¶È
+//            m_Progress = 0.7f + 0.3f * (m_CurrentBundleIndex / (float)totalBundlesToVerify); // éªŒè¯å 30%è¿›åº¦
 //        }
 
-//        m_CurrentOperation = $"ÑéÖ¤ÎÄ¼şÍêÕûĞÔ... ({m_CurrentBundleIndex}/{totalBundlesToVerify})";
+//        m_CurrentOperation = $"éªŒè¯æ–‡ä»¶å®Œæ•´æ€§... ({m_CurrentBundleIndex}/{totalBundlesToVerify})";
 //    }
 
 //    /// <summary>
-//    /// ¼ì²éAB°üÍêÕûĞÔ
+//    /// æ£€æŸ¥ABåŒ…å®Œæ•´æ€§
 //    /// </summary>
 //    private bool CheckBundleIntegrity(string localFilePath, CustomAssetBundleInfo remoteBundle)
 //    {
@@ -436,50 +436,50 @@ public class CustomManifest
 //        }
 //        catch (Exception e)
 //        {
-//            Debug.LogError($"ÍêÕûĞÔ¼ì²éÊ§°Ü {localFilePath}: {e.Message}");
-//            return true; // ¼ì²éÊ§°ÜÊ±ÒªÇó¸üĞÂ
+//            Debug.LogError($"å®Œæ•´æ€§æ£€æŸ¥å¤±è´¥ {localFilePath}: {e.Message}");
+//            return true; // æ£€æŸ¥å¤±è´¥æ—¶è¦æ±‚æ›´æ–°
 //        }
 //    }
 
 //    /// <summary>
-//    /// ×îÖÕ½á¹û´¦Àí
+//    /// æœ€ç»ˆç»“æœå¤„ç†
 //    /// </summary>
 //    private void FinalizeResult()
 //    {
 //        m_CurrentResult.hasChanges = m_CurrentResult.bundlesToDownload.Count > 0 ||
 //                                   m_CurrentResult.bundlesToUpdate.Count > 0;
 
-//        Debug.Log($"¼ì²éÍê³É: ĞÂÔö{m_CurrentResult.bundlesToDownload.Count}¸ö, " +
-//                 $"¸üĞÂ{m_CurrentResult.bundlesToUpdate.Count}¸ö, " +
-//                 $"×îĞÂ{m_CurrentResult.upToDateBundles.Count}¸ö, " +
-//                 $"×Ü´óĞ¡: {m_CurrentResult.totalDownloadSize} bytes");
+//        Debug.Log($"æ£€æŸ¥å®Œæˆ: æ–°å¢{m_CurrentResult.bundlesToDownload.Count}ä¸ª, " +
+//                 $"æ›´æ–°{m_CurrentResult.bundlesToUpdate.Count}ä¸ª, " +
+//                 $"æœ€æ–°{m_CurrentResult.upToDateBundles.Count}ä¸ª, " +
+//                 $"æ€»å¤§å°: {m_CurrentResult.totalDownloadSize} bytes");
 //    }
 
 //    /// <summary>
-//    /// ¼ì²éÍê³É»Øµ÷
+//    /// æ£€æŸ¥å®Œæˆå›è°ƒ
 //    /// </summary>
 //    private void OnCheckComplete()
 //    {
 //        m_CurrentResult.progress = 1f;
-//        m_CurrentResult.currentOperation = "Íê³É";
+//        m_CurrentResult.currentOperation = "å®Œæˆ";
 //        m_CurrentResult.isSuccess = true;
-//        m_CurrentResult.customManifest = m_RemoteManifest; //´«µİ·şÎñÆ÷µÄÊı¾İ
+//        m_CurrentResult.customManifest = m_RemoteManifest; //ä¼ é€’æœåŠ¡å™¨çš„æ•°æ®
 //        m_OnCompleteCallback?.Invoke(m_CurrentResult);
 //    }
 
 //    /// <summary>
-//    /// ¼ì²é´íÎó»Øµ÷
+//    /// æ£€æŸ¥é”™è¯¯å›è°ƒ
 //    /// </summary>
 //    private void OnCheckError()
 //    {
 //        var errorResult = new UpdateCheckResult();
-//        errorResult.currentOperation = "¼ì²é¹ı³ÌÖĞ·¢Éú´íÎó";
+//        errorResult.currentOperation = "æ£€æŸ¥è¿‡ç¨‹ä¸­å‘ç”Ÿé”™è¯¯";
 //        errorResult.isSuccess = false;
 //        m_OnCompleteCallback?.Invoke(errorResult);
 //    }
 
 //    /// <summary>
-//    /// ÖØÖÃ×´Ì¬
+//    /// é‡ç½®çŠ¶æ€
 //    /// </summary>
 //    private void ResetState()
 //    {
@@ -493,7 +493,7 @@ public class CustomManifest
 //        m_CurrentBundleIndex = 0;
 //    }
 
-//    // Ô­ÓĞµÄ¹¤¾ß·½·¨±£³Ö²»±ä
+//    // åŸæœ‰çš„å·¥å…·æ–¹æ³•ä¿æŒä¸å˜
 //    private bool CheckCRC(string filePath, CustomAssetBundleInfo remoteBundle)
 //    {
 //        try
@@ -503,7 +503,7 @@ public class CustomManifest
 //        }
 //        catch (Exception e)
 //        {
-//            Debug.LogError($"CRC¼ì²éÊ§°Ü {filePath}: {e.Message}");
+//            Debug.LogError($"CRCæ£€æŸ¥å¤±è´¥ {filePath}: {e.Message}");
 //            return false;
 //        }
 //    }
@@ -517,7 +517,7 @@ public class CustomManifest
 //        }
 //        catch (Exception e)
 //        {
-//            Debug.LogError($"¹şÏ£¼ì²éÊ§°Ü {filePath}: {e.Message}");
+//            Debug.LogError($"å“ˆå¸Œæ£€æŸ¥å¤±è´¥ {filePath}: {e.Message}");
 //            return false;
 //        }
 //    }
@@ -553,18 +553,18 @@ public class CustomManifest
 
 //    public static void SaveLocalManifest(CustomManifest generatedManifest)
 //    {
-//        // ±£´æÇåµ¥ÎÄ¼ş
+//        // ä¿å­˜æ¸…å•æ–‡ä»¶
 //        string manifestJson = JsonUtility.ToJson(generatedManifest, true);
 //        string manifestPath = Path.Combine(Application.persistentDataPath, "custom_manifest.json");
 //        File.WriteAllText(manifestPath, manifestJson);
-//        Debug.Log("Íê³É·şÎñÆ÷Çåµ¥±¾µØ±£´æ");
+//        Debug.Log("å®ŒæˆæœåŠ¡å™¨æ¸…å•æœ¬åœ°ä¿å­˜");
 //    }
 
 //    //public void StopCheck()
 //    //{
 //    //    if (IsRunning)
 //    //    {
-//    //        Debug.Log("Í£Ö¹AB°ü¼ì²é");
+//    //        Debug.Log("åœæ­¢ABåŒ…æ£€æŸ¥");
 //    //        ResetState();
 //    //    }
 //    //}
@@ -591,11 +591,11 @@ public class CustomManifest
 //    //        }
 
 //    //        m_LocalManifest = new CustomManifest { AssetBundles = new List<CustomAssetBundleInfo>() };
-//    //        Debug.Log("±¾µØ»º´æÒÑÇåÀí");
+//    //        Debug.Log("æœ¬åœ°ç¼“å­˜å·²æ¸…ç†");
 //    //    }
 //    //    catch (Exception e)
 //    //    {
-//    //        Debug.LogError($"ÇåÀí»º´æÊ§°Ü: {e.Message}");
+//    //        Debug.LogError($"æ¸…ç†ç¼“å­˜å¤±è´¥: {e.Message}");
 //    //    }
 //    //}
 

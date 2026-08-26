@@ -10,7 +10,26 @@ namespace EGamePlay.Combat
     {
         public static CombatContext Instance { get; private set; }
 #if !SERVER
-        public Dictionary<GameObject, CombatEntity> Object2Entities { get; set; } = new Dictionary<GameObject, CombatEntity>();
+        public Dictionary<GameObject, ICombatUnit> Object2Entities { get; set; } = new Dictionary<GameObject, ICombatUnit>();
+
+        /// <summary>从碰撞体 GameObject 向上查找已注册战斗单位（子 Collider 也能命中）。</summary>
+        public bool TryResolveCombatUnit(GameObject colliderObject, out ICombatUnit unit)
+        {
+            unit = null;
+            if (colliderObject == null)
+                return false;
+
+            Transform current = colliderObject.transform;
+            while (current != null)
+            {
+                if (Object2Entities.TryGetValue(current.gameObject, out unit) && unit != null && !unit.IsDisposed)
+                    return true;
+                current = current.parent;
+            }
+
+            unit = null;
+            return false;
+        }
 #endif
 
         /// <summary>
@@ -46,9 +65,10 @@ namespace EGamePlay.Combat
             return action;
         }
 
-        public CombatEntity AddCombatEntity(object initData)
+        /// <summary>创建战斗单位。具体类型由 ACT 层提供（如 CombatEntity）。</summary>
+        public T AddCombatUnit<T>(object initData) where T : Entity, ICombatUnit
         {
-            CombatEntity combat = AddChild<CombatEntity>(initData);
+            T combat = AddChild<T>(initData);
             _combatEntities.Add(combat);
             return combat;
         }
@@ -56,8 +76,6 @@ namespace EGamePlay.Combat
         public override void Update(float deltaTime)
         {
             Entity action;
-            //先更新行动Action，因为有可能会有Buff加到CombatEntity上
-            //技能部分也是，先跑，完成要释放的技能的添加，后SpellComponent遍历释放最高优先级的技能
             for (int i = _spellActions.Count - 1; i >= 0; i--)
             {
                 action = _spellActions[i];
@@ -67,15 +85,13 @@ namespace EGamePlay.Combat
                     continue;
                 }
                 float actionDelta = deltaTime;
-                if (action is SpellAction spellAction && spellAction.Creator != null)
-                    actionDelta *= spellAction.Creator.GetTimeScale();
+                if (action is ICombatSpellActionContext spellCtx && spellCtx.Caster != null)
+                    actionDelta *= spellCtx.Caster.GetTimeScale();
                 action.Update(actionDelta);
             }
 
-            // 时间轴可能在 Action 更新里启用盒体；若本帧已有申报则先结算再跑实体。
             HitPipeline?.Flush();
 
-            //后更新CombatEntity，使用实体专属时间流速
             for (int i = _combatEntities.Count - 1; i >= 0; i--)
             {
                 action = _combatEntities[i];
@@ -84,9 +100,9 @@ namespace EGamePlay.Combat
                     _combatEntities.RemoveAt(i);
                     continue;
                 }
-                if (action.IsNeedUpdate == true)
+                if (action.IsNeedUpdate == true && action is ICombatUnit unit)
                 {
-                    float entityDelta = deltaTime * (action as CombatEntity).GetTimeScale();
+                    float entityDelta = deltaTime * unit.GetTimeScale();
                     action.Update(entityDelta);
                 }
             }
@@ -94,7 +110,6 @@ namespace EGamePlay.Combat
 
         public override void FixedUpdate(float fixDeltaTime)
         {
-            // EGamePlayInit 先 Physics.Simulate 再调这里：OnTriggerEnter 已入队，必须先 Flush。
             HitPipeline?.Flush();
 
             Entity entity;
@@ -106,9 +121,9 @@ namespace EGamePlay.Combat
                     _combatEntities.RemoveAt(i);
                     continue;
                 }
-                if (entity.IsNeedFixUpdate == true)
+                if (entity.IsNeedFixUpdate == true && entity is ICombatUnit unit)
                 {
-                    float entityFixedDelta = fixDeltaTime * (entity as CombatEntity).GetTimeScale();
+                    float entityFixedDelta = fixDeltaTime * unit.GetTimeScale();
                     entity.FixedUpdate(entityFixedDelta);
                 }
             }

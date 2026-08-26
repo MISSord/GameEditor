@@ -1,6 +1,3 @@
-using System;
-using ACTGameEditor;
-
 namespace EGamePlay.Combat
 {
     /// <summary>
@@ -14,7 +11,7 @@ namespace EGamePlay.Combat
         const byte PriorityHit = 20;
         const byte PriorityDead = 30;
 
-        CombatEntity _owner;
+        ICombatUnit _owner;
 
         bool _skillActive;
         long _skillSourceId;
@@ -28,6 +25,9 @@ namespace EGamePlay.Combat
         bool _wantMoving;
         bool _wantRun;
 
+        bool _airborne;
+        bool _jumpAirborne;
+
         /// <summary>当前对外可见行为态。</summary>
         public PlayerStateEnum Current { get; private set; } = PlayerStateEnum.Idle;
 
@@ -35,7 +35,7 @@ namespace EGamePlay.Combat
         public bool IsDead => _dead;
 
         /// <summary>绑定实体并同步初始 Idle。</summary>
-        public void Bind(CombatEntity owner)
+        public void Bind(ICombatUnit owner)
         {
             _owner = owner;
             Current = PlayerStateEnum.Idle;
@@ -53,6 +53,8 @@ namespace EGamePlay.Combat
             _hitSourceId = 0;
             _hitEndTime = 0f;
             Current = PlayerStateEnum.Idle;
+            _airborne = false;
+            _jumpAirborne = false;
         }
 
         /// <summary>技能开轴。同槽后写覆盖（连招顶替）。</summary>
@@ -127,17 +129,57 @@ namespace EGamePlay.Combat
             Recompute();
         }
 
-        /// <summary>Locomotion 只报意图，不直接写 CurState。</summary>
+        /// <summary>Locomotion 只报意图，不直接写 CurState；地面时才刷新 CurMoveState。</summary>
         public void NotifyLocomotion(bool isMoving, bool isRun)
         {
             _wantMoving = isMoving;
             _wantRun = isRun && isMoving;
-            if (_owner != null)
-                _owner.CurMoveState = _wantRun ? MoveTypeEnum.Run : MoveTypeEnum.Idle;
+            if (_owner != null && !_airborne)
+                ApplyGroundMoveState();
 
             // 仅当行为层落在 Locomotion 时刷新 Idle/Moving
             if (!_dead && !_hitActive && !_skillActive)
                 Recompute();
+        }
+
+        /// <summary>一段跳成功：CurMoveState 切 Jump，直至落地。</summary>
+        public void NotifyJumpStarted()
+        {
+            if (_dead || _owner == null)
+                return;
+
+            _airborne = true;
+            _jumpAirborne = true;
+            _owner.CurMoveState = MoveTypeEnum.Jump;
+        }
+
+        /// <summary>每帧同步空中/落地；主动跳全程保持 Jump，踩空为 Falling。</summary>
+        public void SyncAirborne(bool isGrounded, bool isFalling)
+        {
+            if (_owner == null)
+                return;
+
+            if (isGrounded)
+            {
+                if (_airborne)
+                {
+                    _airborne = false;
+                    _jumpAirborne = false;
+                    ApplyGroundMoveState();
+                }
+                return;
+            }
+
+            if (!isFalling)
+                return;
+
+            _airborne = true;
+            _owner.CurMoveState = _jumpAirborne ? MoveTypeEnum.Jump : MoveTypeEnum.Falling;
+        }
+
+        void ApplyGroundMoveState()
+        {
+            _owner.CurMoveState = _wantRun ? MoveTypeEnum.Run : MoveTypeEnum.Idle;
         }
 
         /// <summary>推进受击计时。</summary>
@@ -173,7 +215,7 @@ namespace EGamePlay.Combat
 
         void ApplyToOwner()
         {
-            _owner?.SetCurStateFromDirector(Current);
+            _owner?.ApplyStateFromDirector(Current);
         }
     }
 }

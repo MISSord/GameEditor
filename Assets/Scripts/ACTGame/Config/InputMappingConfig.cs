@@ -1,4 +1,4 @@
-﻿
+
 //操作输入回调类型
 public enum InputCallBackType
 {
@@ -19,6 +19,7 @@ public enum InputListernType
     LongButtonY,
     LongButtonA,
     LongButtonB,
+    Jump,
     Targeting,
     //Weapon,
 }

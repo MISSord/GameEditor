@@ -1,11 +1,9 @@
 namespace EGamePlay.Combat
 {
-    /// <summary>
-    /// 战斗行动能力
-    /// </summary>
+    /// <summary>战斗行动能力（挂在 ICombatUnit 上）。</summary>
     public interface IActionAbility
     {
-        public CombatEntity OwnerEntity { get; set; }
-        public bool Enable { get; set; }
+        ICombatUnit OwnerEntity { get; }
+        bool Enable { get; set; }
     }
 }

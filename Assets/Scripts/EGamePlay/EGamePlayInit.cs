@@ -4,6 +4,7 @@ using EGamePlay.Unity;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using ACTGameEditor;
+using ACTGameEditor.Combat;
 
 #if UNITY
 public class EGamePlayInit : MonoBehaviour
@@ -73,6 +74,8 @@ public class EGamePlayInit : MonoBehaviour
 
     private void OnApplicationQuit()
     {
+        ActSkillTimelineLoader.Clear();
+        AbilityDefinitionManager.DestroyInstance();
         ECSNode.Destroy();
     }
 

@@ -7,10 +7,12 @@ namespace EGamePlay.Combat
     /// </summary>
     public sealed class MotionComponent : Component
     {
+        ICombatUnit _unit;
+
         public override bool IsNeedFixedUpdate { get; protected set; } = true;
         public override bool DefaultEnable { get; set; } = true;
-        public Vector3 Position { get => GetEntity<CombatEntity>().Position; set => GetEntity<CombatEntity>().Position = value; }
-        public Quaternion Rotation { get => GetEntity<CombatEntity>().Rotation; set => GetEntity<CombatEntity>().Rotation = value; }
+        public Vector3 Position { get => _unit.Position; set => _unit.Position = value; }
+        public Quaternion Rotation { get => _unit.Rotation; set => _unit.Rotation = value; }
         public bool CanMove { get; set; }
         public Vector3 MoveVector { get; set; }
 
@@ -21,6 +23,7 @@ namespace EGamePlay.Combat
         public override void Awake()
         {
             base.Awake();
+            _unit = Entity as ICombatUnit;
             Entity.Subscribe<AttributeUpdateEvent>(UpdateMoveSpeed);
             _moveSpeed = Entity.GetComponent<AttributeComponent>().MoveSpeed.Value;
         }
@@ -29,6 +32,7 @@ namespace EGamePlay.Combat
         {
             base.OnDestroy();
             Entity.UnSubscribe<AttributeUpdateEvent>(UpdateMoveSpeed);
+            _unit = null;
         }
 
         private void UpdateMoveSpeed(AttributeUpdateEvent event_)
