@@ -20,9 +20,13 @@ namespace EGamePlay.Combat
     [Flags]
     public enum DamageActionEffect
     {
+        /// <summary>正常命中，按算值扣血并走后置行动点。</summary>
         None = 0,
+        /// <summary>伤害流程被中断（如施法/效果取消）；不扣血，且通常跳过 PostCause/PostReceive 行动点。</summary>
         Interrupt = 1,
+        /// <summary>目标免疫本次伤害（如无敌 Buff）；不扣血，仍触发后置行动点。</summary>
         Immunity = 2,
+        /// <summary>目标闪避本次伤害（如 Buff.Roll 无敌帧）；不扣血，仍触发后置行动点，不播受击表现。</summary>
         Dodge = 4,
     }
 
@@ -109,6 +113,16 @@ namespace EGamePlay.Combat
             Creator?.TriggerActionPoint(ActionPointType.PostCauseDamage, this);
             if (Target != null && !Target.IsDisposed)
                 Target.TriggerActionPoint(ActionPointType.PostReceiveDamage, this);
+        }
+
+        public override void OnReset()
+        {
+            TriggerContext = default;
+            DamageSource = default;
+            DamageValue = 0;
+            Creator = null;
+            Target = null;
+            DamageActionEffect = DamageActionEffect.None;
         }
     }
 

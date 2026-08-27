@@ -466,6 +466,8 @@ namespace EGamePlay.Unity
             animator = null;
         }
 
+        public override void OnReset() => OnDestroy();
+
         /// <summary>按照固定时间长度进行混合。</summary>
         public void PlayFadeInFixedTime(int nameHash, float time = 0.2f, int layer = -1, float fixedTimeOffset = 0.0f)
         {

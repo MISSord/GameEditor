@@ -71,7 +71,7 @@ namespace EGamePlay.Combat
             numeric.AttributeType = attributeType;
             numeric.SetBase(baseValue);
             numeric.OnValueChanged += OnNumericUpdate;
-            _attributeNameNumerics.Add(attributeType, numeric);
+            _attributeNameNumerics[attributeType] = numeric;
             return numeric;
         }
 
@@ -109,6 +109,16 @@ namespace EGamePlay.Combat
                 }
             }
 #endif
+        }
+
+        public override void OnReset()
+        {
+            foreach (var pair in _attributeNameNumerics)
+            {
+                if (pair.Value != null)
+                    pair.Value.OnValueChanged -= OnNumericUpdate;
+            }
+            _attributeNameNumerics.Clear();
         }
     }
 }

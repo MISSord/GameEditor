@@ -174,6 +174,23 @@ namespace ACTGameEditor
             ObjEvent = null;
         }
 
+        public override void OnDestroy()
+        {
+            DestroyAll();
+        }
+
+        public override void OnReset()
+        {
+            _effectSettingsById.Clear();
+            _resolvedHits.Clear();
+            _parentRunner = null;
+            _state = RunnerState.Finish;
+            _time = InitialTimeOffset;
+            _frame = 0;
+            ObjEvent = null;
+            _events.Clear();
+        }
+
         public Animator GetAnimator()
         {
             if (ObjEvent != null)

@@ -81,6 +81,11 @@ namespace EGamePlay
 
         }
 
+        /// <summary>对象池归还前重置，子类需清字典/事件，避免 Awake 二次初始化冲突。</summary>
+        public virtual void OnReset()
+        {
+        }
+
         #endregion
 
         private void Dispose()
@@ -448,6 +453,8 @@ namespace EGamePlay
         //重置方法
         public void Reset()
         {
+            OnReset();
+            Name = null;
         }
         #endregion
     }

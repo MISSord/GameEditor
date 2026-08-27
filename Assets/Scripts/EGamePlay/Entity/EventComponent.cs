@@ -42,6 +42,23 @@ namespace EGamePlay
                 actionList.Remove(action);
             }
         }
+
+        public override void OnDestroy()
+        {
+            ClearAllSubscriptions();
+        }
+
+        public override void OnReset()
+        {
+            ClearAllSubscriptions();
+        }
+
+        void ClearAllSubscriptions()
+        {
+            foreach (var list in TypeEvent2ActionLists.Values)
+                list?.Clear();
+            TypeEvent2ActionLists.Clear();
+        }
     }
 
 }

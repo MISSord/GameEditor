@@ -158,14 +158,14 @@ namespace EGamePlay.Combat
 
         public override void OnDestroy()
         {
-            if (ActionPoints != null)
-            {
-                foreach (var ap in ActionPoints.Values)
-                {
-                    ap?.Listeners?.Clear();
-                }
-                ActionPoints.Clear();
-            }
+            foreach (var ap in ActionPoints.Values)
+                ap?.Listeners?.Clear();
+            ActionPoints.Clear();
+        }
+
+        public override void OnReset()
+        {
+            OnDestroy();
         }
     }
 }

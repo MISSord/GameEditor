@@ -12,6 +12,8 @@ namespace EGamePlay.Combat
         public FloatNumeric MaxValue { get; private set; }    // 受修改器影响的属性（如最大层数、总时长）
         public Action<BuffProperty> OnCurrentValueChanged;
 
+        Action<FloatNumeric> _maxValueChangedHandler;
+
         public float CurrentValue
         {
             get => _currentValue;
@@ -29,12 +31,19 @@ namespace EGamePlay.Combat
 
         public override void Awake()
         {
-            MaxValue = new FloatNumeric();
-            // 当修改器导致最大值变化时（例如最大层数从5变3），强制重算当前值
-            MaxValue.OnValueChanged += (FloatNumeric) =>
-            {
-                CurrentValue = CurrentValue; // 触发 Clamp
-            };
+            MaxValue = AddChild<FloatNumeric>();
+            _maxValueChangedHandler ??= _ => { CurrentValue = CurrentValue; };
+            MaxValue.OnValueChanged += _maxValueChangedHandler;
+        }
+
+        public override void OnReset()
+        {
+            if (MaxValue != null && _maxValueChangedHandler != null)
+                MaxValue.OnValueChanged -= _maxValueChangedHandler;
+            _currentValue = 0f;
+            AttributeType = default;
+            OnCurrentValueChanged = null;
+            MaxValue = null;
         }
     }
 
@@ -50,7 +59,7 @@ namespace EGamePlay.Combat
             numeric.AttributeType = attributeType;
             numeric.MaxValue.SetBase(baseValue);
             numeric.OnCurrentValueChanged += OnNumericUpdate;
-            _attributeNameNumerics.Add(attributeType.ToString(), numeric);
+            _attributeNameNumerics[attributeType.ToString()] = numeric;
             return numeric;
         }
 
@@ -88,6 +97,11 @@ namespace EGamePlay.Combat
                 }
                 _attributeNameNumerics.Clear();
             }
+        }
+
+        public override void OnReset()
+        {
+            OnDestroy();
         }
     }
 }

@@ -64,5 +64,14 @@ namespace EGamePlay.Unity
 
         /// <summary>尝试一段跳。</summary>
         public bool TryJump() => _motor.TryJump();
+
+        public override void OnDestroy()
+        {
+            _motor.LocomotionEnabled = false;
+            _combatEntity = null;
+            _controller = null;
+        }
+
+        public override void OnReset() => OnDestroy();
     }
 }

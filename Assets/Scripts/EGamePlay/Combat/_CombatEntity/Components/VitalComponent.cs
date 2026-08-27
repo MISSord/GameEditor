@@ -13,9 +13,14 @@ namespace EGamePlay.Combat
 
         public void InitVital()
         {
+            VitalNameNumerics.Clear();
+            AttributeMaxType.Clear();
+
             _attributeComponent = Entity.GetComponent<AttributeComponent>();
             if (_attributeComponent == null) return;
-            Entity.Subscribe<AttributeUpdateEvent>(OnAttributeChange); //监听属性变化
+
+            Entity.UnSubscribe<AttributeUpdateEvent>(OnAttributeChange);
+            Entity.Subscribe<AttributeUpdateEvent>(OnAttributeChange);
 
             //血量
             if (_attributeComponent.HealthPointMax != null)
@@ -141,6 +146,19 @@ namespace EGamePlay.Combat
         public bool CheckDead()
         {
             return VitalNameNumerics[AttributeType.HealthPoint] <= 0;
+        }
+
+        public override void OnDestroy()
+        {
+            Entity?.UnSubscribe<AttributeUpdateEvent>(OnAttributeChange);
+            _attributeComponent = null;
+        }
+
+        public override void OnReset()
+        {
+            VitalNameNumerics.Clear();
+            AttributeMaxType.Clear();
+            _attributeComponent = null;
         }
     }
 }

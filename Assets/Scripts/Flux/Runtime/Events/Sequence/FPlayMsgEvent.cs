@@ -25,6 +25,8 @@ namespace Flux
                 { "SetCanRotate(bool)",  PlayEventMsg.SetCanRotate },
                 { "ActivePlayerRender(bool)",  PlayEventMsg.ActivePlayerRender },
                 { "TimeStop(F_time)",  PlayEventMsg.TimeStop },
+                { "TimeFracture(F_time)",  PlayEventMsg.TimeFracture },
+                { "PlayFxPackage(id)",  PlayEventMsg.PlayFxPackage },
                 { "SetNoGravityT(F_time)",  PlayEventMsg.SetNoGravityT },
                 { "SetNoBreakTime(F_time)",  PlayEventMsg.SetNoBreakTime },
                 { "PlayAudio(id,volume)",  PlayEventMsg.PlayAudio },

@@ -30,10 +30,14 @@ namespace EGamePlay.Combat
 
         public override void OnDestroy()
         {
-            base.OnDestroy();
-            Entity.UnSubscribe<AttributeUpdateEvent>(UpdateMoveSpeed);
+            Entity?.UnSubscribe<AttributeUpdateEvent>(UpdateMoveSpeed);
             _unit = null;
+            MoveVector = Vector3.zero;
+            _moveTarget = Vector3.zero;
+            CanMove = false;
         }
+
+        public override void OnReset() => OnDestroy();
 
         private void UpdateMoveSpeed(AttributeUpdateEvent event_)
         {

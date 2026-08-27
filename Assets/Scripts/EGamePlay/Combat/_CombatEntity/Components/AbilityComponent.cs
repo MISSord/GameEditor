@@ -39,5 +39,7 @@ namespace EGamePlay.Combat
         {
             IdAbilities?.Clear();
         }
+
+        public override void OnReset() => OnDestroy();
     }
 }

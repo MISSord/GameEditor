@@ -1,5 +1,6 @@
 using UnityEngine;
 using EGamePlay;
+using ACTGameEditor.Combat;
 
 namespace ACTGameEditor
 {
@@ -137,8 +138,11 @@ namespace ACTGameEditor
 
             if (Input.GetKeyDown(KeyCode.Alpha0))
             {
-                TimeScaleEffectManager.AddHitStop(0.08f, 0.08f);
-                CameraPostFxController.TryPlayHitStopImpact(0.08f);
+                CombatPresentationDirector.Play(CombatFxSpec.HitStop(
+                    CombatFxSource.Manual(0),
+                    0.08f,
+                    0.08f,
+                    cameraImpact: true));
             }
         }
 
