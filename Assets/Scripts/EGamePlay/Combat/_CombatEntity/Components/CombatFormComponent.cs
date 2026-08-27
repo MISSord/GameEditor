@@ -31,6 +31,8 @@ namespace EGamePlay.Combat
             _actor = null;
         }
 
+        public override void OnReset() => OnDestroy();
+
         /// <summary>注册角色可用形态。重复 FormId 后者覆盖。</summary>
         public void Init(List<SkillFormConfig> forms)
         {

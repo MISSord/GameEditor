@@ -30,6 +30,12 @@ namespace ACTGameEditor.Combat
             CDTimer = null;
         }
 
+        public override void OnReset()
+        {
+            _queue.Clear();
+            CDTimer = null;
+        }
+
         public override void Update(float deltaTime)
         {
             CDTimer?.OnUpdate(deltaTime);

@@ -41,6 +41,8 @@ namespace EGamePlay.Combat
             _container = null;
         }
 
+        public override void OnReset() => OnDestroy();
+
         public override void Update(float deltaTime)
         {
             TickTimedTags(GameTimeManager.PlayerTime);

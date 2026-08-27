@@ -615,7 +615,8 @@ namespace ACTGameEditor
                 }
 
                 ClearPooledTriggerCallbacks(_colliderObj);
-                _collider.isTrigger = false;
+                // 命中盒仅用于 Overlap 查询，必须是 Trigger，否则会参与 Physics.Simulate 把敌人挤开。
+                _collider.isTrigger = true;
                 _colliderObj.transform.SetParent(this.OwnerTF.transform, false);
                 _colliderObj.transform.localPosition = Vector3.zero;
                 _colliderObj.SetActive(true);

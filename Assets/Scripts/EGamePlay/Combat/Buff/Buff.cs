@@ -298,5 +298,10 @@ namespace EGamePlay.Combat
             Setting = null;
             IsCanRemoveBuff = false;
         }
+
+        public override void OnReset()
+        {
+            OnDestroy();
+        }
     }
 }

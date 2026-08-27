@@ -97,6 +97,12 @@ namespace EGamePlay.Combat
             Deactivate();
             Entity.Destroy(this);
         }
+
+        public override void OnReset()
+        {
+            Enable = false;
+            Definition = null;
+        }
     }
 
 }

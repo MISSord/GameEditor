@@ -159,10 +159,24 @@ namespace ACTGameEditor
                 return;
             }
 
-            if (LockedCombatEntity != null && LockedCombatEntity.IsDisposed)
+            if (LockedCombatEntity != null
+                && (LockedCombatEntity.IsDisposed || LockedCombatEntity.IsDead))
             {
                 Unlock();
             }
+        }
+
+        static bool IsValidLockCandidate(ICameraTarget candidate)
+        {
+            if (candidate == null)
+                return false;
+
+            Transform t = candidate.GetPlayerTransform();
+            if (t == null || !t.gameObject.activeInHierarchy)
+                return false;
+
+            CombatEntity combat = GetCombatEntity(candidate);
+            return combat == null || (!combat.IsDisposed && !combat.IsDead);
         }
 
         /// <summary>寻找最佳目标（角度+距离加权）</summary>
@@ -183,6 +197,7 @@ namespace ACTGameEditor
                 var col = s_overlapBuffer[i];
                 if (col == null) continue;
                 if (!col.TryGetComponent<ICameraTarget>(out var candidate)) continue;
+                if (!IsValidLockCandidate(candidate)) continue;
 
                 Vector3 candidatePos = candidate.GetPlayerPos();
                 Vector3 dirToEnemy = (candidatePos - playerPos).normalized;
@@ -221,6 +236,7 @@ namespace ACTGameEditor
                 var col = s_overlapBuffer[i];
                 if (col == null) continue;
                 if (!col.TryGetComponent<ICameraTarget>(out var candidate)) continue;
+                if (!IsValidLockCandidate(candidate)) continue;
 
                 Vector3 dirToEnemy = (candidate.GetPlayerPos() - playerPos).normalized;
                 float angle = Vector3.Angle(camForward, dirToEnemy);

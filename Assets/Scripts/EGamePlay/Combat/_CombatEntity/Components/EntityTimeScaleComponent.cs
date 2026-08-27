@@ -98,5 +98,9 @@ namespace EGamePlay.Combat
 
         /// <summary>当前 modifier 数量。</summary>
         public int ModifierCount => _modifiers.Count;
+
+        public override void OnDestroy() => Clear();
+
+        public override void OnReset() => Clear();
     }
 }

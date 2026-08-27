@@ -77,7 +77,7 @@ namespace EGamePlay
         /// </summary>
         public virtual void OnReset()
         {
-
+            Entity = null;
         }
 
         #endregion

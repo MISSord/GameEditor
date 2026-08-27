@@ -13,12 +13,20 @@ public class EGamePlayInit : MonoBehaviour
     public bool EntityLog;
     [Tooltip("开：入队不扣 CD，时间轴启动后才转。关：Idle 入队立刻扣 CD。")]
     public bool UseAbilityGate = true;
+    [Tooltip("伤害 HitFlash / HitStop 默认参数；留空则使用内置默认值。")]
+    public CombatFxPreset FxPreset;
+    [Tooltip("表现 Package 目录；留空则使用内置默认包。")]
+    public CombatFxPackageCatalog FxPackageCatalog;
     public InputActionAsset ActionsAsset;
 
 #if !EGAMEPLAY_ET
     private void Awake()
     {
         Instance = this;
+        if (FxPreset != null)
+            CombatFxPreset.SetActive(FxPreset);
+        if (FxPackageCatalog != null)
+            CombatFxPackageCatalog.SetActive(FxPackageCatalog);
         Physics.autoSimulation = false;
 
         ConfigurableInputManager.Instance.InputActionsAsset = ActionsAsset;
@@ -27,8 +35,9 @@ public class EGamePlayInit : MonoBehaviour
         var ecsNode = ECSNode.Create();
         ecsNode.AddChildNoPool<ETTimerManager>();
         ecsNode.AddChildNoPool<CombatContext>();
-        CombatContext.Instance.UseAbilityGate = UseAbilityGate;
         ecsNode.AddChildNoPool<GameObjectPool>();
+
+        CombatContext.Instance.UseAbilityGate = UseAbilityGate;
 
         FastStaticExecutor.Initialize<SkillMethod>();
     }
@@ -74,6 +83,7 @@ public class EGamePlayInit : MonoBehaviour
 
     private void OnApplicationQuit()
     {
+        CombatPresentationDirector.ClearAll();
         ActSkillTimelineLoader.Clear();
         AbilityDefinitionManager.DestroyInstance();
         ECSNode.Destroy();

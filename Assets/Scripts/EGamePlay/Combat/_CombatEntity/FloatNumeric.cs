@@ -63,12 +63,36 @@ namespace EGamePlay.Combat
 
         public override void Awake()
         {
-            baseValue = baseAdd = pctAdd = 0f; //finalAdd = finalPctAdd = 0f;
-            TypeModifierCollections.Add(((int)ModifyType.Add), new FloatModifierCollection());
-            TypeModifierCollections.Add(((int)ModifyType.PctAdd), new FloatModifierCollection());
+            EnsureModifierCollections();
+            ResetNumericState();
+        }
 
-            //TypeModifierCollections.Add(((int)ModifyType.FinalAdd), new FloatModifierCollection());
-            //TypeModifierCollections.Add(((int)ModifyType.FinalPctAdd), new FloatModifierCollection());
+        public override void OnReset()
+        {
+            ResetNumericState();
+            TypeModifierCollections.Clear();
+        }
+
+        public override void OnDestroy()
+        {
+            OnValueChanged = null;
+        }
+
+        void ResetNumericState()
+        {
+            OldValue = Value = baseValue = baseAdd = pctAdd = 0f;
+            OnValueChanged = null;
+            AttributeType = default;
+        }
+
+        void EnsureModifierCollections()
+        {
+            int addKey = (int)ModifyType.Add;
+            int pctKey = (int)ModifyType.PctAdd;
+            if (!TypeModifierCollections.ContainsKey(addKey))
+                TypeModifierCollections.Add(addKey, new FloatModifierCollection());
+            if (!TypeModifierCollections.ContainsKey(pctKey))
+                TypeModifierCollections.Add(pctKey, new FloatModifierCollection());
         }
 
         public float SetBase(float value)

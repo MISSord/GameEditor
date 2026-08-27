@@ -35,8 +35,15 @@ namespace ACTGameEditor.Combat
             _owner = null;
         }
 
+        public override void OnReset() => OnDestroy();
+
         /// <inheritdoc/>
-        public void ApplyPresentationMessage(string msgName, float floatMsg, bool boolMsg, string strMsg = null)
+        public void ApplyPresentationMessage(
+            string msgName,
+            float floatMsg,
+            bool boolMsg,
+            string strMsg = null,
+            TagSource? timelineSource = null)
         {
             if (_owner == null || string.IsNullOrEmpty(msgName))
                 return;
@@ -65,7 +72,15 @@ namespace ACTGameEditor.Combat
                     break;
 
                 case var _ when msgName == PlayEventMsg.TimeStop:
-                    ApplyTimeStop(floatMsg);
+                    ApplyTimeStop(floatMsg, timelineSource);
+                    break;
+
+                case var _ when msgName == PlayEventMsg.TimeFracture:
+                    ApplyTimeFracture(floatMsg, timelineSource);
+                    break;
+
+                case var _ when msgName == PlayEventMsg.PlayFxPackage:
+                    ApplyPlayFxPackage(floatMsg, timelineSource);
                     break;
 
                 case var _ when msgName == PlayEventMsg.PlayAudio:
@@ -117,18 +132,46 @@ namespace ACTGameEditor.Combat
             }
         }
 
-        void ApplyTimeStop(float durationSeconds)
+        void ApplyTimeStop(float durationSeconds, TagSource? timelineSource)
         {
             if (durationSeconds <= 0f)
                 return;
 
-            TimeScaleEffectManager.AddEffect(
-                TimeScaleEffectType.SkillTimescale,
-                0f,
-                1f,
-                1f,
+            CombatFxSource source = timelineSource.HasValue
+                ? CombatFxSource.From(timelineSource.Value)
+                : CombatFxSource.Manual(0);
+
+            CombatPresentationDirector.Play(CombatFxSpec.SkillTimeStop(source, durationSeconds));
+        }
+
+        void ApplyTimeFracture(float durationSeconds, TagSource? timelineSource)
+        {
+            if (durationSeconds <= 0f)
+                return;
+
+            CombatFxSource source = timelineSource.HasValue
+                ? CombatFxSource.From(timelineSource.Value)
+                : CombatFxSource.Manual(0);
+
+            CombatFxPreset preset = CombatFxPreset.Active;
+            CombatPresentationDirector.Play(CombatFxSpec.TimeFracture(
+                source,
                 durationSeconds,
-                20);
+                preset.TimeFractureWorldScale));
+        }
+
+        void ApplyPlayFxPackage(float packageIdValue, TagSource? timelineSource)
+        {
+            int rawId = (int)packageIdValue;
+            if (rawId <= 0)
+                return;
+
+            CombatFxSource source = timelineSource.HasValue
+                ? CombatFxSource.From(timelineSource.Value)
+                : CombatFxSource.Manual(0);
+
+            var context = CombatFxPlayContext.ForOwner(_owner, source);
+            CombatFxPackagePlayer.Play((CombatFxPackageId)rawId, in context);
         }
 
         void PlayTimelineAudio(string audioId, float volume)

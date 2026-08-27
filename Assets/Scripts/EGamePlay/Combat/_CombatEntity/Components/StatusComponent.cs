@@ -31,6 +31,14 @@ namespace EGamePlay.Combat
             TagContainer.Reset();
         }
 
+        public override void OnReset()
+        {
+            Statuses.Clear();
+            TypeIdStatuses.Clear();
+            IdStatuses.Clear();
+            TagContainer.Reset();
+        }
+
         public Buff AttachStatus(int buffId)
         {
             var buff = Entity.AddChild<Buff>(buffId);

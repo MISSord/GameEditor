@@ -4,6 +4,11 @@ namespace EGamePlay.Combat
     public interface ICombatTimelinePresenter
     {
         /// <summary>处理非战斗规则类时间轴消息。</summary>
-        void ApplyPresentationMessage(string msgName, float floatMsg, bool boolMsg, string strMsg = null);
+        void ApplyPresentationMessage(
+            string msgName,
+            float floatMsg,
+            bool boolMsg,
+            string strMsg = null,
+            TagSource? timelineSource = null);
     }
 }

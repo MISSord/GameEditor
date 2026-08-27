@@ -135,5 +135,25 @@ namespace ACTGameEditor
             OwnerEntity = null;
             InputTarget = null;
         }
+
+        public override void OnDestroy()
+        {
+            ReleaseAnimOwnership(returnToLocomotion: false);
+            DestroyAll();
+        }
+
+        public override void OnReset()
+        {
+            _state = RunnerState.Finish;
+            Sort = 0;
+            IsMainFinish = false;
+            AnimToken = 0;
+            AnimExitPolicy = AnimExitPolicy.Locomotion;
+            Count = 0;
+            AbilityEntity = null;
+            OwnerEntity = null;
+            InputTarget = null;
+            SubRuners.Clear();
+        }
     }
 }

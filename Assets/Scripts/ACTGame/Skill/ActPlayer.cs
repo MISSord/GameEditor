@@ -37,6 +37,20 @@ namespace ACTGameEditor
         [SerializeField]
         Material characterBodyMaterial;
 
+        [Header("Death")]
+        [Tooltip("HP 归零后是否播放噪声溶解（默认仅 enemy 阵营开启）")]
+        [SerializeField]
+        bool playDeathDissolve = true;
+        [Tooltip("死亡溶解时长（秒），驱动 CharacterRenderFX._Dissolve 0→1")]
+        [SerializeField]
+        float deathDissolveDuration = 1.2f;
+
+        /// <summary>是否播放死亡溶解。</summary>
+        public virtual bool UseDeathDissolve => playDeathDissolve && Agent == AgentTag.enemy;
+
+        /// <summary>死亡溶解时长。</summary>
+        public virtual float DeathDissolveDuration => deathDissolveDuration;
+
         public void Init()
         {
             _modelShow = transform.Find("ActTest");

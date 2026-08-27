@@ -106,7 +106,11 @@ namespace ACTGameEditor.Combat
             }
 
             if (previous != null && previous != _runner && !previous.IsDisposed)
+            {
                 previous.BreakSkill();
+                if (previous is ActSkillRunner prevRunner)
+                    CombatPresentationDirector.StopBySource(CombatFxSource.Skill(prevRunner.Id));
+            }
 
             _caster.ActiveExecution = _runner;
             _caster.StateDirector?.EnterSkill(_runner.Id);
@@ -162,16 +166,40 @@ namespace ACTGameEditor.Combat
                     _caster.StateDirector?.ExitSkill(_runner.Id);
             }
 
+            if (_runner != null)
+                CombatPresentationDirector.StopBySource(CombatFxSource.Skill(_runner.Id));
+
             DestroySelf();
         }
 
-        void DestroySelf()
+        public override void OnDestroy()
         {
+            if (_runner != null && !_runner.IsDisposed && _runner.State != RunnerState.Finish)
+                _runner.BreakSkill();
+
+            if (_runner != null)
+                CombatPresentationDirector.StopBySource(CombatFxSource.Skill(_runner.Id));
+
             _caster = null;
             _ability = null;
             _runner = null;
             _inputTarget = null;
             _postProcessed = false;
+        }
+
+        public override void OnReset()
+        {
+            _caster = null;
+            _ability = null;
+            _runner = null;
+            _inputTarget = null;
+            _inputPoint = default;
+            _inputDirection = default;
+            _postProcessed = false;
+        }
+
+        void DestroySelf()
+        {
             Entity.Destroy(this);
         }
     }
