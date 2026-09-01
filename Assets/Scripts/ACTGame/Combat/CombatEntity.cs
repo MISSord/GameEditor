@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using ACTGameEditor;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
-using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 
 namespace ACTGameEditor.Combat
@@ -74,21 +72,39 @@ namespace ACTGameEditor.Combat
 
         #endregion
 
-        #region 门控（Tag + 状态 + 占轴）
+        #region 门控（Tag + 状态 + 技能覆盖）
+
+        const float MoveWeightEpsilon = 0.0001f;
+        float _skillMoveWeight = 1f;
+        bool _timedMoveLock;
 
         public bool IsCanCauseHarm => TagHost != null && !TagHost.HasIndex(TagHost.AttackDamageForbidIndex);
 
-        /// <summary>Locomotion 可读入并位移。</summary>
-        public bool IsCanMove => TagHost != null
-            && !TagHost.HasIndex(TagHost.MoveForbidIndex)
-            && ActiveExecution == null
-            && (CurState == PlayerStateEnum.Idle || CurState == PlayerStateEnum.Moving);
+        /// <summary>水平走跑倍率：死/受击/禁移/限时锁为 0，其余用技能覆盖（占轴默认 0）。</summary>
+        public float MoveWeight
+        {
+            get
+            {
+                if (IsDead || _timedMoveLock)
+                    return 0f;
+                if (CurState == PlayerStateEnum.Hit)
+                    return 0f;
+                if (TagHost == null || TagHost.HasIndex(TagHost.MoveForbidIndex))
+                    return 0f;
+                return Mathf.Clamp01(_skillMoveWeight);
+            }
+        }
+
+        /// <summary>Locomotion 当前能否水平位移。</summary>
+        public bool IsCanMove => MoveWeight > MoveWeightEpsilon;
 
         public bool IsCanJump
         {
             get
             {
                 if (IsDead || ActiveExecution != null || CurState == PlayerStateEnum.Hit)
+                    return false;
+                if (_timedMoveLock)
                     return false;
                 if (TagHost != null && TagHost.HasIndex(TagHost.MoveForbidIndex))
                     return false;
@@ -177,6 +193,8 @@ namespace ACTGameEditor.Combat
             Position = default;
             Rotation = default;
             ActiveExecution = null;
+            _skillMoveWeight = 1f;
+            _timedMoveLock = false;
         }
 
         public override void Update(float deltaTime)
@@ -188,6 +206,9 @@ namespace ACTGameEditor.Combat
             }
 
             _stateDirector?.Tick(GameTimeManager.PlayerTime);
+
+            if (AttackPlayer is IAttackPlayer attack)
+                attack.TickSkillInput();
 
             for (int i = 0; i < UpdateComponents.Count; i++)
                 UpdateComponents[i].Update(deltaTime);
@@ -273,6 +294,7 @@ namespace ACTGameEditor.Combat
 
         #region 输入 / Locomotion
 
+        /// <summary>本地玩家接管 / 死亡时开关电机 Tick，技能不要写这里。</summary>
         public void ChangeInputMoveState(bool state)
         {
 #if UNITY
@@ -281,12 +303,38 @@ namespace ACTGameEditor.Combat
 #endif
         }
 
+        /// <summary>电机 AutoRotate 开关（闪避、时间轴 SetCanRotate）。</summary>
         public void ChangeInputRotateState(bool state)
         {
 #if UNITY
             _inputMove?.SetRotationEnabled(state);
 #endif
         }
+
+        /// <summary>技能开轴：默认站桩，时间轴 SetCanMove 可再打开。</summary>
+        public void BeginSkillMoveLock() => _skillMoveWeight = 0f;
+
+        /// <summary>技能交轴：恢复满权；受击/禁移仍由 <see cref="MoveWeight"/> 合成压掉。</summary>
+        public void EndSkillMoveLock() => _skillMoveWeight = 1f;
+
+        /// <summary>闪避起步：非走路时锁存快跑，结束移动时接疾跑。</summary>
+        public void ArmSprintFromDodge()
+        {
+#if UNITY
+            _inputMove?.ArmSprintFromDodge();
+#endif
+        }
+
+        /// <summary>时间轴 SetCanMove：只改技能覆盖，不拧电机 Enable。</summary>
+        public void SetSkillMoveAllowed(bool allowed)
+        {
+            _skillMoveWeight = allowed ? 1f : 0f;
+            if (allowed)
+                _timedMoveLock = false;
+        }
+
+        /// <summary>时间轴 SetUnMoveTime：限时强制权重 0，到期只清锁，不改技能覆盖。</summary>
+        public void SetTimedMoveLock(bool locked) => _timedMoveLock = locked;
 
         #endregion
 
@@ -394,6 +442,8 @@ namespace ACTGameEditor.Combat
             anim?.Director?.ForceLocomotion();
             anim?.Motion?.SetPolicy(MotionPolicy.Locomotion);
             anim?.Motion?.SetSkillSuppressGravity(false);
+            EndSkillMoveLock();
+            SetTimedMoveLock(false);
             ChangeInputMoveState(false);
 #endif
         }

@@ -56,7 +56,7 @@ namespace ACTGameEditor.Combat
                     break;
 
                 case var _ when msgName == PlayEventMsg.SetCanMove:
-                    _owner.ChangeInputMoveState(boolMsg);
+                    _owner.SetSkillMoveAllowed(boolMsg);
                     break;
 
                 case var _ when msgName == PlayEventMsg.SetCanRotate:
@@ -93,7 +93,7 @@ namespace ACTGameEditor.Combat
 #if UNITY
         void ApplyUnmoveForSeconds(float durationSeconds)
         {
-            _owner.ChangeInputMoveState(false);
+            _owner.SetTimedMoveLock(true);
             CancelUnmoveTimer();
             if (durationSeconds <= 0f)
                 return;
@@ -102,7 +102,7 @@ namespace ACTGameEditor.Combat
             _unmoveTimerId = ETTimerManager.Instance.NewOnceTimer(tillMs, () =>
             {
                 _unmoveTimerId = 0;
-                _owner?.ChangeInputMoveState(true);
+                _owner?.SetTimedMoveLock(false);
             });
         }
 

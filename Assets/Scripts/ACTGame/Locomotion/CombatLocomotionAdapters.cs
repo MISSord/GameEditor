@@ -1,6 +1,5 @@
 using ACTGameEditor.Combat;
 using EGamePlay.Unity;
-using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 
 namespace ACTGameEditor.Locomotion
@@ -12,7 +11,8 @@ namespace ACTGameEditor.Locomotion
 
         public CombatMoveGate(CombatEntity entity) => _entity = entity;
 
-        public bool CanMove => _entity != null && _entity.IsCanMove;
+        /// <inheritdoc />
+        public float MoveWeight => _entity != null ? _entity.MoveWeight : 0f;
     }
 
     /// <summary>战斗实体可跳跃门控。</summary>

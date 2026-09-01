@@ -1,4 +1,4 @@
-using EGamePlay.Unity.Locomotion;
+using EGamePlay.Unity;
 using UnityEngine;
 
 namespace ACTGameEditor.Locomotion

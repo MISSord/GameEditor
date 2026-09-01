@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using ACTGameEditor.Combat;
-using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 
 namespace EGamePlay.Unity
@@ -28,6 +27,59 @@ namespace EGamePlay.Unity
         Locomotion = 0,
         /// <summary>只释放 Token，保持最后一帧 Pose。</summary>
         Hold = 1,
+    }
+
+    /// <summary>
+    /// 动画系统使用的玩家层时间源（缩放、累计时间、变化通知）。
+    /// </summary>
+    public interface IAnimTimeScaleSource
+    {
+        /// <summary>玩家层时间缩放。</summary>
+        float PlayerScale { get; }
+
+        /// <summary>玩家层累计时间。</summary>
+        float PlayerTime { get; }
+
+        /// <summary>时间缩放变化时触发。</summary>
+        event Action OnTimeScaleChanged;
+    }
+
+    /// <summary>将 <see cref="GameTimeManager"/> 桥接为动画时间源。</summary>
+    public sealed class GameTimeAnimTimeScaleSource : IAnimTimeScaleSource
+    {
+        /// <summary>战斗场景默认时间源。</summary>
+        public static readonly GameTimeAnimTimeScaleSource Default = new();
+
+        /// <inheritdoc />
+        public float PlayerScale => GameTimeManager.PlayerScale;
+
+        /// <inheritdoc />
+        public float PlayerTime => GameTimeManager.PlayerTime;
+
+        /// <inheritdoc />
+        public event Action OnTimeScaleChanged
+        {
+            add => GameTimeManager.OnTimeScaleChanged += value;
+            remove => GameTimeManager.OnTimeScaleChanged -= value;
+        }
+    }
+
+    /// <summary>未注入战斗时间源时的兜底（无缩放、无事件）。</summary>
+    public sealed class UnityAnimTimeScaleSource : IAnimTimeScaleSource
+    {
+        /// <summary>默认兜底实例。</summary>
+        public static readonly UnityAnimTimeScaleSource Default = new();
+
+        /// <inheritdoc />
+        public float PlayerScale => 1f;
+
+        /// <inheritdoc />
+        public float PlayerTime => Time.time;
+
+#pragma warning disable 67
+        /// <inheritdoc />
+        public event Action OnTimeScaleChanged;
+#pragma warning restore 67
     }
 
     /// <summary>

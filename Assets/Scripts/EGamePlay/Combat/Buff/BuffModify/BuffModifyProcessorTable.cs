@@ -1,19 +1,7 @@
-using System;
-using UnityEngine;
+﻿using System;
 
 namespace EGamePlay.Combat
 {
-    /// <summary>
-    /// DamageEffect 的公式模式：血量走复杂伤害公式，其它资源走轻量 Resource 公式。
-    /// </summary>
-    public enum DamageEffectFormulaMode
-    {
-        /// <summary>按 HP 伤害处理：走 DamageCalcuFormula（带防御/抗性/暴击/增伤/易伤）。</summary>
-        HpDamage = 0,
-        /// <summary>按资源变化处理：走 ResourceFormula（不带防御/抗性/暴击）。</summary>
-        Resource = 1,
-    }
-
     /// <summary>
     /// ActionModify 用表字段约定（复用 BuffModifySetting）：
     /// BuffAttributeType=生效方：0=Buff拥有者为受击者 1=拥有者为攻击者；
@@ -165,81 +153,6 @@ namespace EGamePlay.Combat
                 DamageSegmentIndex = 0,
             });
         }
-
-        ///// <summary>[兼容旧配置] Buff 造成的伤害或资源变动，走 DamageEffect 的旧 Param 约定。</summary>
-        //private static void ApplyDamageEffect(ModifyRegistration reg, Buff buff, Entity target)
-        //{
-        //    if (buff.Caster is not CombatEntity caster) return;
-        //    BuffModifyExecutionCore.ExecuteDamageOrResource(reg.Config, caster, target, buff, DamageSource.Buff);
-        //}
-
-        ///// <summary>资源型效果（治疗/回复能量等），通过 ResourceFormula 计算并作用于 VitalComponent。</summary>
-        //private static void ApplyCureOrResource(ModifyRegistration reg, Buff buff, Entity target)
-        //{
-        //    if (buff.Caster is not CombatEntity caster) return;
-
-        //    // ParamInt1 = ResourceFormulaType
-        //    // ParamInt2 = AttributeType(资源类型：HealthPoint/Mana/特殊条)
-        //    // ParamInt3 = TargetSide(0=目标 1=施法者)
-        //    // ParamFloat1 = A, ParamFloat2 = B
-        //    var formulaType = (ResourceFormulaType)reg.Config.ParamInt1;
-        //    var vitalType = (AttributeType)reg.Config.ParamInt2;
-        //    int side = reg.Config.ParamInt3;
-
-        //    Entity actualTarget = null;
-        //    if (side == 1)
-        //    {
-        //        actualTarget = caster;
-        //    }
-        //    else
-        //    {
-        //        if (target != null)
-        //        {
-        //            actualTarget = target;
-        //        }
-        //        else
-        //        {
-        //            actualTarget = caster;
-        //        }
-        //    }
-
-        //    if (actualTarget == null) return;
-
-        //    var ctx = new ResourceFormulaContext
-        //    {
-        //        Caster = caster,
-        //        Target = actualTarget,
-        //        FormulaType = formulaType,
-        //        AttrOrVitalType = vitalType,
-        //        A = reg.Config.ParamFloat1,
-        //        B = reg.Config.ParamFloat2,
-        //        CeilResult = true,
-        //    };
-
-        //    int delta = ResourceFormula.Calculate(ctx);
-        //    if (delta == 0) return;
-
-        //    var vital = actualTarget.GetComponent<VitalComponent>();
-        //    if (vital == null) return;
-
-        //    if (delta > 0)
-        //    {
-        //        vital.AddValue(vitalType, delta);
-        //    }
-        //    else
-        //    {
-        //        vital.MinusValue(vitalType, -delta);
-        //    }
-        //}
-
-        //private static bool MatchFilter(DamageAction action, int filterType, int filterValue)
-        //{
-        //    if (filterType == DamageActionModifyConfig.FilterAll) return true;
-        //    if (filterType == DamageActionModifyConfig.FilterBySkillId) return TryGetSkillId(action, out int sid) && sid == filterValue;
-        //    if (filterType == DamageActionModifyConfig.FilterByDamageType) return action.DamageEffect != null && (int)action.DamageEffect.DamageType == filterValue;
-        //    if (filterType == DamageActionModifyConfig.FilterByDamageSource) return (int)action.DamageSource == filterValue;
-        //    return false;
-        //}
 
         private static bool TryGetSkillId(DamageAction action, out int skillId)
         {

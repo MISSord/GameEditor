@@ -1,11 +1,26 @@
-using EGamePlay;
-using EGamePlay.Combat;
-using EGamePlay.Unity.Locomotion;
-using UnityEngine;
+﻿using UnityEngine;
 using ACTGameEditor.Combat;
 
 namespace EGamePlay.Unity
 {
+    /// <summary>
+    /// 战斗场景 InputMove 装配契约；由 ACTGameEditor 实现并通过 <see cref="GameObjectData"/> 注入。
+    /// </summary>
+    public interface IInputMoveBinder
+    {
+        /// <summary>
+        /// 配置 LocomotionMotor 与 AnimDirector 的战斗侧依赖（输入、门控、时间源等）。
+        /// </summary>
+        void Bind(
+            LocomotionMotor motor,
+            AnimComponent anim,
+            CombatEntity entity,
+            CharacterController controller,
+            Transform root,
+            Animator animator,
+            PlayerMoveSettingSo playerSetting);
+    }
+
     /// <summary>
     /// 输入移动组件：薄桥到 <see cref="LocomotionMotor"/>；战斗依赖由 <see cref="IInputMoveBinder"/> 注入。
     /// </summary>
@@ -40,30 +55,33 @@ namespace EGamePlay.Unity
                 root,
                 animator,
                 data.playerSetting);
-
-            _motor.LocomotionEnabled = Enable;
         }
 
         public override void Update(float deltaTime)
         {
-            _motor.LocomotionEnabled = Enable;
+            if (!Enable)
+                return;
             _motor.TickUpdate();
         }
 
         public override void FixedUpdate(float fixDeltaTime)
         {
-            _motor.LocomotionEnabled = Enable;
+            if (!Enable)
+                return;
             _motor.TickFixed();
         }
 
         /// <summary>临时关闭重力（技能等调用）。</summary>
         public void SetNoGravityT(float time) => _motor.SetNoGravityT(time);
 
-        /// <summary>设置是否允许旋转。</summary>
-        public void SetRotationEnabled(bool enabled) => _motor.RotationEnabled = enabled;
+        /// <summary>设置电机是否允许 AutoRotate。</summary>
+        public void SetRotationEnabled(bool enabled) => _motor.FaceEnabled = enabled;
 
-        /// <summary>尝试一段跳。</summary>
-        public bool TryJump() => _motor.TryJump();
+        /// <summary>尝试一段跳。电机未启用时直接失败。</summary>
+        public bool TryJump() => Enable && _motor.TryJump();
+
+        /// <summary>鸣潮：闪避锁存快跑（走路模式除外）。</summary>
+        public void ArmSprintFromDodge() => _motor.ArmSprintFromDodge();
 
         /// <summary>当前水平移动方向（世界空间）；无迈步意图时返回 false。</summary>
         public bool TryGetPlanarMoveDir(out Vector3 worldDir)

@@ -2,7 +2,6 @@ using ACTGameEditor.Combat;
 using DG.Tweening;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
-using EGamePlay.Unity.Locomotion;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;

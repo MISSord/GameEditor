@@ -256,6 +256,13 @@ namespace ACTGameEditor
             EnsureSlotAbilitiesAttached();
         }
 
+        /// <summary>战斗 Tick 内提交 Idle/硬打断槽位，并推进受击动画自动交回。</summary>
+        public void TickSkillInput()
+        {
+            CheckInitialInput();
+            _animComponent?.Director?.Tick();
+        }
+
         /// <summary>Idle 用槽位表；技能中仅更高 Sort 槽位可立刻打断。</summary>
         private void CheckInitialInput()
         {

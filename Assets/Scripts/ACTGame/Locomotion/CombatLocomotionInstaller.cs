@@ -1,7 +1,6 @@
 ﻿using ACTGameEditor.Combat;
 using EGamePlay;
 using EGamePlay.Unity;
-using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 
 namespace ACTGameEditor.Locomotion

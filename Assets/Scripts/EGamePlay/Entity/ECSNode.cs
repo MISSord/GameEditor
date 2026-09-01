@@ -1,5 +1,4 @@
-﻿using EGamePlay.Unity;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace EGamePlay
@@ -17,10 +16,10 @@ namespace EGamePlay
             if (Instance == null)
             {
                 Instance = new ECSNode();
-#if !NOT_UNITY
-                Instance.AddComponent<GameObjectComponent>();
-                UnityEngine.GameObject.DontDestroyOnLoad(Instance.GetComponent<GameObjectComponent>().GameObject);
-#endif
+//#if !NOT_UNITY
+//                Instance.AddComponent<GameObjectComponent>();
+//                UnityEngine.GameObject.DontDestroyOnLoad(Instance.GetComponent<GameObjectComponent>().GameObject);
+//#endif
             }
             return Instance;
         }

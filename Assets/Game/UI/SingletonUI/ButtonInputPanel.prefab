@@ -134,10 +134,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8880704e690736419c0589290e7bd9b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialSprite: {fileID: 21300000, guid: 2e31d5545bd83df43879b6cdcb76ebec, type: 3}
-  changedSprite: {fileID: 21300000, guid: 26518058525fb20459ebec92e12d0280, type: 3}
-  actionMapName: Player
-  actionName: 9
+  _initialSprite: {fileID: 21300000, guid: 2e31d5545bd83df43879b6cdcb76ebec, type: 3}
+  _changedSprite: {fileID: 21300000, guid: 26518058525fb20459ebec92e12d0280, type: 3}
+  _actionMapName: Player
+  _actionName: 4
 --- !u!1 &678257784327026916
 GameObject:
   m_ObjectHideFlags: 0
@@ -272,10 +272,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8880704e690736419c0589290e7bd9b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialSprite: {fileID: 21300000, guid: f7d0c57b0c455b249b831e7c7f681ceb, type: 3}
-  changedSprite: {fileID: 21300000, guid: b52150509c54f1c40a90a19aeb9d5182, type: 3}
-  actionMapName: Player
-  actionName: 2
+  _initialSprite: {fileID: 21300000, guid: f7d0c57b0c455b249b831e7c7f681ceb, type: 3}
+  _changedSprite: {fileID: 21300000, guid: b52150509c54f1c40a90a19aeb9d5182, type: 3}
+  _actionMapName: Player
+  _actionName: 1
 --- !u!1 &3035304268161724984
 GameObject:
   m_ObjectHideFlags: 0
@@ -410,10 +410,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8880704e690736419c0589290e7bd9b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialSprite: {fileID: 21300000, guid: da1f385c7b7704348922423f4fc39993, type: 3}
-  changedSprite: {fileID: 21300000, guid: eb1ba41f9c8a1fc489b4afb1c1d3d42f, type: 3}
-  actionMapName: Player
-  actionName: 4
+  _initialSprite: {fileID: 21300000, guid: da1f385c7b7704348922423f4fc39993, type: 3}
+  _changedSprite: {fileID: 21300000, guid: eb1ba41f9c8a1fc489b4afb1c1d3d42f, type: 3}
+  _actionMapName: Player
+  _actionName: 3
 --- !u!1 &5320254141325390584
 GameObject:
   m_ObjectHideFlags: 0
@@ -548,10 +548,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8880704e690736419c0589290e7bd9b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialSprite: {fileID: 21300000, guid: 36f72925ff4d7514090737d9ecf1c265, type: 3}
-  changedSprite: {fileID: 21300000, guid: 09bab9b057cf74941a49fc6b96d57549, type: 3}
-  actionMapName: Player
-  actionName: 3
+  _initialSprite: {fileID: 21300000, guid: 36f72925ff4d7514090737d9ecf1c265, type: 3}
+  _changedSprite: {fileID: 21300000, guid: 09bab9b057cf74941a49fc6b96d57549, type: 3}
+  _actionMapName: Player
+  _actionName: 2
 --- !u!1 &8143535728278703081
 GameObject:
   m_ObjectHideFlags: 0

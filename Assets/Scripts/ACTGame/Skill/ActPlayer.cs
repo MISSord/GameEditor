@@ -3,10 +3,34 @@ using ACTGameEditor.Locomotion;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace ACTGameEditor
 {
+    public interface ICameraTarget
+    {
+        Transform GetCameraTarget();
+        Transform GetPlayerTransform();
+        Vector3 GetPlayerPos();
+        Vector3 GetCameraTargetPos();
+    }
+
+    public interface IAttackPlayer
+    {
+        //添加输入记录
+        void AddInputRecord(InputListernType cmd, PressType type, InputCallBackType inputCallBackType);
+        void ChangeInputMoveState(bool state);
+        /// <summary>连招窗按白名单解析预输入，只消费赢家通道。</summary>
+        bool TryResolveEdges(List<SkillInputData> edges, out int skillId, out int sort);
+
+        /// <summary>
+        /// 战斗 Tick 内、出手队列消费前：提交 Idle/硬打断槽位。
+        /// 必须在当帧 Sample 之后调用，保证和 ActSpell 同一帧。
+        /// </summary>
+        void TickSkillInput();
+    }
+
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(Rigidbody))]
     public class ActPlayer : MonoBehaviour, ICameraTarget

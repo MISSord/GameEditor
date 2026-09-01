@@ -3413,6 +3413,10 @@ PrefabInstance:
       propertyPath: startPos.z
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3482299065040741674, guid: bb9179ddcc88ac84dbf5bd40164706dd, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6925799392229753692, guid: bb9179ddcc88ac84dbf5bd40164706dd, type: 3}
       propertyPath: batchBuffIds.Array.size
       value: 0

@@ -1,9 +1,23 @@
 using System.Collections.Generic;
+using ACTGameEditor.Combat;
 using EGamePlay.Combat;
-using UnityEngine;
 
 namespace ACTGameEditor
 {
+    /// <summary>
+    /// 逻辑槽位 ID，崩坏3 风格。
+    /// 同一槽位可随角色/武器放置不同技能。
+    /// </summary>
+    public enum SkillSlotId
+    {
+        NormalAttack = 0,
+        Skill1 = 1,
+        Skill2 = 2,
+        Skill3 = 3,
+        Ultimate = 4,
+        Dodge = 5,
+    }
+
     /// <summary>
     /// 槽位运行时：实体当前 SlotId → SkillId 映射。
     /// 换角色/武器时 LoadFromCharacter，或手动 SetSkillId。
@@ -108,6 +122,32 @@ namespace ACTGameEditor
                     }
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Idle 槽位 → 技能。形态 × 地面/空中优先，否则角色槽位表。
+    /// </summary>
+    public static class SkillResolver
+    {
+        /// <summary>
+        /// 解析 Idle 时该槽位应对应的技能 ID。无法解析时返回 0。
+        /// </summary>
+        public static int ResolveIdle(CombatEntity actor, SkillSlotRuntime slots, SkillSlotId slotId)
+        {
+            if (actor != null && !actor.IsDisposed)
+            {
+                CombatFormComponent form = actor.FormComponent;
+                SkillFormConfig config = form?.ActiveForm;
+                if (config != null)
+                {
+                    int formSkillId = config.GetSkillId(slotId, actor.IsAirborne);
+                    if (formSkillId > 0)
+                        return formSkillId;
+                }
+            }
+
+            return slots != null ? slots.GetSkillId(slotId) : 0;
         }
     }
 }

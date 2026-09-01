@@ -1,5 +1,5 @@
 using EGamePlay;
-using EGamePlay.Unity.Locomotion;
+using EGamePlay.Unity;
 
 namespace ACTGameEditor.Locomotion
 {

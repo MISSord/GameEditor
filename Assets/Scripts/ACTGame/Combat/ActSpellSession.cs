@@ -120,6 +120,9 @@ namespace ACTGameEditor.Combat
 
             _caster.ActiveExecution = _runner;
             _caster.StateDirector?.EnterSkill(_runner.Id);
+            _caster.BeginSkillMoveLock();
+            if (SkillSortUtil.IsRoll(sort))
+                _caster.ArmSprintFromDodge();
 
             if (CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate)
             {
@@ -168,8 +171,9 @@ namespace ACTGameEditor.Combat
             if (_caster != null && !_caster.IsDisposed && _runner != null)
             {
                 _caster.TagHost.PopTagsFrom(TagSource.Skill(_runner.Id));
-                if (releasedAxis)
-                    _caster.StateDirector?.ExitSkill(_runner.Id);
+                _caster.StateDirector?.ExitSkill(_runner.Id);
+                if (releasedAxis || _caster.ActiveExecution == null)
+                    _caster.EndSkillMoveLock();
             }
 
             if (_runner != null)

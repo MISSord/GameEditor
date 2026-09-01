@@ -103,6 +103,7 @@ public class SwitchableImageButton : MonoBehaviour
     {
         _isButtonPressed = true;
         SwitchToChangedSprite();
+        ConfigurableInputManager.Instance?.NotifySkillInput(_actionName);
     }
 
     private void OnButtonPointerUp()

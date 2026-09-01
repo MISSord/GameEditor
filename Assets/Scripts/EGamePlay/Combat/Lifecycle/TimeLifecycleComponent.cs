@@ -2,6 +2,12 @@ using System;
 
 namespace EGamePlay.Combat
 {
+    /// <summary>生命周期轮询。返回 true 表示宿主应当结束。</summary>
+    public interface ILifecycleLogic
+    {
+        bool OnUpdate(float deltaTime);
+    }
+
     /// <summary>
     /// 通用的时间生命周期配置（持续时间、Tick 间隔、延迟、CD）。
     /// Buff、Ability 等都可以复用。

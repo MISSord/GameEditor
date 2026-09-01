@@ -1,4 +1,4 @@
-using EGamePlay.Combat;
+﻿using EGamePlay.Combat;
 using SimpleJSON;
 using UnityEngine;
 
@@ -31,18 +31,6 @@ namespace EGamePlay
             TextAsset text = Resources.Load<TextAsset>(path);
             return JSON.Parse(text.text);
         }
-
-        //旧技能读取
-        //public SkillDataSetting GetSkillSetting(string id)
-        //{
-        //    SkillDataSetting res = CurrentTable.SkillDataReader.GetOrDefault(id);
-        //    if (res == null)
-        //    {
-        //        res = CurrentTable.SkillDataReader.DataList[0];
-        //        Debug.Log($"yns GetDefaut skillSetting ");
-        //    }
-        //    return res;
-        //}
 
         //技能读取
         public SkillDemoSetting GetSkillDemoSetting(int id)
