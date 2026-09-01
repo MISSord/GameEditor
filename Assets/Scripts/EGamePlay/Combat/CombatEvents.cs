@@ -1,6 +1,4 @@
-using EGamePlay;
-
-namespace EGamePlay.Combat
+﻿namespace EGamePlay.Combat
 {
     public class EntityDeadEvent { public Entity DeadEntity; }
 

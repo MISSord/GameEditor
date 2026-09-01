@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EGamePlay.Unity.Locomotion
+namespace EGamePlay.Unity
 {
     /// <summary>位移请求来源。</summary>
     public enum MotionSource : byte

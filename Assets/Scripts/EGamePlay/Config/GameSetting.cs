@@ -1,5 +1,4 @@
-
-namespace EGamePlay
+﻿namespace EGamePlay
 {
 
     [EnumLabel("CameraMode")]
@@ -9,12 +8,6 @@ namespace EGamePlay
         Follow,
         [EnumLabel("固定")]
         Fix
-    }
-
-    public enum GameMode
-    {
-        PVP,
-        PVE
     }
 
     //判断阵营

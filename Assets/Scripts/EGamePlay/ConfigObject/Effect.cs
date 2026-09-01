@@ -1,14 +1,6 @@
-using System;
+﻿using System;
 using UnityEngine;
 using Sirenix.OdinInspector;
-
-#if EGAMEPLAY_ET
-using Unity.Mathematics;
-using Vector3 = Unity.Mathematics.float3;
-using Quaternion = Unity.Mathematics.quaternion;
-using JsonIgnore = MongoDB.Bson.Serialization.Attributes.BsonIgnoreAttribute;
-#endif
-
 
 namespace EGamePlay.Combat
 {
@@ -36,11 +28,7 @@ namespace EGamePlay.Combat
     }
 
     [Serializable]
-#if UNITY
     public abstract class Effect
-#else
-    public class Effect : ET.Object
-#endif
     {
         //效果名字
         [HideInInspector]

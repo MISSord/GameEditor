@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using ACTGameEditor;
 using UnityEngine;
@@ -11,10 +11,6 @@ public class RunTimePoolManager : MonoSingleton<RunTimePoolManager>
     private Vector3 _outPosition = new Vector3(999, 999, 999);
 
     public Dictionary<string , RunTimePool> ResPool = new Dictionary<string, RunTimePool>();
-
-    //public Dictionary<string, GameObject> IdObjDic = new Dictionary<string, GameObject>();
-
-    //public Dictionary<string, Object> IDTypePool = new Dictionary<string, Object>() ;
 
     public static string GetResPath(string bundle, string asset)
     {
@@ -61,84 +57,6 @@ public class RunTimePoolManager : MonoSingleton<RunTimePoolManager>
             game.transform.position = _outPosition;
         }
     }
-
-    #region IDPool
-
-    //public GameObject FindIDObj(string ID)
-    //{
-    //    GameObject game = null;
-    //    IdObjDic.TryGetValue(ID, out game);
-    //    return game;
-    //}
-
-    //public GameObject FindOrCreatIDObj(string ID,string path = null)
-    //{
-    //    GameObject game;
-    //    if (!IdObjDic.ContainsKey(ID))
-    //    {
-    //        if(path==null)
-    //            game= new GameObject("Empty_" + ID);
-    //        else
-    //            game= Resources.Load(path) as GameObject;
-    //        RegisterID(ID, game);
-    //    }
-    //    else
-    //    {
-    //        game = IdObjDic[ID];
-    //    }
-    //    return game;
-    //}
-
-    //public GameObject LoadAndRegister(string ID, string resPath)
-    //{
-    //    var Prefab = Resources.Load(resPath) as GameObject;
-    //    if (Prefab == null)
-    //    {
-    //        Debug.Log("yns path null");
-    //        return null;
-    //    }
-    //    var game = GameObject.Instantiate(Prefab);
-    //    RegisterID(ID, game);
-    //    return game;
-    //}
-
-    #endregion
-
-    //public bool RegisterID(string ID, GameObject game)
-    //{
-    //    if (IdObjDic.ContainsKey(ID))
-    //    {
-    //        Debug.LogError("ID " + ID + "is Registered!");
-    //        return false;
-    //    }
-    //    IdObjDic.Add(ID, game);
-    //    return true;
-    //}
-
-    //public void UnRegisterID(string ID)
-    //{
-    //    IdObjDic.Remove(ID);
-    //}
-
-    //public void RegisterTypeIDPool<T>(string ID, string resPath) where T : Object
-    //{
-    //    T newOne = ResFinder.GetResObject<T>(resPath);
-    //    IDTypePool.Add(ID, newOne);
-    //}
-
-    //public T GetObjectByID<T>(string ID,string resPath) where T : Object
-    //{
-    //    if (IDTypePool.ContainsKey(ID))
-    //    {
-    //        return IDTypePool[ID] as T;
-    //    }
-    //    else
-    //    {
-    //        T  newOne = ResFinder.GetResObject<T>(resPath);
-    //        IDTypePool.Add(ID, newOne);
-    //        return newOne;
-    //    }
-    //}
 
     public AudioClip GetAudioClip(string ID, bool isHit)
     {

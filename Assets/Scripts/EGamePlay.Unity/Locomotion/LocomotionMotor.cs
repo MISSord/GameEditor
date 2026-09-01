@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace EGamePlay.Unity.Locomotion
+namespace EGamePlay.Unity
 {
     /// <summary>
     /// 无 Unity 生命周期的移动核：输入→相机相对方向→转向/加速→CharacterController + 重力 + Animator。
@@ -66,10 +66,9 @@ namespace EGamePlay.Unity.Locomotion
 
         /// <summary>是否处于空中 Locomotion（跳跃/滑落，不含技能浮空）。</summary>
         bool IsAirborneLocomotion => !IsGrounded || _velocity.y > 0.05f;
-        public bool LocomotionEnabled { get; set; } = true;
 
         /// <summary>是否允许 AutoRotate 跟随移动方向。</summary>
-        public bool RotationEnabled { get; set; } = true;
+        public bool FaceEnabled { get; set; } = true;
 
         /// <summary>落地检测结果。</summary>
         public bool IsGrounded { get; private set; } = true;
@@ -120,8 +119,17 @@ namespace EGamePlay.Unity.Locomotion
             _animStatesCached = false;
             _airborneMoveDir = Vector3.zero;
             IsGrounded = true;
-            LocomotionEnabled = true;
-            RotationEnabled = true;
+            FaceEnabled = true;
+        }
+
+        /// <summary>
+        /// 鸣潮：非走路时闪避锁存快跑。技能占轴期间不采步态，结束时若仍有移动意图则接疾跑，直到真正停步。
+        /// </summary>
+        public void ArmSprintFromDodge()
+        {
+            if (_walkMode)
+                return;
+            _sprintArmed = true;
         }
 
         /// <summary>绑定场景对象与依赖。</summary>
@@ -188,8 +196,6 @@ namespace EGamePlay.Unity.Locomotion
         bool TryConsumeJump()
         {
             if (_jumpBufferRemain <= 0f)
-                return false;
-            if (!LocomotionEnabled)
                 return false;
             if (_jumpGate != null && !_jumpGate.CanJump)
                 return false;
@@ -264,10 +270,7 @@ namespace EGamePlay.Unity.Locomotion
 
             SampleMoveIntent(dt);
 
-            if (!LocomotionEnabled)
-                return;
-
-            if (_gate != null && !_gate.CanMove)
+            if (ResolveMoveWeight() <= 0f)
                 return;
 
             if (_controller == null || !_controller.enabled)
@@ -338,7 +341,7 @@ namespace EGamePlay.Unity.Locomotion
                 return;
             }
 
-            bool gated = !LocomotionEnabled || (_gate != null && !_gate.CanMove);
+            bool gated = ResolveMoveWeight() <= 0f;
             if (!gated || _noInputTime < MoveReleaseGrace || IsAirborneLocomotion)
                 return;
 
@@ -365,22 +368,16 @@ namespace EGamePlay.Unity.Locomotion
             if (_controller == null)
                 return;
 
-            if (!LocomotionEnabled)
-            {
-                ApplyLocomotionAnim(idle: true, airborne: false);
-                return;
-            }
+            float moveWeight = ResolveMoveWeight();
 
-            bool canMove = _gate == null || _gate.CanMove;
-
-            if (RotationEnabled)
+            if (FaceEnabled)
             {
                 Vector3 faceDir = ResolveFaceDir();
                 if (faceDir.sqrMagnitude > 0.0001f)
                     AutoRotate(faceDir);
             }
 
-            ApplyHorizontalMove(canMove, IsAirborneLocomotion);
+            ApplyHorizontalMove(moveWeight, IsAirborneLocomotion);
         }
 
         void UpdateGravity()
@@ -541,16 +538,21 @@ namespace EGamePlay.Unity.Locomotion
             return _moveDir;
         }
 
-        void ApplyHorizontalMove(bool gateOpen, bool airborne)
+        float ResolveMoveWeight()
         {
-            if (_controller == null || !LocomotionEnabled)
+            return _gate == null ? 1f : Mathf.Clamp01(_gate.MoveWeight);
+        }
+
+        void ApplyHorizontalMove(float moveWeight, bool airborne)
+        {
+            if (_controller == null)
                 return;
 
             float airControl = airborne ? Mathf.Clamp01(_tuning.AirControl) : 1f;
             if (airborne && airControl <= 0f)
                 return;
 
-            if (!gateOpen)
+            if (moveWeight <= 0f)
             {
                 if (!airborne)
                     ApplyLocomotionAnim(idle: true, airborne: false);
@@ -568,7 +570,7 @@ namespace EGamePlay.Unity.Locomotion
             UpdateAnimSpeedParam();
             float scale = _time != null ? _time.PlayerScale : 1f;
 
-            float targetSpeed = _targetSpeed;
+            float targetSpeed = _targetSpeed * moveWeight;
             if (airborne)
                 targetSpeed *= Mathf.Max(0f, _tuning.AirMoveSpeedScale);
             else if (_landSlowRemain > 0f)

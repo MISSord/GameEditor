@@ -1,5 +1,4 @@
-﻿using EGamePlay.Unity.Locomotion;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace EGamePlay.Unity
 {

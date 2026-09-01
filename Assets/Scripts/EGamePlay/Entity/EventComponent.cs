@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace EGamePlay
@@ -7,7 +7,6 @@ namespace EGamePlay
     {
         public override bool DefaultEnable { get; set; } = false;
         private Dictionary<Type, List<object>> TypeEvent2ActionLists = new Dictionary<Type, List<object>>();
-        //private Dictionary<string, List<object>> FireEvent2ActionLists = new Dictionary<string, List<object>>(); //这个暂时关闭
 
         //这个更多是只关心某种类型的，自带参数类型转换，只能传递一个变量
         //这里传递更多的是非Entity类型

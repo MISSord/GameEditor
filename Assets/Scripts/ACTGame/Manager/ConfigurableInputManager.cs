@@ -105,28 +105,35 @@ namespace ACTGameEditor
             Sample();
         }
 
+        /// <summary>键盘 / 屏上技能钮共用：写入当前玩家预输入。</summary>
+        public void NotifySkillInput(
+            InputListernType cmd,
+            PressType type = PressType.Click,
+            InputCallBackType callBackType = InputCallBackType.Performed)
+        {
+            if (_curPlayer == null)
+                return;
+            _curPlayer.AddInputRecord(cmd, type, callBackType);
+        }
+
         public void OnButtonXPerform(InputAction.CallbackContext context)
         {
-            if (_curPlayer == null) return;
-            _curPlayer.AddInputRecord(InputListernType.ButtonX, PressType.Click, InputCallBackType.Performed);
+            NotifySkillInput(InputListernType.ButtonX);
         }
 
         public void OnButtonYPerform(InputAction.CallbackContext context)
         {
-            if (_curPlayer == null) return;
-            _curPlayer.AddInputRecord(InputListernType.ButtonY, PressType.Click, InputCallBackType.Performed);
+            NotifySkillInput(InputListernType.ButtonY);
         }
 
         public void OnButtonAPerform(InputAction.CallbackContext context)
         {
-            if (_curPlayer == null) return;
-            _curPlayer.AddInputRecord(InputListernType.ButtonA, PressType.Click, InputCallBackType.Performed);
+            NotifySkillInput(InputListernType.ButtonA);
         }
 
         public void OnButtonBPerform(InputAction.CallbackContext context)
         {
-            if (_curPlayer == null) return;
-            _curPlayer.AddInputRecord(InputListernType.ButtonB, PressType.Click, InputCallBackType.Performed);
+            NotifySkillInput(InputListernType.ButtonB);
         }
 
         public void OnJumpPerform(InputAction.CallbackContext context)
