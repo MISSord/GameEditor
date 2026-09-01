@@ -1,4 +1,5 @@
-using ACTGameEditor.Combat;
+﻿using ACTGameEditor.Combat;
+using ACTGameEditor.Locomotion;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
@@ -86,21 +87,65 @@ namespace ACTGameEditor
             if (combatAction is not ICombatSpellActionContext spellCtx || Combat.ModelTrans == null)
                 return;
 
-            Quaternion localRotation;
-            if (spellCtx.InputTarget != null)
+            if (SkillSortUtil.IsRoll(spellCtx.Sort))
             {
-                localRotation = Quaternion.LookRotation(spellCtx.InputTarget.Position - Combat.ModelTrans.position);
+                ApplyDodgeFacing(spellCtx);
+                Combat.ChangeInputRotateState(false);
+                return;
             }
-            else
+
+            Vector3 lookDelta = spellCtx.InputTarget != null
+                ? spellCtx.InputTarget.Position - Combat.ModelTrans.position
+                : spellCtx.InputPoint - Combat.ModelTrans.position;
+            if (TryMakePlanarLook(lookDelta, out Quaternion rot))
+                transform.rotation = rot;
+        }
+
+        /// <summary>闪避起步：当前摇杆优先，其次技能中最后一次指向，否则沿技能点/身前。</summary>
+        void ApplyDodgeFacing(ICombatSpellActionContext spellCtx)
+        {
+            if (CameraRelativeMove.TryGetWorldDirOrLast(out Vector3 dir))
             {
-                localRotation = Quaternion.LookRotation(spellCtx.InputPoint - Combat.ModelTrans.position);
+                ApplyDodgeYaw(dir);
+                return;
             }
-            transform.rotation = localRotation;
+
+            Vector3 toPoint = spellCtx.InputPoint - Combat.Position;
+            toPoint.y = 0f;
+            if (toPoint.sqrMagnitude >= 0.0001f)
+                ApplyDodgeYaw(toPoint.normalized);
+        }
+
+        void ApplyDodgeYaw(Vector3 planarDir)
+        {
+            planarDir.y = 0f;
+            if (planarDir.sqrMagnitude < 0.0001f)
+                return;
+            planarDir.Normalize();
+
+            Quaternion yaw = Quaternion.LookRotation(planarDir, Vector3.up);
+            Transform root = Combat.RootTransform != null ? Combat.RootTransform : transform;
+            root.rotation = yaw;
+            Combat.Rotation = yaw;
+        }
+
+        static bool TryMakePlanarLook(Vector3 worldDelta, out Quaternion rotation)
+        {
+            worldDelta.y = 0f;
+            if (worldDelta.sqrMagnitude < 0.0001f)
+            {
+                rotation = default;
+                return false;
+            }
+
+            rotation = Quaternion.LookRotation(worldDelta.normalized, Vector3.up);
+            return true;
         }
 
         protected virtual void OnPostSpell(Entity combatAction)
         {
-
+            if (combatAction is ICombatSpellActionContext spellCtx && SkillSortUtil.IsRoll(spellCtx.Sort))
+                Combat.ChangeInputRotateState(true);
         }
 
         protected virtual void OnCauseDamage(Entity combatAction)
@@ -114,8 +159,19 @@ namespace ACTGameEditor
             if (damageAction.Creator?.Id != Combat.Id)
                 return;
 
-            Vector3 worldPos = ResolveDamageTextPosition(damageAction.Target);
-            DamageTextPresenter.Active?.ShowDamage(damageAction.DamageValue, worldPos);
+            var kind = damageAction.DamageSource == DamageSource.Buff
+                ? DamageTextKind.Buff
+                : DamageTextKind.Skill;
+            long targetId = damageAction.Target.Id;
+            Vector3 worldPos = ResolveDamageTextWorldPosition(damageAction, damageAction.Target);
+            DamageTextPresenter.Active?.ShowDamage(new DamageTextRequest(
+                damageAction.DamageValue,
+                worldPos,
+                kind,
+                targetId,
+                damageAction.IsCritical,
+                damageAction.AppliedDamageType,
+                incoming: false));
         }
 
         protected virtual void OnReceiveDamage(Entity combatAction)
@@ -131,7 +187,17 @@ namespace ACTGameEditor
             if (damageAction.Creator?.Id == Combat.Id)
                 return;
 
-            DamageTextPresenter.Active?.ShowDamage(damageAction.DamageValue, UINode.position);
+            var kind = damageAction.DamageSource == DamageSource.Buff
+                ? DamageTextKind.Buff
+                : DamageTextKind.Skill;
+            DamageTextPresenter.Active?.ShowDamage(new DamageTextRequest(
+                damageAction.DamageValue,
+                ResolveDamageTextWorldPosition(damageAction, Combat),
+                kind,
+                Combat.Id,
+                damageAction.IsCritical,
+                damageAction.AppliedDamageType,
+                incoming: true));
 
             // 致死伤已在 ApplyDeath 中处理；霸体不进 Hit
             if (Combat.IsDead)
@@ -141,16 +207,19 @@ namespace ACTGameEditor
             Combat.TryApplyHitReaction(hitSrc, 0.35f);
         }
 
-        static Vector3 ResolveDamageTextPosition(ICombatUnit target)
+        static Vector3 ResolveDamageTextWorldPosition(DamageAction damageAction, ICombatUnit fallbackTarget)
         {
-            if (target?.Entity is CombatEntity combatEntity
-                && combatEntity.AttackPlayer != null
-                && combatEntity.AttackPlayer.UINode != null)
-            {
-                return combatEntity.AttackPlayer.UINode.position;
-            }
+            if (damageAction != null && damageAction.HasHitWorldPosition)
+                return damageAction.HitWorldPosition;
+            return ResolveDamageTextAnchor(fallbackTarget);
+        }
 
-            return target != null ? target.Position : Vector3.zero;
+        static Vector3 ResolveDamageTextAnchor(ICombatUnit target)
+        {
+            if (target?.Entity is CombatEntity combatEntity && combatEntity.AttackPlayer != null)
+                return combatEntity.AttackPlayer.GetDamageTextAnchor();
+
+            return target != null ? target.Position + Vector3.up * 1.05f : Vector3.zero;
         }
 
         protected virtual void OnReceiveCure(Entity combatAction)
@@ -166,13 +235,6 @@ namespace ACTGameEditor
         protected virtual void OnRemoveStatus(RemoveStatusEvent eventData)
         {
 
-        }
-
-        void Update()
-        {
-            // 反应动画自动交回；技能 speed 在 PlaySkill 时写入，时间缩放由 Director 订阅
-            _animComponent?.Director?.Tick();
-            CheckInitialInput();
         }
 
         /// <summary>Idle 时按形态×空中解析槽位技能。</summary>
@@ -313,7 +375,7 @@ namespace ACTGameEditor
         /// </summary>
         protected virtual void CollectPassiveSkillIdsFromLearnedTable(List<int> outIds)
         {
-            // Intentionally empty (project-specific integration point).
+
         }
 
         private void CollectPassiveSkillIdsFromSlots(List<int> outIds)
@@ -348,10 +410,22 @@ namespace ACTGameEditor
             }
 
             var info = PoolManager.Instance.TryGet<SkillSpellInfo>();
-            info.Target = LockSystem.Instance?.LockedCombatEntity ?? Target;
-            info.Point = MathHelper.GetPositionInFront(Combat.Position, Combat.Rotation, 3f);
             info.SkillId = skillId;
             info.Sort = sort;
+            if (SkillSortUtil.IsRoll(sort))
+            {
+                info.Target = null;
+                if (CameraRelativeMove.TryGetWorldDirOrLast(out Vector3 dodgeDir))
+                    info.Point = Combat.Position + dodgeDir * 3f;
+                else
+                    info.Point = MathHelper.GetPositionInFront(Combat.Position, Combat.Rotation, 3f);
+            }
+            else
+            {
+                info.Target = LockSystem.Instance?.LockedCombatEntity ?? Target;
+                info.Point = MathHelper.GetPositionInFront(Combat.Position, Combat.Rotation, 3f);
+            }
+
             Combat.GetComponent<ActSpellComponent>().Enqueue(info);
         }
 

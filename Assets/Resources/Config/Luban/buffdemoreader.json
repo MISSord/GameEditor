@@ -259,5 +259,107 @@
     "IntervalTime": 0,
     "TriggerFormula": "",
     "RemoveActionPointType": 16
+  },
+  {
+    "BuffId": 31000,
+    "Name": "攻击后加攻-触发器",
+    "BuffType": 4,
+    "BigBuffType": 21,
+    "SmallBuffType": 1,
+    "BuffTag": [],
+    "Description": "普攻或大招主轴结束后给自己挂 5 秒加攻；被动伤害不会走施法点",
+    "StatusSlot": 0,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 4,
+    "BuffModifyList": [
+      20
+    ],
+    "BaseDuration": 0,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 4096,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "#IsNormalOrUltimateSpell",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 31001,
+    "Name": "攻击力提升20%",
+    "BuffType": 1,
+    "BigBuffType": 21,
+    "SmallBuffType": 2,
+    "BuffTag": [],
+    "Description": "攻击力提升 20%，持续 5 秒，重复获得时刷新时间",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 2,
+    "BuffModifyList": [
+      21
+    ],
+    "BaseDuration": 5,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 31010,
+    "Name": "命中点燃-触发器",
+    "BuffType": 4,
+    "BigBuffType": 22,
+    "SmallBuffType": 1,
+    "BuffTag": [],
+    "Description": "主动技能真实命中后给敌方挂点燃；Buff 伤害不会触发",
+    "StatusSlot": 0,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 4,
+    "BuffModifyList": [
+      23
+    ],
+    "BaseDuration": 0,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 8,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "#IsActiveSkillHit",
+    "RemoveActionPointType": 0
+  },
+  {
+    "BuffId": 31011,
+    "Name": "点燃",
+    "BuffType": 1,
+    "BigBuffType": 4,
+    "SmallBuffType": 3,
+    "BuffTag": [
+      "Buff.Fire.Ignite"
+    ],
+    "Description": "每秒造成 50 点火属性伤害，持续 5 秒，重复施加刷新时间",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 2,
+    "BuffModifyList": [
+      22
+    ],
+    "BaseDuration": 5,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 1,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0
   }
 ]

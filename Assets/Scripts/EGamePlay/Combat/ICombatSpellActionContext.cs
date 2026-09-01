@@ -9,5 +9,9 @@ namespace EGamePlay.Combat
         ICombatUnit InputTarget { get; }
         Vector3 InputPoint { get; }
         Vector3 InputDirection { get; }
+        /// <summary>本次出手技能 ID。</summary>
+        int SkillId { get; }
+        /// <summary>本次出手 Sort（槽位/连招边，用于区分普攻、闪避、大招等）。</summary>
+        int Sort { get; }
     }
 }

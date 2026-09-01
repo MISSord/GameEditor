@@ -21,7 +21,8 @@ public enum InputListernType
     LongButtonB,
     Jump,
     Targeting,
-    //Weapon,
+    WalkToggle,
+    Sprint,
 }
 
 public enum PressType { Click, LongPress }

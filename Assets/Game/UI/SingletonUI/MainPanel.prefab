@@ -251,13 +251,17 @@ MonoBehaviour:
     ease: 28
     frontSizeStart: 33
     frontSizeEnd: 44
-    MoveY: 60
+    MoveY: 42
     flyTime: 0.6
     startColor: {r: 1, g: 1, b: 1, a: 1}
     endColor: {r: 1, g: 1, b: 1, a: 0.78431374}
-    randomVec2: {x: 25, y: 40}
+    randomVec2: {x: 14, y: 10}
     randomScaleVec2: {x: 0.5, y: 1}
-    offSet: {x: 60, y: 100}
+    offSet: {x: 0, y: 8}
+    burstStep: {x: 22, y: 14}
+    burstWindow: 0.22
+    buffColor: {r: 1, g: 0.45, b: 0.12, a: 1}
+    buffBaseOffset: {x: 28, y: 4}
   DamageTexts:
   - {fileID: 7401542166954444501}
   - {fileID: 4571697681749933451}

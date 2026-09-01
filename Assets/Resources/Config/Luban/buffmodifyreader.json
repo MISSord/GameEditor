@@ -93,5 +93,45 @@
     "ParamFloat1": 0,
     "ParamFloat2": 0,
     "ParamString1": []
+  },
+  {
+    "EffectModifyID": 20,
+    "EffectModifyType": 14,
+    "ParamInt1": 31001,
+    "ParamInt2": 0,
+    "ParamInt3": 0,
+    "ParamFloat1": 0,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 21,
+    "EffectModifyType": 1,
+    "ParamInt1": 1001,
+    "ParamInt2": 2,
+    "ParamInt3": 0,
+    "ParamFloat1": 20,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 22,
+    "EffectModifyType": 10,
+    "ParamInt1": 2,
+    "ParamInt2": 1,
+    "ParamInt3": 0,
+    "ParamFloat1": 50,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 23,
+    "EffectModifyType": 14,
+    "ParamInt1": 31011,
+    "ParamInt2": 0,
+    "ParamInt3": 0,
+    "ParamFloat1": 0,
+    "ParamFloat2": 0,
+    "ParamString1": []
   }
 ]

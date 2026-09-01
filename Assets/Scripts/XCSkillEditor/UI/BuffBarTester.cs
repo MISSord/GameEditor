@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Text;
 using ACTGameEditor;
 using EGamePlay;
 using EGamePlay.Combat;
@@ -23,11 +25,15 @@ namespace XiaoCao
         [Tooltip("面板初始位置")]
         public Vector2 panelPosition = new Vector2(10, 120);
         [Tooltip("面板宽度")]
-        public float panelWidth = 200f;
+        public float panelWidth = 240f;
+        [Tooltip("当前 BuffId 列表区域高度")]
+        public float buffListHeight = 140f;
 
         private bool _showPanel = true;
         private Rect _panelRect;
         private string _buffIdInput = "1";
+        private Vector2 _buffListScroll;
+        private readonly StringBuilder _listLabel = new StringBuilder(48);
 
         private void Start()
         {
@@ -51,20 +57,25 @@ namespace XiaoCao
                 return;
             }
 
-            float lineH = 24f;
-            float padding = 8f;
-            int lineCount = 10;
-            float h = padding * 2 + lineH * lineCount;
+            const float lineH = 24f;
+            const float padding = 8f;
+            const int controlLines = 9;
+            float listH = Mathf.Max(60f, buffListHeight);
+            float h = padding * 2 + lineH * controlLines + listH;
+            _panelRect.width = panelWidth;
             _panelRect.height = h;
-            _panelRect = GUILayout.Window(GetInstanceID(), _panelRect, DrawPanel, "Buff 栏测试", GUILayout.Height(h));
+            _panelRect = GUILayout.Window(GetInstanceID(), _panelRect, DrawPanel, "Buff 栏测试", GUILayout.Width(panelWidth), GUILayout.Height(h));
         }
 
         private void DrawPanel(int id)
         {
             GUILayout.BeginVertical(GUILayout.ExpandWidth(true));
 
-            int count = GetCurrentBuffCount();
+            var statusComp = GetLocalStatusComponent();
+            int count = statusComp?.Statuses?.Count ?? 0;
             GUILayout.Label($"当前 Buff 数量: {count}");
+
+            DrawOwnedBuffIdList(statusComp);
 
             GUILayout.Space(4);
             GUILayout.Label("BuffId:");
@@ -87,22 +98,78 @@ namespace XiaoCao
         }
 
         /// <summary>
+        /// 绘制当前角色已拥有的 BuffId 列表。点击某一行会把该 Id 填入输入框，便于移除测试。
+        /// </summary>
+        private void DrawOwnedBuffIdList(StatusComponent statusComp)
+        {
+            GUILayout.Space(4);
+            GUILayout.Label("当前 Buff Id（点击填入）:");
+
+            float listH = Mathf.Max(60f, buffListHeight);
+            _buffListScroll = GUILayout.BeginScrollView(_buffListScroll, GUI.skin.box, GUILayout.Height(listH));
+
+            List<Buff> statuses = statusComp?.Statuses;
+            if (statuses == null || statuses.Count == 0)
+            {
+                GUILayout.Label("（无）");
+                GUILayout.EndScrollView();
+                return;
+            }
+
+            for (int i = 0; i < statuses.Count; i++)
+            {
+                Buff buff = statuses[i];
+                if (buff == null)
+                    continue;
+
+                if (GUILayout.Button(BuildBuffListLabel(buff), GUILayout.Height(22)))
+                {
+                    int buffId = buff.BuffID;
+                    _buffIdInput = buffId.ToString();
+                    testBuffId = buffId;
+                }
+            }
+
+            GUILayout.EndScrollView();
+        }
+
+        /// <summary>
+        /// 拼一行列表文本：优先显示 BuffId，配置有名字时附带名称。
+        /// </summary>
+        private string BuildBuffListLabel(Buff buff)
+        {
+            _listLabel.Clear();
+            _listLabel.Append(buff.BuffID);
+            string name = buff.Setting != null ? buff.Setting.Name : null;
+            if (!string.IsNullOrEmpty(name))
+            {
+                _listLabel.Append("  ");
+                _listLabel.Append(name);
+            }
+            return _listLabel.ToString();
+        }
+
+        /// <summary>
         /// 对当前本地玩家添加指定 Buff（可被 UI 按钮或测试代码调用）。
+        /// 已存在同 Id 时不重复 Attach，避免 StatusComponent.IdStatuses 抛重复键。
         /// </summary>
         /// <param name="buffId">配置表中的 BuffId</param>
-        /// <returns>是否添加成功（已存在同 ID 时按配置 ReApply 规则刷新/叠层）</returns>
+        /// <returns>是否添加成功</returns>
         public bool AddTestBuff(int buffId)
         {
-            var combat = PlayerManager.Instance?.LocalPlayer?.Combat;
-            if (combat == null) return false;
-
-            var statusComp = combat.GetComponent<StatusComponent>();
+            var statusComp = GetLocalStatusComponent();
             if (statusComp == null) return false;
 
             if (SkillSettingMgr.Instance.GetBuffDemoSetting(buffId) == null)
             {
                 Debug.LogWarning($"[BuffBarTester] BuffId {buffId} 在配置中不存在，请检查 BuffDemo 表。");
                 return false;
+            }
+
+            if (statusComp.HasBuffId(buffId))
+            {
+                Debug.Log($"[BuffBarTester] Buff Id={buffId} 已存在，跳过重复添加。当前 Buff 数量={statusComp.Statuses.Count}");
+                return true;
             }
 
             Buff buff = statusComp.AttachStatus(buffId);
@@ -116,10 +183,7 @@ namespace XiaoCao
         /// </summary>
         public bool RemoveTestBuff(int buffId)
         {
-            var combat = PlayerManager.Instance?.LocalPlayer?.Combat;
-            if (combat == null) return false;
-
-            var statusComp = combat.GetComponent<StatusComponent>();
+            var statusComp = GetLocalStatusComponent();
             if (statusComp == null || !statusComp.HasBuffId(buffId)) return false;
 
             statusComp.RemoveStatus(buffId);
@@ -146,10 +210,7 @@ namespace XiaoCao
         /// </summary>
         public void RemoveAllBuffs()
         {
-            var combat = PlayerManager.Instance?.LocalPlayer?.Combat;
-            if (combat == null) return;
-
-            var statusComp = combat.GetComponent<StatusComponent>();
+            var statusComp = GetLocalStatusComponent();
             if (statusComp == null || statusComp.Statuses.Count == 0) return;
 
             int count = statusComp.Statuses.Count;
@@ -166,9 +227,39 @@ namespace XiaoCao
         /// </summary>
         public static int GetCurrentBuffCount()
         {
-            var combat = PlayerManager.Instance?.LocalPlayer?.Combat;
-            var statusComp = combat?.GetComponent<StatusComponent>();
+            var statusComp = GetLocalStatusComponent();
             return statusComp?.Statuses?.Count ?? 0;
+        }
+
+        /// <summary>
+        /// 将当前本地玩家身上的 BuffId 写入 dest（先 Clear），返回写入数量。
+        /// </summary>
+        /// <param name="dest">调用方提供的列表，避免热路径临时分配。</param>
+        public static int CopyCurrentBuffIds(List<int> dest)
+        {
+            if (dest == null)
+                return 0;
+
+            dest.Clear();
+            var statuses = GetLocalStatusComponent()?.Statuses;
+            if (statuses == null)
+                return 0;
+
+            for (int i = 0; i < statuses.Count; i++)
+            {
+                Buff buff = statuses[i];
+                if (buff != null)
+                    dest.Add(buff.BuffID);
+            }
+            return dest.Count;
+        }
+
+        /// <summary>
+        /// 取当前本地玩家的 StatusComponent。玩家未就绪时返回 null。
+        /// </summary>
+        private static StatusComponent GetLocalStatusComponent()
+        {
+            return PlayerManager.Instance?.LocalPlayer?.Combat?.GetComponent<StatusComponent>();
         }
     }
 }

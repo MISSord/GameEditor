@@ -1,6 +1,5 @@
 using EGamePlay;
 using EGamePlay.Unity.Locomotion;
-using UnityEngine;
 
 namespace ACTGameEditor.Locomotion
 {
@@ -8,7 +7,7 @@ namespace ACTGameEditor.Locomotion
     public static class LocomotionTuningBuilder
     {
         /// <summary>
-        /// 从旧 SO 填充；SO 缺失的跑速/加速度等保留默认硬编码值，转向改用 SO（真正生效）。
+        /// 从 PlayerMoveSettingSo 填充。转向、走跑、加减速、最短迈步均走 SO，不再只靠 CreateDefault。
         /// </summary>
         public static LocomotionTuning FromPlayerMoveSetting(PlayerMoveSettingSo so)
         {
@@ -18,6 +17,14 @@ namespace ACTGameEditor.Locomotion
 
             t.GroundLayers = so.GroundLayers;
             t.MovingTurnSpeed = so.m_MovingTurnSpeed;
+            t.RunMoveSpeed = so.RunMoveSpeed > 0.01f ? so.RunMoveSpeed : t.RunMoveSpeed;
+            t.WalkMoveSpeed = so.NorMoveSpeed >= 0.4f ? so.NorMoveSpeed : t.RunMoveSpeed * 0.5f;
+            t.SprintMoveSpeed = so.SprintMoveSpeed > t.RunMoveSpeed
+                ? so.SprintMoveSpeed
+                : t.RunMoveSpeed * 1.5f;
+            t.Acceleration = so.Acceleration > 0.001f ? so.Acceleration : t.Acceleration;
+            t.Deceleration = so.Deceleration > 0.001f ? so.Deceleration : t.Deceleration;
+            t.MinimumStepTime = so.MinimumStepTime;
             t.Gravity = so.Gravity;
             t.GravityOnGroundRate = so.GravityOnGrondRate;
             t.GravityOnAirAddRate = so.GravityOnAirAddRate;
@@ -25,71 +32,15 @@ namespace ACTGameEditor.Locomotion
             t.JumpHeight = so.JumpHeight;
             t.AirControl = so.AirControl;
             t.AirMoveSpeedScale = so.AirMoveSpeedScale;
+            if (so.CoyoteTime > 0.001f)
+                t.CoyoteTime = so.CoyoteTime;
+            if (so.JumpBufferTime > 0.001f)
+                t.JumpBufferTime = so.JumpBufferTime;
+            if (so.LandSlowTime > 0.001f)
+                t.LandSlowTime = so.LandSlowTime;
+            if (so.LandSlowScale > 0.01f)
+                t.LandSlowScale = so.LandSlowScale;
             return t;
         }
-
-        /// <summary>从独立 LocomotionConfig 填充。</summary>
-        public static LocomotionTuning FromConfig(LocomotionConfig config)
-        {
-            if (config == null)
-                return LocomotionTuning.CreateDefault();
-
-            return new LocomotionTuning
-            {
-                GroundLayers = config.GroundLayers,
-                MovingTurnSpeed = config.MovingTurnSpeed,
-                RunMoveSpeed = config.RunMoveSpeed,
-                Gravity = config.Gravity,
-                GravityOnGroundRate = config.GravityOnGroundRate,
-                GravityOnAirAddRate = config.GravityOnAirAddRate,
-                GravityMaxRate = config.GravityMaxRate,
-                Acceleration = config.Acceleration,
-                Deceleration = config.Deceleration,
-                AnimSpeedAcceleration = config.AnimSpeedAcceleration,
-                MinimumStepTime = config.MinimumStepTime,
-                GroundedOffset = config.GroundedOffset,
-                GroundedRadius = config.GroundedRadius,
-                InputDeadZone = config.InputDeadZone,
-                JumpHeight = config.JumpHeight,
-                AirControl = config.AirControl,
-                AirMoveSpeedScale = config.AirMoveSpeedScale,
-            };
-        }
-    }
-
-    /// <summary>独立移动配置（测试场景 / 新关卡使用）。</summary>
-    [CreateAssetMenu(fileName = "LocomotionConfig", menuName = "ACTGame/Locomotion Config", order = 50)]
-    public sealed class LocomotionConfig : ScriptableObject
-    {
-        [Header("Ground")]
-        public LayerMask GroundLayers = 1 << 9;
-        public float GroundedOffset = -0.14f;
-        public float GroundedRadius = 0.28f;
-
-        [Header("Move")]
-        public float MovingTurnSpeed = 720f;
-        public float RunMoveSpeed = 5f;
-        public float Acceleration = 0.25f;
-        public float Deceleration = 0.05f;
-        public float MinimumStepTime = 0.45f;
-        public float InputDeadZone = 0.1f;
-
-        [Header("Gravity")]
-        public float Gravity = -9.8f;
-        public float GravityOnGroundRate = 0.8f;
-        public float GravityOnAirAddRate = 1f;
-        public float GravityMaxRate = 4f;
-
-        [Header("Animation")]
-        public float AnimSpeedAcceleration = 0.2f;
-
-        [Header("Jump")]
-        [Tooltip("起跳高度（米），一段跳")]
-        public float JumpHeight = 1.2f;
-        [Tooltip("空中方向控制（0~1）")]
-        [Range(0f, 1f)]
-        public float AirControl = 0.65f;
-        [Tooltip("空中水平速 = RunMoveSpeed × 倍率")]
-        public float AirMoveSpeedScale = 1f;
     }
 }

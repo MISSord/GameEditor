@@ -13,6 +13,7 @@ namespace ACTGameEditor.Combat
         CombatEntity _owner;
         CombatFxPackageCatalog _catalog;
         bool _deathHandled;
+        bool _despawned;
 
         public override void Awake()
         {
@@ -38,6 +39,7 @@ namespace ACTGameEditor.Combat
         public override void OnReset()
         {
             _deathHandled = false;
+            _despawned = false;
             _owner = null;
             _catalog = null;
         }
@@ -45,6 +47,9 @@ namespace ACTGameEditor.Combat
         void OnPostReceiveDamage(Entity action)
         {
 #if UNITY
+            if (_deathHandled)
+                return;
+
             if (action is DamageAction damage)
                 TryPlayDamageRules(ActionPointType.PostReceiveDamage, damage);
 #endif
@@ -150,6 +155,10 @@ namespace ACTGameEditor.Combat
         void DespawnActor()
         {
 #if UNITY
+            if (_despawned)
+                return;
+            _despawned = true;
+
             ActPlayer actPlayer = _owner?.AttackPlayer;
             if (actPlayer == null)
                 return;
@@ -158,13 +167,23 @@ namespace ACTGameEditor.Combat
                 LockSystem.Instance.Unlock();
 
             uint netId = _owner.NetId;
+            long entityId = _owner.Id;
+            bool recycleToPool = !_owner.isTruePlayer;
+            string poolPath = actPlayer.PoolResPath;
+            GameObject go = actPlayer.gameObject;
+
             PlayerManager.Instance?.DisRegisterPlayer(netId);
 
             if (CombatContext.Instance != null)
-                CombatContext.Instance.Object2Entities.Remove(actPlayer.gameObject);
+                CombatContext.Instance.Object2Entities.Remove(go);
 
-            actPlayer.gameObject.SetActive(false);
+            go.SetActive(false);
+            actPlayer.RestoreForReuse();
+            CombatPresentationDirector.StopByEntity(entityId);
             actPlayer.Dispose();
+
+            if (recycleToPool && !string.IsNullOrEmpty(poolPath) && RunTimePoolManager.Instance != null)
+                RunTimePoolManager.Instance.ReCycle(poolPath, go);
 #endif
         }
     }

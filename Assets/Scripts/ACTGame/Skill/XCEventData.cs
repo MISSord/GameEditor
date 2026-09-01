@@ -194,9 +194,9 @@ namespace ACTGameEditor
     [Serializable]
     public class XCEffectEventData : XCEventData
     {
-        /// <summary>只触发一次的效果 ID 列表；为空时触发全部。</summary>
+        /// <summary>只触发一次、打在自身的效果 ID。标签轨请留空；空列表不会触发技能伤害。</summary>
         public List<int> NormalEffectIds = new List<int>();
-        /// <summary>跟随轨道生命周期的效果 ID 列表；为空时触发全部。</summary>
+        /// <summary>跟随轨道生命周期、打在自身的效果 ID。标签轨请留空；空列表不会触发或撤销技能效果。</summary>
         public List<int> SkillEffectIds = new List<int>();
         /// <summary>跟随轨道生命周期的标签列表。</summary>
         public List<string> SkillTagList = new List<string>();

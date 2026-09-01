@@ -160,7 +160,15 @@ namespace EGamePlay.Unity
                 EnsureSkillLayerWeight(animator, layer, true);
                 float blend = blendSeconds > 0f ? blendSeconds : 0f;
                 float offset = fixedTimeOffset > 0f ? fixedTimeOffset : 0f;
-                animator.CrossFadeInFixedTime(stateHash, blend, layer, offset);
+                // 连闪同一片段时 CrossFade 到自身不会从头播，RootMotion 会沿第一次朝向走完。
+                AnimatorStateInfo current = animator.GetCurrentAnimatorStateInfo(layer);
+                AnimatorStateInfo next = animator.GetNextAnimatorStateInfo(layer);
+                bool sameClip = current.shortNameHash == stateHash
+                    || (animator.IsInTransition(layer) && next.shortNameHash == stateHash);
+                if (sameClip)
+                    animator.Play(stateHash, layer, 0f);
+                else
+                    animator.CrossFadeInFixedTime(stateHash, blend, layer, offset);
             }
 
             if (_motion != null)

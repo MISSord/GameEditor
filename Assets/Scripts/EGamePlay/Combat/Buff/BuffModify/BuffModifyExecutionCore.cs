@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace EGamePlay.Combat
 {
@@ -20,7 +21,9 @@ namespace EGamePlay.Combat
             Entity triggerSource,
             DamageSource damageSource,
             Ability sourceAbility = null,
-            int damageSegmentIndex = 0)
+            int damageSegmentIndex = 0,
+            bool hasHitWorldPosition = false,
+            Vector3 hitWorldPosition = default)
         {
             if (setting == null || caster == null || target == null)
                 return;
@@ -45,6 +48,8 @@ namespace EGamePlay.Combat
                 TriggerSource = triggerSource,
                 Target = target,
                 DamageSegmentIndex = damageSegmentIndex,
+                HasHitWorldPosition = hasHitWorldPosition,
+                HitWorldPosition = hitWorldPosition,
             };
 
             if (caster.DamageAbility != null && caster.DamageAbility.TryMakeAction(out var damageAction))

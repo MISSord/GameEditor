@@ -14,7 +14,8 @@ namespace EGamePlay.Combat
         /// <summary>落地阶段：写入去重表，返回是否首次命中。</summary>
         bool CommitHit(ICombatUnit defender, object triggerEvent);
 
-        void ApplyAcceptedHit(ICombatUnit defender, object triggerEvent);
+        /// <summary>对已通过过滤的命中执行效果列表。</summary>
+        void ApplyAcceptedHit(in HitRequest request);
         void PostAcceptedHit();
     }
 }

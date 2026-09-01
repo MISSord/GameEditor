@@ -51,6 +51,11 @@ namespace ACTGameEditor
                 for (int i = _events.Count - 1; i >= 0; i--)
                 {
                     var ev = _events[i];
+                    if (!ev.HasFinished)
+                    {
+                        ev.OnFinish();
+                        ev.SetFinished();
+                    }
                     ev.OnReset();
                     PoolManager.Instance.Return(ev);
                 }
@@ -212,8 +217,12 @@ namespace ACTGameEditor
             CommitHitCore(defender, triggerEvent as XCTriggerEvent);
 
         /// <summary>对已通过过滤的命中执行效果列表。</summary>
-        public void ApplyAcceptedHit(ICombatUnit defender, object triggerEvent) =>
-            ApplyAcceptedHitCore(defender, triggerEvent as XCTriggerEvent);
+        public void ApplyAcceptedHit(in HitRequest request) =>
+            ApplyAcceptedHitCore(
+                request.Defender,
+                request.TriggerEvent as XCTriggerEvent,
+                request.HasHitWorldPosition,
+                request.HitWorldPosition);
 
         HitResultKind PeekHitCore(ICombatUnit defender, XCTriggerEvent triggerEvent)
         {
@@ -287,7 +296,11 @@ namespace ACTGameEditor
             return null;
         }
 
-        void ApplyAcceptedHitCore(ICombatUnit defender, XCTriggerEvent triggerEvent)
+        void ApplyAcceptedHitCore(
+            ICombatUnit defender,
+            XCTriggerEvent triggerEvent,
+            bool hasHitWorldPosition,
+            Vector3 hitWorldPosition)
         {
             if (IsDisposed || defender == null || defender.IsDisposed)
                 return;
@@ -297,7 +310,8 @@ namespace ACTGameEditor
                 return;
 
             TriggerEffectList(triggerEvent.TriggerEventData.EffectIds, targetEntity,
-                triggerEvent.TriggerEventData.DamageSegmentIndex);
+                triggerEvent.TriggerEventData.DamageSegmentIndex,
+                hasHitWorldPosition, hitWorldPosition);
         }
 
         /// <summary>命中后处理：指定目标命中后结束该子轴。受击打断等后续在此扩展。</summary>
@@ -330,6 +344,17 @@ namespace ACTGameEditor
         /// </summary>
         public void TriggerEffectList(List<int> effectIds, Entity target, int damageSegmentIndex = 0)
         {
+            TriggerEffectList(effectIds, target, damageSegmentIndex, false, default);
+        }
+
+        /// <summary>带命中世界坐标的效果触发；无盒体时 hasHitWorldPosition 为 false。</summary>
+        public void TriggerEffectList(
+            List<int> effectIds,
+            Entity target,
+            int damageSegmentIndex,
+            bool hasHitWorldPosition,
+            Vector3 hitWorldPosition)
+        {
             if (effectIds == null) return;
             var ability = _parentRunner?.AbilityEntity;
             if (ability == null || OwnerEntity == null || OwnerEntity.IsDisposed) return;
@@ -342,7 +367,8 @@ namespace ACTGameEditor
             if (effectIds.Count == 0)
             {
                 for (int i = 0; i < settings.Count; i++)
-                    EffectApplier.ApplySkillInline(settings[i], owner, target, ability, damageSegmentIndex);
+                    EffectApplier.ApplySkillInline(settings[i], owner, target, ability, damageSegmentIndex,
+                        hasHitWorldPosition, hitWorldPosition);
                 return;
             }
 
@@ -351,7 +377,8 @@ namespace ACTGameEditor
                 if (effectId <= 0) continue;
                 if (_effectSettingsById.TryGetValue(effectId, out var setting))
                 {
-                    EffectApplier.ApplySkillInline(setting, owner, target, ability, damageSegmentIndex);
+                    EffectApplier.ApplySkillInline(setting, owner, target, ability, damageSegmentIndex,
+                        hasHitWorldPosition, hitWorldPosition);
                 }
             }
         }

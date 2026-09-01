@@ -1,4 +1,4 @@
-using ACTGameEditor.Combat;
+﻿using ACTGameEditor.Combat;
 using ACTGameEditor.Locomotion;
 using EGamePlay;
 using EGamePlay.Combat;
@@ -15,9 +15,15 @@ namespace ACTGameEditor
         private Transform _cameraTarget;
         [HideInInspector]
         public Transform UINode;
+
+        /// <summary>飘字锚在脚底到头顶的插值（胸口）。UINode 在头顶给血条用，不能直接当出生点。</summary>
+        const float DamageTextChestLerp = 0.42f;
         [HideInInspector]
         public AgentTag Agent;
         public CombatEntity Combat { get; private set; }
+
+        /// <summary>对象池资源键（bundle|asset）；空则死亡后不回池。</summary>
+        public string PoolResPath { get; private set; }
 
         /// <summary>玩家层时间源（与 AnimDirector 共用）。</summary>
         protected IAnimTimeScaleSource PlayerTimeSource { get; private set; }
@@ -51,6 +57,78 @@ namespace ACTGameEditor
         /// <summary>死亡溶解时长。</summary>
         public virtual float DeathDissolveDuration => deathDissolveDuration;
 
+        /// <summary>记录生成所用对象池键，死亡回收时使用。</summary>
+        public void SetPoolResPath(string bundle, string asset)
+        {
+            PoolResPath = RunTimePoolManager.GetResPath(bundle, asset);
+        }
+
+        static readonly int IdleHash = Animator.StringToHash("Idle");
+        static readonly int MoveSpeedHash = Animator.StringToHash("MoveSpeed");
+        static readonly int IsRunHash = Animator.StringToHash("IsRun");
+
+        /// <summary>
+        /// 复位碰撞、渲染与动画残留，供对象池取出 / 回收复用。
+        /// </summary>
+        public void RestoreForReuse()
+        {
+            CharacterController controller = GetComponent<CharacterController>();
+            if (controller != null)
+                controller.enabled = true;
+
+            Collider[] colliders = GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < colliders.Length; i++)
+            {
+                if (colliders[i] != null)
+                    colliders[i].enabled = true;
+            }
+
+            Renderer[] renderers = GetComponentsInChildren<Renderer>(true);
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] != null)
+                    renderers[i].enabled = true;
+            }
+
+            ParticleSystem[] particles = GetComponentsInChildren<ParticleSystem>(true);
+            for (int i = 0; i < particles.Length; i++)
+                particles[i]?.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            TrailRenderer[] trails = GetComponentsInChildren<TrailRenderer>(true);
+            for (int i = 0; i < trails.Length; i++)
+                trails[i]?.Clear();
+
+            AudioSource[] audios = GetComponentsInChildren<AudioSource>(true);
+            for (int i = 0; i < audios.Length; i++)
+                audios[i]?.Stop();
+
+            GetComponent<AfterimageController>()?.StopAfterimage();
+            GetComponent<CharacterRenderFX>()?.ResetFX();
+
+            if (_modelShow == null)
+                _modelShow = transform.Find("ActTest");
+
+            Animator animator = _modelShow != null ? _modelShow.GetComponent<Animator>() : null;
+            if (animator != null)
+            {
+                animator.enabled = true;
+                animator.SetFloat(MoveSpeedHash, 0f);
+                animator.SetBool(IsRunHash, false);
+                animator.Play(IdleHash, 0, 0f);
+            }
+        }
+
+        /// <summary>
+        /// 飘字世界锚点：胸口附近。绝区零/鸣潮都把数字贴在受击躯干上，而不是血条头顶。
+        /// </summary>
+        public Vector3 GetDamageTextAnchor()
+        {
+            Vector3 feet = transform.position;
+            if (UINode != null)
+                return Vector3.Lerp(feet, UINode.position, DamageTextChestLerp);
+            return feet + Vector3.up * 1.05f;
+        }
+
         public void Init()
         {
             _modelShow = transform.Find("ActTest");
@@ -77,7 +155,7 @@ namespace ACTGameEditor
             PlayerTimeSource = data.animTimeScale ?? GameTimeAnimTimeScaleSource.Default;
 
             Combat = CombatContext.Instance.AddCombatUnit<CombatEntity>(data);
-            CombatContext.Instance.Object2Entities.Add(gameObject, Combat);
+            CombatContext.Instance.Object2Entities[gameObject] = Combat;
             Combat.ModelTrans = _modelShow;
             Combat.RootTransform = transform;
             Combat.CurAgent = Agent;
@@ -95,7 +173,11 @@ namespace ACTGameEditor
             _cameraTarget = null;
             _modelShow = null;
             UINode = null;
-            Entity.Destroy(Combat);
+            if (Combat != null)
+            {
+                Entity.Destroy(Combat);
+                Combat = null;
+            }
         }
 
 
@@ -164,17 +246,13 @@ namespace ACTGameEditor
             afterimage?.RefreshSources(_modelShow);
         }
 
-        /// <summary>Locomotion 一段跳：不走路由技能轴，不占 Token。</summary>
+        /// <summary>Locomotion 一段跳：不走路由技能轴，不占 Token。土狼/缓冲由电机消耗。</summary>
         public virtual void TryJump()
         {
             if (Combat == null || !Combat.IsCanJump)
                 return;
 
-            InputMoveComponent inputMove = Combat.GetComponent<InputMoveComponent>();
-            if (inputMove == null || !inputMove.TryJump())
-                return;
-
-            Combat.GetComponent<AnimComponent>()?.Director?.TryPlayLocomotionJump();
+            Combat.GetComponent<InputMoveComponent>()?.TryJump();
         }
     }
 }

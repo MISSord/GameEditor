@@ -95,7 +95,11 @@ namespace EGamePlay.Combat
 
             if (statusComp.HasBuffId(statusId))
             {
-                HandleReApplyExistingBuff(statusComp.GetBuffById(statusId), buffConfig);
+                var existingBuff = statusComp.GetBuffById(statusId);
+                if (existingBuff != null && !existingBuff.Enable)
+                    existingBuff.ActivateBuff();
+                else
+                    HandleReApplyExistingBuff(existingBuff, buffConfig);
                 PostProcess();
                 FinishAction();
                 return;

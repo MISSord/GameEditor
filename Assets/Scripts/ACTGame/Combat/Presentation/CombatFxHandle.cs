@@ -2,6 +2,7 @@ using System;
 
 namespace ACTGameEditor.Combat
 {
+    /// <summary>Director 分配的表现句柄，用于单独撤销。</summary>
     public readonly struct CombatFxHandle : IEquatable<CombatFxHandle>
     {
         public static readonly CombatFxHandle Invalid = default;

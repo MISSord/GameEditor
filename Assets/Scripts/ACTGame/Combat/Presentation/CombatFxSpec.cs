@@ -3,7 +3,7 @@ using EGamePlay.Combat;
 
 namespace ACTGameEditor.Combat
 {
-    /// <summary>?????????</summary>
+    /// <summary>单次表现播放请求。</summary>
     public struct CombatFxSpec
     {
         public CombatFxKind Kind;
@@ -14,7 +14,9 @@ namespace ACTGameEditor.Combat
         public float PlayerScale;
         public float CameraScale;
         public int TimePriority;
+        /// <summary>HitStop 时是否联动镜头 CA/RadialBlur。</summary>
         public bool PlayCameraImpact;
+        /// <summary>DeathDissolve 等异步效果完成回调。</summary>
         public Action OnComplete;
         public bool RespectGraphicsGate;
 

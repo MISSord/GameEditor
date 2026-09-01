@@ -41,10 +41,16 @@ namespace EGamePlay.Combat
 
         public static int Calculate(Entity creator, Entity target, DamageEffect effect)
         {
+            return Calculate(creator, target, effect, out _);
+        }
+
+        /// <summary>计算伤害并带回乘区上下文（含暴击与属性类型，供飘字使用）。</summary>
+        public static int Calculate(Entity creator, Entity target, DamageEffect effect, out DamageContext ctx)
+        {
             if (effect == null)
-                return Calculate(creator, target, DamageType.Physic, false, DamageCalcuFormulaType.Default, 1f);
+                return Calculate(creator, target, DamageType.Physic, false, DamageCalcuFormulaType.Default, 1f, out ctx);
             float rate = effect.DamageValueProperty > 0 ? effect.DamageValueProperty : 1f;
-            return Calculate(creator, target, effect.DamageType, effect.CanCrit, effect.FormulaType, rate);
+            return Calculate(creator, target, effect.DamageType, effect.CanCrit, effect.FormulaType, rate, out ctx);
         }
 
         /// <summary>
@@ -52,10 +58,16 @@ namespace EGamePlay.Combat
         /// </summary>
         public static int CalculateBySkillConfig(Entity creator, Entity target, int skillId, int segmentIndex)
         {
+            return CalculateBySkillConfig(creator, target, skillId, segmentIndex, out _);
+        }
+
+        /// <summary>按技能伤害段计算，并带回暴击/属性等上下文。</summary>
+        public static int CalculateBySkillConfig(Entity creator, Entity target, int skillId, int segmentIndex, out DamageContext ctx)
+        {
             var setting = SkillSettingMgr.Instance.GetSkillDamageSetting(skillId, segmentIndex);
             if (setting == null)
             {
-                return Calculate(creator, target, DamageType.Physic, false, DamageCalcuFormulaType.Default, 1f);
+                return Calculate(creator, target, DamageType.Physic, false, DamageCalcuFormulaType.Default, 1f, out ctx);
             }
 
             var damageType = setting.DamageType;
@@ -63,13 +75,20 @@ namespace EGamePlay.Combat
             var formulaType = (DamageCalcuFormulaType)setting.FormulaType;
             var ratio = setting.Ratio > 0 ? setting.Ratio : 1f;
 
-            return Calculate(creator, target, damageType, canCrit, formulaType, ratio);
+            return Calculate(creator, target, damageType, canCrit, formulaType, ratio, out ctx);
         }
 
         public static int Calculate(Entity creator, Entity target, DamageType damageType, bool canCrit,
             DamageCalcuFormulaType formulaType, float skillRate = 1f)
         {
-            var ctx = new DamageContext
+            return Calculate(creator, target, damageType, canCrit, formulaType, skillRate, out _);
+        }
+
+        /// <summary>填充伤害上下文后走六段乘区，结果写在 <paramref name="ctx"/>。</summary>
+        public static int Calculate(Entity creator, Entity target, DamageType damageType, bool canCrit,
+            DamageCalcuFormulaType formulaType, float skillRate, out DamageContext ctx)
+        {
+            ctx = new DamageContext
             {
                 Creator = creator,
                 Target = target,

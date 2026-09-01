@@ -1,5 +1,6 @@
 namespace ACTGameEditor.Combat
 {
+    /// <summary>底层表现后端桥接。</summary>
     interface ICombatFxBridge
     {
         bool CanPlay(in CombatFxSpec spec);

@@ -3,7 +3,7 @@ using EGamePlay.Combat;
 
 namespace ACTGameEditor.Combat
 {
-    /// <summary>???????Play / Stop / StopBySource?????? Bridge?</summary>
+    /// <summary>战斗表现编排：Play / Stop / StopBySource，路由到底层 Bridge。</summary>
     public static class CombatPresentationDirector
     {
         sealed class CombatFxEntry
@@ -26,6 +26,7 @@ namespace ACTGameEditor.Combat
         static readonly CharacterRenderFxBridge CharacterBridge = new CharacterRenderFxBridge();
 #endif
 
+        /// <summary>播放表现；失败返回 <see cref="CombatFxHandle.Invalid"/>。</summary>
         public static CombatFxHandle Play(in CombatFxSpec spec)
         {
             if (spec.Kind == CombatFxKind.SkillTimeStop && spec.Duration <= 0f)
@@ -71,6 +72,7 @@ namespace ACTGameEditor.Combat
             return handle;
         }
 
+        /// <summary>撤销单个句柄。</summary>
         public static void Stop(CombatFxHandle handle)
         {
             if (!handle.IsValid || !_entries.TryGetValue(handle.Id, out CombatFxEntry entry))
@@ -81,6 +83,7 @@ namespace ACTGameEditor.Combat
             RemoveSourceIndex(entry.Source, handle.Id);
         }
 
+        /// <summary>撤销某来源下全部效果（技能 Break 必调）。</summary>
         public static void StopBySource(in CombatFxSource source)
         {
             if (!_bySource.TryGetValue(source, out List<int> list) || list.Count == 0)
@@ -99,6 +102,7 @@ namespace ACTGameEditor.Combat
             list.Clear();
         }
 
+        /// <summary>撤销绑定实体上的效果，可选保留死亡溶解。</summary>
         public static void StopByEntity(long entityId, bool keepDeathDissolve = false)
         {
             _removeBuffer.Clear();
@@ -116,6 +120,7 @@ namespace ACTGameEditor.Combat
                 Stop(new CombatFxHandle(_removeBuffer[i]));
         }
 
+        /// <summary>清场（切场景 / 退出）。</summary>
         public static void ClearAll()
         {
             foreach (var pair in _entries)

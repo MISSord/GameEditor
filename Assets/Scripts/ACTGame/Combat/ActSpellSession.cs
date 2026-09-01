@@ -15,12 +15,16 @@ namespace ACTGameEditor.Combat
         CombatEntity _inputTarget;
         Vector3 _inputPoint;
         Vector3 _inputDirection;
+        int _skillId;
+        int _sort;
         bool _postProcessed;
 
         public ICombatUnit Caster => _caster;
         public ICombatUnit InputTarget => _inputTarget;
         public Vector3 InputPoint => _inputPoint;
         public Vector3 InputDirection => _inputDirection;
+        public int SkillId => _skillId;
+        public int Sort => _sort;
 
         /// <summary>创建并启动一次施法。</summary>
         public static ActSpellSession Start(CombatEntity caster, in CombatCastIntent intent, Ability ability)
@@ -39,6 +43,8 @@ namespace ACTGameEditor.Combat
             var session = (ActSpellSession)CombatContext.Instance.AddAction<ActSpellSession>();
             session._caster = caster;
             session._ability = ability;
+            session._skillId = ability.SkillID;
+            session._sort = intent.Sort;
             session._inputTarget = intent.Target as CombatEntity;
             session._inputPoint = intent.Point;
             session._inputDirection = intent.Direction;
@@ -169,6 +175,9 @@ namespace ACTGameEditor.Combat
             if (_runner != null)
                 CombatPresentationDirector.StopBySource(CombatFxSource.Skill(_runner.Id));
 
+            if (_caster != null && !_caster.IsDisposed && SkillSortUtil.IsRoll(_sort))
+                _caster.ChangeInputRotateState(true);
+
             DestroySelf();
         }
 
@@ -184,6 +193,8 @@ namespace ACTGameEditor.Combat
             _ability = null;
             _runner = null;
             _inputTarget = null;
+            _skillId = 0;
+            _sort = 0;
             _postProcessed = false;
         }
 
@@ -195,6 +206,8 @@ namespace ACTGameEditor.Combat
             _inputTarget = null;
             _inputPoint = default;
             _inputDirection = default;
+            _skillId = 0;
+            _sort = 0;
             _postProcessed = false;
         }
 

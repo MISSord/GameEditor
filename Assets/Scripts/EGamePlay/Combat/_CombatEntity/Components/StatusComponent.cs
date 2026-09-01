@@ -120,20 +120,15 @@ namespace EGamePlay.Combat
             }
         }
 
-        //public override void Update(float deltaTime)
-        //{
-        //    Buff buff;
-        //    for(int i = Statuses.Count - 1; i >= 0; i--)
-        //    {
-        //        buff = Statuses[i];
-        //        if (buff.IsNeedBuffUpdate) buff.Update(deltaTime);
-        //        //是否能移除Buff
-        //        if (buff.IsCanRemoveBuff == true)
-        //        {
-        //            this.RemoveStatus(buff.BuffID);
-        //        }
-        //    }
-        //}
+        public override void Update(float deltaTime)
+        {
+            for (int i = Statuses.Count - 1; i >= 0; i--)
+            {
+                Buff buff = Statuses[i];
+                if (buff != null && buff.IsCanRemoveBuff)
+                    RemoveStatus(buff.BuffID);
+            }
+        }
 
         public void OnStatusesChanged(Buff buff, bool isAdd)
         {

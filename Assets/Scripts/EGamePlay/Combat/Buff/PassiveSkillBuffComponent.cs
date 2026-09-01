@@ -55,10 +55,27 @@ namespace EGamePlay.Combat
             foreach (var buffId in _desiredPassiveBuffIds)
             {
                 if (_appliedPassiveBuffIds.Contains(buffId)) continue;
-                if (!status.HasBuffId(buffId))
-                    status.AttachStatus(buffId);
+                EnsurePassiveBuffActive(status, buffId);
                 _appliedPassiveBuffIds.Add(buffId);
             }
+        }
+
+        void EnsurePassiveBuffActive(StatusComponent status, int buffId)
+        {
+            if (status.TryGetBuffById(buffId, out var existing) && existing != null)
+            {
+                if (existing.Caster == null)
+                    existing.Caster = Entity;
+                if (!existing.Enable)
+                    existing.ActivateBuff();
+                return;
+            }
+
+            var buff = status.AttachStatus(buffId);
+            if (buff == null)
+                return;
+            buff.Caster = Entity;
+            buff.ActivateBuff();
         }
     }
 }

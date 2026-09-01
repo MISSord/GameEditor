@@ -5,7 +5,7 @@ using UnityEngine;
 namespace ACTGameEditor.Combat
 {
     /// <summary>
-    /// ??????Package ?? + ActionPoint ?????
+    /// 表现包目录：Package 定义 + ActionPoint 默认路由。
     /// </summary>
     [CreateAssetMenu(fileName = "CombatFxPackageCatalog", menuName = "ACTGame/Combat Fx Package Catalog", order = 102)]
     public sealed class CombatFxPackageCatalog : ScriptableObject
@@ -15,8 +15,10 @@ namespace ACTGameEditor.Combat
 
         static CombatFxPackageCatalog _active;
 
+        /// <summary>当前生效目录；未指定时使用内置默认包。</summary>
         public static CombatFxPackageCatalog Active => _active != null ? _active : _active = CreateBuiltIn();
 
+        /// <summary>由 EGamePlayInit 注入项目级目录；空列表时回填内置默认包。</summary>
         public static void SetActive(CombatFxPackageCatalog catalog)
         {
             _active = catalog;
@@ -24,6 +26,7 @@ namespace ACTGameEditor.Combat
                 _active.ResetToBuiltInDefaults();
         }
 
+        /// <summary>按 ID 查找包定义。</summary>
         public bool TryGetPackage(CombatFxPackageId id, out CombatFxPackageDefinition definition)
         {
             for (int i = 0; i < Packages.Count; i++)
@@ -39,6 +42,7 @@ namespace ACTGameEditor.Combat
             return false;
         }
 
+        /// <summary>内置默认目录（无 asset 时 fallback，亦用于 Create 菜单预填）。</summary>
         public static CombatFxPackageCatalog CreateBuiltIn()
         {
             var catalog = CreateInstance<CombatFxPackageCatalog>();
@@ -48,6 +52,7 @@ namespace ACTGameEditor.Combat
             return catalog;
         }
 
+        /// <summary>Editor / CreateAssetMenu：重置为内置默认内容。</summary>
         [ContextMenu("Reset To Built-In Defaults")]
         public void ResetToBuiltInDefaults()
         {
@@ -62,48 +67,48 @@ namespace ACTGameEditor.Combat
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.HitTakenLight,
-                DisplayName = "???",
-                ReferenceNote = "??????",
+                DisplayName = "轻受击",
+                ReferenceNote = "鸣潮/ZZZ 通用：受击 MPB 闪白。",
                 Entries = { CombatFxPackageEntry.HitFlash(0.12f) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.HitTakenHeavy,
-                DisplayName = "???",
-                ReferenceNote = "????",
+                DisplayName = "重受击",
+                ReferenceNote = "重击/击飞段：加长闪白。",
                 Entries = { CombatFxPackageEntry.HitFlash(0.2f) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.HitCausedLight,
-                DisplayName = "???",
-                ReferenceNote = "? HitStop + ??",
+                DisplayName = "轻命中",
+                ReferenceNote = "鸣潮偏轻：短 HitStop + 镜头冲击。",
                 Entries = { CombatFxPackageEntry.HitStop(0.08f, 0.08f, camera: true) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.HitCausedHeavy,
-                DisplayName = "???",
-                ReferenceNote = "? HitStop + ???",
+                DisplayName = "重命中",
+                ReferenceNote = "ZZZ 风格：更长 HitStop + 强镜头。",
                 Entries = { CombatFxPackageEntry.HitStop(0.14f, 0.05f, camera: true) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.HitCausedCrit,
-                DisplayName = "????",
-                ReferenceNote = "????",
+                DisplayName = "暴击命中",
+                ReferenceNote = "暴击：在重命中基础上略延长顿帧。",
                 Entries = { CombatFxPackageEntry.HitStop(0.16f, 0.04f, camera: true) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.DodgePlain,
-                DisplayName = "???",
-                ReferenceNote = "?? Afterimage ? Bridge",
+                DisplayName = "纯闪避",
+                ReferenceNote = "仅残影（Afterimage 待 Bridge）。",
                 Entries =
                 {
                     new CombatFxPackageEntry
@@ -118,8 +123,8 @@ namespace ACTGameEditor.Combat
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.DodgeTimeFracture,
-                DisplayName = "??????",
-                ReferenceNote = "???? 0.5s",
+                DisplayName = "时空断裂闪避",
+                ReferenceNote = "鸣潮极限闪避：世界减速 0.5s。",
                 Entries = { CombatFxPackageEntry.TimeFracture(0.5f, 0.3f) },
             });
 
@@ -127,7 +132,7 @@ namespace ACTGameEditor.Combat
             {
                 Id = CombatFxPackageId.DodgePerfect,
                 DisplayName = "Perfect Dodge",
-                ReferenceNote = "?? + ?? + ??",
+                ReferenceNote = "灰屏慢动作 + 残影 + 短断裂。",
                 Entries =
                 {
                     CombatFxPackageEntry.TimeFracture(0.6f, 0.15f),
@@ -150,8 +155,8 @@ namespace ACTGameEditor.Combat
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.StaggerBreak,
-                DisplayName = "??",
-                ReferenceNote = "? HitStop + ??",
+                DisplayName = "破韧",
+                ReferenceNote = "强 HitStop + 闪白。",
                 Entries =
                 {
                     CombatFxPackageEntry.HitStop(0.2f, 0.05f, camera: true),
@@ -162,8 +167,8 @@ namespace ACTGameEditor.Combat
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.AnomalyBurst,
-                DisplayName = "????",
-                ReferenceNote = "HitParticle ? Bridge",
+                DisplayName = "异常爆发",
+                ReferenceNote = "HitParticle 待 Bridge。",
                 Entries =
                 {
                     new CombatFxPackageEntry
@@ -179,16 +184,16 @@ namespace ACTGameEditor.Combat
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.SwitchIn,
-                DisplayName = "????",
-                ReferenceNote = "? HitStop",
+                DisplayName = "切人入场",
+                ReferenceNote = "短 HitStop。",
                 Entries = { CombatFxPackageEntry.HitStop(0.06f, 0.2f, camera: false) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.UltimateCinematic,
-                DisplayName = "?????",
-                ReferenceNote = "SkillTimeStop",
+                DisplayName = "终结技演出",
+                ReferenceNote = "共鸣解放 / Ultimate：SkillTimeStop。",
                 Entries =
                 {
                     new CombatFxPackageEntry
@@ -205,8 +210,8 @@ namespace ACTGameEditor.Combat
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.DeathDissolve,
-                DisplayName = "????",
-                ReferenceNote = "??? Despawn",
+                DisplayName = "死亡溶解",
+                ReferenceNote = "溶解后 Despawn。",
                 Entries = { CombatFxPackageEntry.DeathDissolve(1.2f) },
             });
         }
