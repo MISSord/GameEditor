@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace EGamePlay.Combat
 {
@@ -15,6 +16,8 @@ namespace EGamePlay.Combat
         public DamageSource DamageSource;
         public Ability SourceAbility;
         public int DamageSegmentIndex;
+        public bool HasHitWorldPosition;
+        public Vector3 HitWorldPosition;
     }
 
     /// <summary>
@@ -29,7 +32,9 @@ namespace EGamePlay.Combat
             ICombatUnit caster,
             Entity target,
             Ability sourceAbility,
-            int damageSegmentIndex)
+            int damageSegmentIndex,
+            bool hasHitWorldPosition = false,
+            Vector3 hitWorldPosition = default)
         {
             Apply(new EffectApplyRequest
             {
@@ -40,6 +45,8 @@ namespace EGamePlay.Combat
                 DamageSource = DamageSource.Skill,
                 SourceAbility = sourceAbility,
                 DamageSegmentIndex = damageSegmentIndex,
+                HasHitWorldPosition = hasHitWorldPosition,
+                HitWorldPosition = hitWorldPosition,
             });
         }
 
@@ -56,7 +63,8 @@ namespace EGamePlay.Combat
             {
                 BuffModifyExecutionCore.ExecuteHpDamage(
                     setting, caster, request.Target, request.TriggerSource,
-                    request.DamageSource, request.SourceAbility, request.DamageSegmentIndex);
+                    request.DamageSource, request.SourceAbility, request.DamageSegmentIndex,
+                    request.HasHitWorldPosition, request.HitWorldPosition);
                 return;
             }
 

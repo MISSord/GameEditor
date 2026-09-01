@@ -1,5 +1,6 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using ACTGameEditor;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
@@ -90,8 +91,6 @@ namespace ACTGameEditor.Combat
                 if (IsDead || ActiveExecution != null || CurState == PlayerStateEnum.Hit)
                     return false;
                 if (TagHost != null && TagHost.HasIndex(TagHost.MoveForbidIndex))
-                    return false;
-                if (!IsGrounded)
                     return false;
 #if UNITY
                 if (_inputMove == null || !_inputMove.Enable)

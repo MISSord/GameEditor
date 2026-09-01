@@ -9,6 +9,18 @@ namespace EGamePlay.Unity.Locomotion
     {
         static readonly int MoveSpeedId = Animator.StringToHash("MoveSpeed");
         static readonly int IsRunId = Animator.StringToHash("IsRun");
+        static readonly int IsWalkId = Animator.StringToHash("IsWalk");
+        static readonly int IsGroundId = Animator.StringToHash("IsGround");
+        static readonly int MoveXId = Animator.StringToHash("MoveX");
+        static readonly int MoveYId = Animator.StringToHash("MoveY");
+        static readonly int IdleStateId = Animator.StringToHash("Idle");
+        static readonly int RunningStateId = Animator.StringToHash("Running");
+        static readonly int WalkStateId = Animator.StringToHash("Walk_Eqip_Front");
+        const float GaitCrossFade = 0.08f;
+        /// <summary>鸣潮式停步滞回：松开方向后这段时间内仍视为有移动意图，避免换键空帧掉快跑。</summary>
+        const float MoveReleaseGrace = 0.15f;
+        /// <summary>水平速度低于该值才算真正停步，才允许清快跑。</summary>
+        const float StopSpeed = 0.35f;
 
         LocomotionTuning _tuning = LocomotionTuning.CreateDefault();
         CharacterController _controller;
@@ -20,6 +32,7 @@ namespace EGamePlay.Unity.Locomotion
         IJumpGate _jumpGate;
         ILocomotionTimeSource _time;
         ILocomotionStateSink _stateSink;
+        IMoveFacingProvider _facing;
         System.Func<bool> _canWriteAnimParams;
         MotionDirector _motion;
 
@@ -36,6 +49,19 @@ namespace EGamePlay.Unity.Locomotion
         bool _isPerformingStep;
         bool _enableGravity = true;
         bool _isRun;
+        bool _isWalk;
+        bool _walkMode;
+        bool _sprintArmed;
+        float _noInputTime = 999f;
+        float _coyoteRemain;
+        float _jumpBufferRemain;
+        float _landSlowRemain;
+        bool _wasGroundedLast = true;
+        int _lastGaitAnimHash;
+        bool _animStatesCached;
+        bool _hasIdleState;
+        bool _hasRunningState;
+        bool _hasWalkState;
         Vector3 _airborneMoveDir;
 
         /// <summary>是否处于空中 Locomotion（跳跃/滑落，不含技能浮空）。</summary>
@@ -53,6 +79,50 @@ namespace EGamePlay.Unity.Locomotion
 
         /// <summary>是否处于跑步态。</summary>
         public bool IsRun => _isRun;
+
+        /// <summary>解绑并清速度，供组件池复用。</summary>
+        public void ResetRuntimeState()
+        {
+            _controller = null;
+            _root = null;
+            _animator = null;
+            _input = null;
+            _camera = null;
+            _gate = null;
+            _jumpGate = null;
+            _time = null;
+            _stateSink = null;
+            _facing = null;
+            _canWriteAnimParams = null;
+            _motion = null;
+            _currentSpeed = 0f;
+            _targetSpeed = 0f;
+            _velocityXSmoothing = 0f;
+            _curMoveSpeedAnim = 0f;
+            _disableGravityTimer = 0f;
+            _stepStartTime = 0f;
+            _moveDir = Vector3.zero;
+            _inputDir = Vector2.zero;
+            _velocity = Vector3.zero;
+            _isFalling = false;
+            _isPerformingStep = false;
+            _enableGravity = true;
+            _isRun = false;
+            _isWalk = false;
+            _walkMode = false;
+            _sprintArmed = false;
+            _noInputTime = 999f;
+            _coyoteRemain = 0f;
+            _jumpBufferRemain = 0f;
+            _landSlowRemain = 0f;
+            _wasGroundedLast = true;
+            _lastGaitAnimHash = 0;
+            _animStatesCached = false;
+            _airborneMoveDir = Vector3.zero;
+            IsGrounded = true;
+            LocomotionEnabled = true;
+            RotationEnabled = true;
+        }
 
         /// <summary>绑定场景对象与依赖。</summary>
         public void Bind(
@@ -73,6 +143,8 @@ namespace EGamePlay.Unity.Locomotion
             _gate = gate;
             _time = time;
             _stateSink = stateSink;
+            _animStatesCached = false;
+            _lastGaitAnimHash = 0;
         }
 
         /// <summary>应用调参。</summary>
@@ -80,6 +152,9 @@ namespace EGamePlay.Unity.Locomotion
 
         /// <summary>动画参数写门控。返回 false 时不写 MoveSpeed/IsRun（技能占轴期间）。</summary>
         public void SetAnimParamWriteGate(System.Func<bool> canWrite) => _canWriteAnimParams = canWrite;
+
+        /// <summary>锁定朝向。有则转向目标（绕圈），无则朝移动方向。</summary>
+        public void SetFacingProvider(IMoveFacingProvider facing) => _facing = facing;
 
         /// <summary>跳跃门控（战斗禁跳、技能占轴等）。</summary>
         public void SetJumpGate(IJumpGate jumpGate) => _jumpGate = jumpGate;
@@ -101,17 +176,31 @@ namespace EGamePlay.Unity.Locomotion
         }
 
         /// <summary>
-        /// 尝试一段跳：须落地、未上升、通过门控。成功则写入垂直初速度。
+        /// 尝试一段跳：写入缓冲并立刻尝试消耗。离地后仍可走土狼时间；落地前按跳会在缓冲窗口内补跳。
         /// </summary>
         public bool TryJump()
         {
+            float buffer = _tuning.JumpBufferTime > 0.001f ? _tuning.JumpBufferTime : 0.12f;
+            _jumpBufferRemain = buffer;
+            return TryConsumeJump();
+        }
+
+        bool TryConsumeJump()
+        {
+            if (_jumpBufferRemain <= 0f)
+                return false;
             if (!LocomotionEnabled)
                 return false;
             if (_jumpGate != null && !_jumpGate.CanJump)
                 return false;
             if (_controller == null || !_controller.enabled)
                 return false;
-            if (!IsGrounded || _velocity.y > 0.05f)
+            if (_velocity.y > 0.05f)
+                return false;
+
+            bool groundedFeet = IsGrounded;
+            bool coyote = _coyoteRemain > 0f;
+            if (!groundedFeet && !coyote)
                 return false;
 
             float height = _tuning.JumpHeight;
@@ -124,8 +213,10 @@ namespace EGamePlay.Unity.Locomotion
 
             _velocity.y = Mathf.Sqrt(2f * gravity * height);
             _isFalling = false;
+            _jumpBufferRemain = 0f;
+            _coyoteRemain = 0f;
+            _landSlowRemain = 0f;
 
-            // 保留起跳方向与水平速度（鸣潮/绝区零：跑跳不停步）
             if (_moveDir.sqrMagnitude > 0.0001f)
                 _airborneMoveDir = _moveDir;
             else if (_root != null)
@@ -133,7 +224,6 @@ namespace EGamePlay.Unity.Locomotion
 
             _stateSink?.NotifyJumpStarted();
 
-            // 输入在 Update、重力在 FixedUpdate：立刻抬离地面，避免本帧仍判 grounded
             float stepDelta = _time != null ? _time.FixedPlayerDelta : Time.fixedDeltaTime;
             Vector3 lift = new Vector3(0f, _velocity.y * stepDelta, 0f);
             if (_motion != null)
@@ -144,12 +234,35 @@ namespace EGamePlay.Unity.Locomotion
             return true;
         }
 
+        void TickJumpAssist(float dt)
+        {
+            bool groundedStable = IsGrounded && _velocity.y <= 0.05f;
+            if (groundedStable)
+                _coyoteRemain = _tuning.CoyoteTime > 0.001f ? _tuning.CoyoteTime : 0.1f;
+            else
+                _coyoteRemain = Mathf.Max(0f, _coyoteRemain - dt);
+
+            if (!_wasGroundedLast && groundedStable)
+                _landSlowRemain = _tuning.LandSlowTime > 0.001f ? _tuning.LandSlowTime : 0.1f;
+            _wasGroundedLast = IsGrounded;
+
+            if (_jumpBufferRemain > 0f)
+                _jumpBufferRemain = Mathf.Max(0f, _jumpBufferRemain - dt);
+
+            TryConsumeJump();
+        }
+
         /// <summary>Update 阶段：落地检测 + 输入与状态。</summary>
         public void TickUpdate()
         {
             GroundedCheck();
+            float dt = _time != null ? _time.PlayerDelta : Time.deltaTime;
+            TickJumpAssist(dt);
+
             bool isFalling = !IsGrounded;
             _stateSink?.SyncAirborneState(IsGrounded, isFalling);
+
+            SampleMoveIntent(dt);
 
             if (!LocomotionEnabled)
                 return;
@@ -165,10 +278,13 @@ namespace EGamePlay.Unity.Locomotion
             else
                 _isFalling = true;
 
-            _inputDir = _input != null ? _input.MoveAxis : Vector2.zero;
             float dead = _tuning.InputDeadZone;
+            bool moving = Mathf.Clamp01(_inputDir.magnitude) > dead;
+            bool hasMoveIntent = moving || _noInputTime < MoveReleaseGrace;
 
-            if (_inputDir.magnitude > dead)
+            ApplyGaitInput(hasMoveIntent);
+
+            if (hasMoveIntent)
             {
                 if (!_isPerformingStep)
                 {
@@ -176,23 +292,17 @@ namespace EGamePlay.Unity.Locomotion
                     _stepStartTime = _time != null ? _time.PlayerTime : Time.time;
                 }
 
-                Vector3 forward = _camera != null ? _camera.PlanarForward : Vector3.forward;
-                Vector3 right = _camera != null ? _camera.PlanarRight : Vector3.right;
-                Vector3 relative = _inputDir.x * right + _inputDir.y * forward;
-                relative.Normalize();
-                _moveDir = relative;
-
-                _isRun = true;
-                _targetSpeed = _tuning.RunMoveSpeed;
-                _stateSink?.SetLocomotionState(true, true);
+                ApplyGaitTargetSpeed();
+                _stateSink?.SetLocomotionState(true, _isRun, _isWalk);
             }
             else
             {
-                if (_currentSpeed < dead && !IsAirborneLocomotion)
+                if (_currentSpeed < StopSpeed && !IsAirborneLocomotion)
                 {
                     _moveDir = Vector3.zero;
                     _isRun = false;
-                    _stateSink?.SetLocomotionState(false, false);
+                    _isWalk = false;
+                    _stateSink?.SetLocomotionState(false, false, false);
                 }
 
                 float now = _time != null ? _time.PlayerTime : Time.time;
@@ -204,24 +314,68 @@ namespace EGamePlay.Unity.Locomotion
             }
         }
 
+        /// <summary>
+        /// 技能占轴时仍采样摇杆：有输入则更新方向，松开则把粘性意图耗掉。
+        /// 正常停步不在这里清速度，仍走原来的减速。
+        /// </summary>
+        void SampleMoveIntent(float dt)
+        {
+            _inputDir = _input != null ? _input.MoveAxis : Vector2.zero;
+            float dead = _tuning.InputDeadZone;
+            bool moving = Mathf.Clamp01(_inputDir.magnitude) > dead;
+            if (moving)
+                _noInputTime = 0f;
+            else
+                _noInputTime += dt;
+
+            if (moving)
+            {
+                Vector3 forward = _camera != null ? _camera.PlanarForward : Vector3.forward;
+                Vector3 right = _camera != null ? _camera.PlanarRight : Vector3.right;
+                Vector3 relative = _inputDir.x * right + _inputDir.y * forward;
+                relative.Normalize();
+                _moveDir = relative;
+                return;
+            }
+
+            bool gated = !LocomotionEnabled || (_gate != null && !_gate.CanMove);
+            if (!gated || _noInputTime < MoveReleaseGrace || IsAirborneLocomotion)
+                return;
+
+            _moveDir = Vector3.zero;
+            _targetSpeed = 0f;
+            _currentSpeed = 0f;
+            _velocityXSmoothing = 0f;
+            _isRun = false;
+            _isWalk = false;
+            _isPerformingStep = false;
+        }
+
         /// <summary>FixedUpdate 阶段：重力 + 转向 + 水平位移 + 动画。</summary>
         public void TickFixed()
         {
             UpdateGravity();
 
-            bool canMove = _gate == null || _gate.CanMove;
-            if (_controller == null || !canMove)
+            if (!IsAirborneLocomotion && _landSlowRemain > 0f)
+            {
+                float landDt = _time != null ? _time.FixedPlayerDelta : Time.fixedDeltaTime;
+                _landSlowRemain = Mathf.Max(0f, _landSlowRemain - landDt);
+            }
+
+            if (_controller == null)
                 return;
 
             if (!LocomotionEnabled)
             {
-                ApplyAnimSpeed(0f, false);
+                ApplyLocomotionAnim(idle: true, airborne: false);
                 return;
             }
 
+            bool canMove = _gate == null || _gate.CanMove;
+
             if (RotationEnabled)
             {
-                Vector3 faceDir = ResolveHorizontalMoveDir(IsAirborneLocomotion);
+                Vector3 faceDir = ResolveFaceDir();
                 if (faceDir.sqrMagnitude > 0.0001f)
                     AutoRotate(faceDir);
             }
@@ -300,10 +454,76 @@ namespace EGamePlay.Unity.Locomotion
             if (_root == null)
                 return;
 
-            Vector3 local = _root.InverseTransformDirection(worldMove);
-            float turnAmount = Mathf.Atan2(local.x, local.z);
-            float scale = _time != null ? _time.PlayerScale : 1f;
-            _root.Rotate(0f, turnAmount * _tuning.MovingTurnSpeed * Time.fixedDeltaTime * scale, 0f);
+            Vector3 planar = Vector3.ProjectOnPlane(worldMove, Vector3.up);
+            if (planar.sqrMagnitude < 0.0001f)
+                return;
+
+            Quaternion targetRot = Quaternion.LookRotation(planar.normalized, Vector3.up);
+            float delta = _time != null ? _time.FixedPlayerDelta : Time.fixedDeltaTime;
+            float maxDeg = _tuning.MovingTurnSpeed * delta;
+            _root.rotation = Quaternion.RotateTowards(_root.rotation, targetRot, maxDeg);
+        }
+
+        /// <summary>有锁朝目标；否则朝当前水平移动方向。</summary>
+        Vector3 ResolveFaceDir()
+        {
+            const float minLockFacingSqr = 0.0225f;
+            if (_facing != null && _root != null && _facing.TryGetFacingPoint(out Vector3 point))
+            {
+                Vector3 to = Vector3.ProjectOnPlane(point - _root.position, Vector3.up);
+                if (to.sqrMagnitude >= minLockFacingSqr)
+                    return to;
+            }
+
+            return ResolveHorizontalMoveDir(IsAirborneLocomotion);
+        }
+
+        /// <summary>
+        /// Ctrl 切走/慢跑；慢跑中点 Shift 锁存快跑。
+        /// 鸣潮：疾跑跟锁存走，松开方向后等真正停步才退，不因单帧空输入掉回慢跑。
+        /// </summary>
+        void ApplyGaitInput(bool hasMoveIntent)
+        {
+            if (_input != null && _input.WalkTogglePressed)
+            {
+                _walkMode = !_walkMode;
+                if (_walkMode)
+                    _sprintArmed = false;
+            }
+
+            if (hasMoveIntent && !_walkMode && _input != null && _input.SprintPressed)
+                _sprintArmed = !_sprintArmed;
+
+            if (_sprintArmed && !_walkMode && !hasMoveIntent && !IsAirborneLocomotion && _currentSpeed <= StopSpeed)
+                _sprintArmed = false;
+        }
+
+        /// <summary>按当前步态写目标速度：走 / 慢跑 / 快跑。</summary>
+        void ApplyGaitTargetSpeed()
+        {
+            float walk = _tuning.WalkMoveSpeed > 0.01f ? _tuning.WalkMoveSpeed : _tuning.RunMoveSpeed * 0.5f;
+            float jog = Mathf.Max(_tuning.RunMoveSpeed, walk);
+            float sprint = _tuning.SprintMoveSpeed > jog ? _tuning.SprintMoveSpeed : jog * 1.5f;
+
+            if (_walkMode)
+            {
+                _targetSpeed = walk;
+                _isRun = false;
+                _isWalk = true;
+                return;
+            }
+
+            if (_sprintArmed)
+            {
+                _targetSpeed = sprint;
+                _isRun = true;
+                _isWalk = false;
+                return;
+            }
+
+            _targetSpeed = jog;
+            _isRun = true;
+            _isWalk = false;
         }
 
         Vector3 ResolveHorizontalMoveDir(bool airborne)
@@ -333,10 +553,7 @@ namespace EGamePlay.Unity.Locomotion
             if (!gateOpen)
             {
                 if (!airborne)
-                {
-                    _curMoveSpeedAnim = 0f;
-                    ApplyAnimSpeed(0f, false);
-                }
+                    ApplyLocomotionAnim(idle: true, airborne: false);
                 return;
             }
 
@@ -344,10 +561,7 @@ namespace EGamePlay.Unity.Locomotion
             if (worldMoveDir.sqrMagnitude < 0.0001f && _currentSpeed < 0.01f)
             {
                 if (!airborne)
-                {
-                    _curMoveSpeedAnim = 0f;
-                    ApplyAnimSpeed(0f, false);
-                }
+                    ApplyLocomotionAnim(idle: true, airborne: false);
                 return;
             }
 
@@ -357,6 +571,11 @@ namespace EGamePlay.Unity.Locomotion
             float targetSpeed = _targetSpeed;
             if (airborne)
                 targetSpeed *= Mathf.Max(0f, _tuning.AirMoveSpeedScale);
+            else if (_landSlowRemain > 0f)
+            {
+                float landScale = _tuning.LandSlowScale > 0.01f ? _tuning.LandSlowScale : 0.55f;
+                targetSpeed *= landScale;
+            }
 
             float accelTime = airborne
                 ? _tuning.Acceleration / Mathf.Max(airControl, 0.05f)
@@ -380,32 +599,94 @@ namespace EGamePlay.Unity.Locomotion
                     _controller.Move(horizontal);
             }
 
-            bool animRun = _isRun || (airborne && _currentSpeed > 0.1f);
-            ApplyAnimSpeed(_curMoveSpeedAnim, animRun);
+            ApplyLocomotionAnim(idle: false, airborne: airborne);
         }
 
         void UpdateAnimSpeedParam()
         {
-            float tmpMoveLen = _inputDir.magnitude;
-            if (_isPerformingStep)
-                tmpMoveLen = _moveDir.magnitude;
-
-            float max = _isRun ? 1f : 0f;
-            if (tmpMoveLen > _tuning.InputDeadZone)
-                _curMoveSpeedAnim = Mathf.Lerp(_curMoveSpeedAnim, max, _tuning.AnimSpeedAcceleration);
+            if (_isWalk)
+                _curMoveSpeedAnim = 0.35f;
+            else if (_sprintArmed && _isRun)
+                _curMoveSpeedAnim = 1f;
+            else if (_isRun)
+                _curMoveSpeedAnim = 0.7f;
             else
-                _curMoveSpeedAnim = Mathf.Lerp(_curMoveSpeedAnim, 0f, _tuning.AnimSpeedAcceleration);
+                _curMoveSpeedAnim = 0f;
         }
 
-        void ApplyAnimSpeed(float moveSpeed, bool isRun)
+        void ApplyLocomotionAnim(bool idle, bool airborne)
         {
             if (_animator == null)
                 return;
             if (_canWriteAnimParams != null && !_canWriteAnimParams())
+            {
+                _lastGaitAnimHash = 0;
                 return;
+            }
+
+            bool isWalk = !idle && _isWalk;
+            bool isRun = !idle && (_isRun || (airborne && _currentSpeed > 0.1f));
+            float moveSpeed = idle ? 0f : _curMoveSpeedAnim;
+            if (idle)
+            {
+                isWalk = false;
+                isRun = false;
+                moveSpeed = 0f;
+            }
 
             _animator.SetFloat(MoveSpeedId, moveSpeed);
             _animator.SetBool(IsRunId, isRun);
+            _animator.SetBool(IsWalkId, isWalk);
+            _animator.SetBool(IsGroundId, IsGrounded);
+
+            float axisScale = isWalk ? 0.45f : (isRun ? 1f : 0f);
+            float mx = 0f;
+            float my = 0f;
+            if (axisScale > 0f && _root != null && _moveDir.sqrMagnitude > 0.0001f)
+            {
+                Vector3 local = _root.InverseTransformDirection(_moveDir);
+                mx = local.x * axisScale;
+                my = local.z * axisScale;
+            }
+
+            _animator.SetFloat(MoveXId, mx);
+            _animator.SetFloat(MoveYId, my);
+
+            if (!airborne)
+                TryCrossFadeGait(isWalk, isRun);
+        }
+
+        void TryCrossFadeGait(bool isWalk, bool isRun)
+        {
+            EnsureAnimStateCache();
+
+            int hash = IdleStateId;
+            if (isWalk && _hasWalkState)
+                hash = WalkStateId;
+            else if (isRun && _hasRunningState)
+                hash = RunningStateId;
+            else if (isWalk && !_hasWalkState)
+                hash = IdleStateId;
+
+            if (hash == RunningStateId && !_hasRunningState)
+                return;
+            if (hash == IdleStateId && !_hasIdleState)
+                return;
+            if (hash == _lastGaitAnimHash)
+                return;
+
+            _lastGaitAnimHash = hash;
+            _animator.CrossFadeInFixedTime(hash, GaitCrossFade, 0, 0f);
+        }
+
+        void EnsureAnimStateCache()
+        {
+            if (_animStatesCached || _animator == null)
+                return;
+            _hasIdleState = _animator.HasState(0, IdleStateId);
+            _hasRunningState = _animator.HasState(0, RunningStateId);
+            _hasWalkState = _animator.HasState(0, WalkStateId);
+            _animStatesCached = true;
         }
 
         void GroundedCheck()

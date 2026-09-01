@@ -1,5 +1,6 @@
 using ACTGameEditor;
 using DG.Tweening;
+using EGamePlay.Combat;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -36,6 +37,22 @@ namespace XiaoCao
         // private AgentModelType modelType = AgentModelType.Player;
         private int _nextText;
         private Vector2 _changeVec2;
+        readonly Dictionary<long, DamagePopBurst> _popBursts = new Dictionary<long, DamagePopBurst>(8);
+        const int MaxPopBurstEntries = 48;
+        const float DefaultBurstWindow = 0.22f;
+        const float PunchDuration = 0.1f;
+        const float FadeStartRatio = 0.6f;
+        const float DotSizeScale = 0.7f;
+        const float CritSizeScale = 1.18f;
+        /// <summary>同帧连弹相对胸口的横向扇形：中、右、左循环，避免第一下就偏到角色外侧。</summary>
+        static readonly sbyte[] BurstFanX = { 0, 1, -1 };
+        static readonly Color PhysicColor = new Color(0.96f, 0.90f, 0.42f, 1f);
+        static readonly Color FireColor = new Color(1f, 0.38f, 0.16f, 1f);
+        static readonly Color IceColor = new Color(0.35f, 0.88f, 0.92f, 1f);
+        static readonly Color ElectricColor = new Color(0.22f, 0.72f, 1f, 1f);
+        static readonly Color RealColor = Color.white;
+        static readonly Color IncomingColor = new Color(1f, 0.22f, 0.22f, 1f);
+        static readonly Color OutlineColor = new Color(0f, 0f, 0f, 0.82f);
         #endregion
 
         #region prefab
@@ -68,6 +85,7 @@ namespace XiaoCao
             foreach (var item in DamageTexts)
             {
                 DamageTextTweens.Add(new DamageTextTween { text = item });
+                EnsureDamageTextOutline(item);
             }
             PlayerManager.Instance.AddAckerAct += AddNewBar;
             PlayerManager.Instance.RemoveAckerAct += RemoveOne;
@@ -246,7 +264,12 @@ namespace XiaoCao
         {
             if (uiBarDic.ContainsKey(netID))
             {
-                barPool.Recyle(uiBarDic[netID]);
+                UIBar bar = uiBarDic[netID];
+                if (bar != null && bar != localUIBar)
+                    barPool.Recyle(bar);
+                else if (bar == localUIBar)
+                    bar.SetTarget(null);
+
                 uiBarDic.Remove(netID);
             }
             else
@@ -312,6 +335,27 @@ namespace XiaoCao
 
         public void ShowDamageText(string num, Vector3 mTarget, bool isBlod = false)
         {
+            ShowDamageText(num, mTarget, DamageTextKind.Skill, 0);
+        }
+
+        /// <summary>
+        /// 展示伤害飘字。同一目标短时间内多次弹出时按来源分簇并错开格子，避免普攻与点燃重叠。
+        /// </summary>
+        public void ShowDamageText(string num, Vector3 mTarget, DamageTextKind kind, long targetId)
+        {
+            ShowDamageText(new DamageTextRequest(0f, mTarget, kind, targetId, false, DamageType.Physic, false), num);
+        }
+
+        /// <summary>按结算结果展示飘字：直伤弹出、DoT 更小更稳、暴击加粗、属性染色。</summary>
+        public void ShowDamageText(in DamageTextRequest request)
+        {
+            bool isDot = request.Kind == DamageTextKind.Buff;
+            bool showCritMark = request.IsCritical && !isDot && !request.Incoming;
+            ShowDamageText(request, FormatDamageNum(request.Value, showCritMark));
+        }
+
+        void ShowDamageText(in DamageTextRequest request, string num)
+        {
             if (!IsCanvasInited || canvasRect == null || DamageTexts == null || DamageTexts.Count == 0)
                 return;
 
@@ -319,7 +363,7 @@ namespace XiaoCao
             if (worldCam == null)
                 return;
 
-            Vector3 screenPoint3 = worldCam.WorldToScreenPoint(mTarget);
+            Vector3 screenPoint3 = worldCam.WorldToScreenPoint(request.WorldPosition);
             if (screenPoint3.z < 0)
                 return;
 
@@ -327,8 +371,15 @@ namespace XiaoCao
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(canvasRect, screenPoint3, uiCam, out Vector2 anchorPos))
                 return;
 
-            _changeVec2 = Vector2.Scale(DamageUITSetting.randomVec2, Random.insideUnitCircle);
-            _changeVec2 += DamageUITSetting.offSet;
+            DamageTextSetting setting = DamageUITSetting;
+            int burst = NextBurstIndex(request.TargetId);
+            Vector2 scatter = ResolveScatter(burst, request.Kind, setting);
+
+            _changeVec2 = Vector2.Scale(
+                setting.randomVec2.sqrMagnitude > 0.01f ? setting.randomVec2 : new Vector2(14f, 10f),
+                Random.insideUnitCircle);
+            _changeVec2 += setting.offSet;
+            _changeVec2 += scatter;
             anchorPos += _changeVec2;
 
             int textIndex = _nextText;
@@ -345,28 +396,164 @@ namespace XiaoCao
 
             Text t = DamageTextTweens[textIndex].text;
             t.gameObject.SetActive(true);
-            t.transform.localScale = Random.Range(DamageUITSetting.randomScaleVec2.x, DamageUITSetting.randomScaleVec2.y) * Vector3.one;
+            t.transform.SetAsLastSibling();
+
+            bool isDot = request.Kind == DamageTextKind.Buff;
+            bool isCrit = request.IsCritical && !isDot && !request.Incoming;
+            float sizeScale = isDot ? DotSizeScale : (isCrit ? CritSizeScale : 1f);
+            int sizeStart = Mathf.Max(8, (int)(setting.frontSizeStart * sizeScale));
+            t.fontSize = sizeStart;
+            t.fontStyle = isCrit ? FontStyle.Bold : FontStyle.Normal;
             t.text = num;
             t.rectTransform.anchoredPosition = anchorPos;
-            tween.Join(DOTween.To(x => t.fontSize = (int)x, DamageUITSetting.frontSizeStart, DamageUITSetting.frontSizeEnd, DamageUITSetting.flyTime / 2).SetLoops(2, LoopType.Yoyo));
-            tween.Join(t.rectTransform.DOAnchorPosY(anchorPos.y + DamageUITSetting.MoveY, DamageUITSetting.flyTime / 2));
 
-            t.color = DamageUITSetting.startColor;
+            Color from = ResolveDamageTextColor(request);
+            Color fadeOut = from;
+            fadeOut.a = 0f;
+            t.color = from;
 
-            Color ac = Color.white;
-            ac.a = 0;
-            tween.OnComplete(() => { t.color = ac; });
+            float fly = setting.flyTime > 0.01f ? setting.flyTime : 0.7f;
+            float moveY = isDot ? setting.MoveY * 0.55f : setting.MoveY;
+            Vector2 endPos = anchorPos + new Vector2(scatter.x * 0.2f, moveY);
+            float fadeStart = fly * FadeStartRatio;
+            float fadeDur = Mathf.Max(0.08f, fly - fadeStart);
+
+            // 字号已区分直伤/DoT/暴击，scale 只做弹出，避免再缩一层
+            if (isDot)
+            {
+                t.transform.localScale = Vector3.one;
+            }
+            else
+            {
+                float punchPeak = isCrit ? 1.28f : 1.12f;
+                t.transform.localScale = 0.58f * Vector3.one;
+                tween.Append(t.transform.DOScale(punchPeak, PunchDuration * 0.45f).SetEase(Ease.OutQuad));
+                tween.Append(t.transform.DOScale(1f, PunchDuration * 0.55f).SetEase(Ease.InOutQuad));
+            }
+
+            tween.Insert(0f, t.rectTransform.DOAnchorPos(endPos, fly).SetEase(isDot ? Ease.OutSine : setting.ease));
+            tween.Insert(fadeStart, DOTween.To(() => t.color, x => t.color = x, fadeOut, fadeDur).SetEase(Ease.InQuad));
+            tween.OnComplete(() =>
+            {
+                if (t == null)
+                    return;
+                t.color = fadeOut;
+                t.gameObject.SetActive(false);
+            });
 
             gameObject.SetActive(true);
         }
 
+        static string FormatDamageNum(float value, bool isCrit)
+        {
+            int shown = (int)value;
+            return isCrit ? string.Format("-{0}!!", shown) : string.Format("-{0}", shown);
+        }
+
+        static Color ResolveDamageTextColor(in DamageTextRequest request)
+        {
+            if (request.Incoming)
+                return IncomingColor;
+
+            Color c;
+            if (request.DamageType == DamageType.Fire)
+                c = FireColor;
+            else if (request.DamageType == DamageType.Ice)
+                c = IceColor;
+            else if (request.DamageType == DamageType.Electric)
+                c = ElectricColor;
+            else if (request.DamageType == DamageType.Real)
+                c = RealColor;
+            else
+                c = PhysicColor;
+
+            if (request.Kind == DamageTextKind.Buff)
+            {
+                c.r *= 0.78f;
+                c.g *= 0.78f;
+                c.b *= 0.78f;
+            }
+            else if (request.IsCritical)
+            {
+                c.r = Mathf.Min(1f, c.r * 1.08f);
+                c.g = Mathf.Min(1f, c.g * 1.08f);
+                c.b = Mathf.Min(1f, c.b * 1.08f);
+            }
+
+            c.a = 1f;
+            return c;
+        }
+
+        static void EnsureDamageTextOutline(Text t)
+        {
+            if (t == null)
+                return;
+
+            var outline = t.GetComponent<Outline>();
+            if (outline == null)
+                outline = t.gameObject.AddComponent<Outline>();
+            outline.effectColor = OutlineColor;
+            outline.effectDistance = new Vector2(1.25f, -1.25f);
+            outline.useGraphicAlpha = true;
+        }
+
+        int NextBurstIndex(long targetId)
+        {
+            if (targetId == 0)
+                targetId = -1;
+
+            float now = Time.unscaledTime;
+            float window = DamageUITSetting != null && DamageUITSetting.burstWindow > 0.01f
+                ? DamageUITSetting.burstWindow
+                : DefaultBurstWindow;
+
+            if (_popBursts.TryGetValue(targetId, out DamagePopBurst burst) && now - burst.LastTime <= window)
+                burst.Count++;
+            else
+                burst.Count = 0;
+
+            burst.LastTime = now;
+            _popBursts[targetId] = burst;
+
+            if (_popBursts.Count > MaxPopBurstEntries)
+                _popBursts.Clear();
+
+            return burst.Count;
+        }
+
+        static Vector2 ResolveScatter(int burst, DamageTextKind kind, DamageTextSetting setting)
+        {
+            Vector2 step = setting != null && setting.burstStep.sqrMagnitude > 0.01f
+                ? setting.burstStep
+                : new Vector2(22f, 14f);
+            Vector2 cluster = kind == DamageTextKind.Buff
+                ? (setting != null && setting.buffBaseOffset.sqrMagnitude > 0.01f
+                    ? setting.buffBaseOffset
+                    : new Vector2(28f, 4f))
+                : Vector2.zero;
+
+            int col = BurstFanX[burst % BurstFanX.Length];
+            int row = burst / BurstFanX.Length;
+            return cluster + new Vector2(col * step.x, row * step.y);
+        }
+
         private void OnRecyleUIBar(UIBar bar)
         {
+            if (bar == null)
+                return;
+
+            bar.SetTarget(null);
             bar.gameObject.SetActive(false);
         }
 
     }
 
+
+    struct DamagePopBurst
+    {
+        public float LastTime;
+        public int Count;
+    }
 
     public class DamageTextTween
     {
@@ -380,13 +567,23 @@ namespace XiaoCao
         public Ease ease;
         public float frontSizeStart = 10;
         public float frontSizeEnd = 32;
-        public float MoveY = 5;
+        public float MoveY = 42;
         public float flyTime = 0.5f;
         public Color startColor;
         public Color endColor;
-        public Vector2 randomVec2;
+        [Tooltip("胸口锚点上的随机抖动（像素），宜小，避免飞出角色轮廓")]
+        public Vector2 randomVec2 = new Vector2(14f, 10f);
         public Vector2 randomScaleVec2;
-        public Vector2 offSet;
+        [Tooltip("转完屏幕坐标后再加的偏移。出生点已在胸口，接近 0 即可")]
+        public Vector2 offSet = new Vector2(0f, 8f);
+        [Tooltip("同一目标连续弹出时的扇形间距（像素）")]
+        public Vector2 burstStep = new Vector2(22f, 14f);
+        [Tooltip("视为同一次连弹的时间窗（秒）")]
+        public float burstWindow = 0.22f;
+        [Tooltip("Buff / 点燃伤害颜色")]
+        public Color buffColor = new Color(1f, 0.45f, 0.12f, 1f);
+        [Tooltip("Buff 飘字相对技能字的基础错开，贴在躯干右侧而不是角色外")]
+        public Vector2 buffBaseOffset = new Vector2(28f, 4f);
     }
 
 

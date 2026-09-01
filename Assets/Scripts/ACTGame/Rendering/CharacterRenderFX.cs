@@ -134,11 +134,17 @@ namespace ACTGameEditor
                 _hitFlash = 0f;
             }
 
-            if (!IsAllowed(ObjectFxFlags.Dissolve) && _dissolve > 0f)
+            if (!IsAllowed(ObjectFxFlags.Dissolve) && (_dissolving || _onDissolveComplete != null))
             {
+                // 死亡溶解中途被关掉门闩时仍走完成回调，避免尸体既显现又不回收
                 _dissolving = false;
-                _dissolve = 0f;
+                Action cb = _onDissolveComplete;
                 _onDissolveComplete = null;
+                cb?.Invoke();
+            }
+            else if (!IsAllowed(ObjectFxFlags.Dissolve) && _dissolve > 0f)
+            {
+                _dissolve = 0f;
             }
 
             if (!IsAllowed(ObjectFxFlags.ForceOutline))
@@ -239,6 +245,27 @@ namespace ACTGameEditor
             _dissolving = true;
             _onDissolveComplete = onComplete;
             ApplyBlock();
+        }
+
+        /// <summary>
+        /// 仅结束受击闪白，不影响溶解。死亡溶解期间技能 StopBySource 会停 HitFlash。
+        /// </summary>
+        public void StopFlash()
+        {
+            if (!_flashing && _hitFlash <= 0f)
+                return;
+
+            _flashing = false;
+            _hitFlash = 0f;
+            ApplyBlock();
+        }
+
+        /// <summary>
+        /// 停止溶解推进，保持当前溶解外观（不把阈值打回 0，避免尸体重新显现）。
+        /// </summary>
+        public void StopDissolveDriver()
+        {
+            _dissolving = false;
         }
 
         /// <summary>

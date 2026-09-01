@@ -15,9 +15,15 @@ MonoBehaviour:
   GroundLayers:
     serializedVersion: 2
     m_Bits: 512
-  m_MovingTurnSpeed: 230
+  m_MovingTurnSpeed: 600
   m_StationaryTurnSpeed: 250
-  NorMoveSpeed: 0.1
+  NorMoveSpeed: 2.5
+  RunMoveSpeed: 5
+  SprintMoveSpeed: 7.5
+  Acceleration: 0.08
+  Deceleration: 0.05
+  MinimumStepTime: 0.08
+  WalkStickThreshold: 0.55
   LookEnemyRad: 12
   LockEnemyAngle: 60
   AddYRate: 1
@@ -29,3 +35,7 @@ MonoBehaviour:
   JumpHeight: 1.2
   AirControl: 0.65
   AirMoveSpeedScale: 1
+  CoyoteTime: 0.1
+  JumpBufferTime: 0.12
+  LandSlowTime: 0.1
+  LandSlowScale: 0.55

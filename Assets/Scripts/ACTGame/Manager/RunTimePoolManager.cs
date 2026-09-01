@@ -21,12 +21,6 @@ public class RunTimePoolManager : MonoSingleton<RunTimePoolManager>
         return bundle + "|" + asset;
     }
 
-    public override void Init()
-    {
-        base.Init();
-        HitEffectParent = new GameObject("HitEffectParent").transform;
-    }
-
     /// <summary>
     /// 
     /// </summary>
@@ -159,6 +153,47 @@ public class RunTimePoolManager : MonoSingleton<RunTimePoolManager>
     }
 
     public Transform HitEffectParent;
+
+    /// <summary>运行时场景物体根节点，切场景不销毁。</summary>
+    public Transform SceneObjLayer { get; private set; }
+
+    public override void Init()
+    {
+        base.Init();
+        HitEffectParent = new GameObject("HitEffectParent").transform;
+        EnsureSceneObjLayer();
+    }
+
+    /// <summary>将物体挂到 SceneObjLayer 下，保留世界坐标。</summary>
+    public void AttachToSceneLayer(Transform child)
+    {
+        if (child == null)
+            return;
+
+        EnsureSceneObjLayer();
+        if (child.parent == SceneObjLayer)
+            return;
+
+        child.SetParent(SceneObjLayer, true);
+    }
+
+    void EnsureSceneObjLayer()
+    {
+        if (SceneObjLayer != null)
+            return;
+
+        var go = new GameObject("SceneObjLayer");
+        Transform ddolRoot = transform.parent;
+        if (ddolRoot != null)
+            go.transform.SetParent(ddolRoot, false);
+        else
+            DontDestroyOnLoad(go);
+
+        go.transform.localPosition = Vector3.zero;
+        go.transform.localRotation = Quaternion.identity;
+        go.transform.localScale = Vector3.one;
+        SceneObjLayer = go.transform;
+    }
     public Dictionary<string, TypeLoopPool<GameObject>> LoopPoolDic = new Dictionary<string, TypeLoopPool<GameObject>>();
 
     public GameObject GetHitEffect(string ID)
@@ -219,29 +254,40 @@ public class RunTimePool
         if (Prefab == null)
             return null;
 
-        //这里未来用AB模式加载的时候要考虑好引用计数问题
         GameObject obj = null;
-        if(PoolObj.Count <= 0)
+        while (PoolObj.Count > 0)
         {
-            obj = GameObject.Instantiate(Prefab);  
-            UsingObj.Add(obj);
-            return obj;
+            int last = PoolObj.Count - 1;
+            obj = PoolObj[last];
+            PoolObj.RemoveAt(last);
+            if (obj != null)
+            {
+                UsingObj.Add(obj);
+                return obj;
+            }
         }
-        else
-        {
-            obj = PoolObj[0];
-            PoolObj.Remove(obj);
-            UsingObj.Add(obj);
-            return obj;
-        }
+
+        obj = GameObject.Instantiate(Prefab);
+        UsingObj.Add(obj);
+        return obj;
     }
 
     //放回池
     public void Recycle(GameObject obj)
     {
-        PoolObj.Add(obj);
+        if (obj == null)
+            return;
+
+        if (PoolObj.Contains(obj))
+            return;
+
         UsingObj.Remove(obj);
-        obj.transform.parent = PoolTransform;
+        PoolObj.Add(obj);
+        obj.transform.SetParent(PoolTransform, false);
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+        if (Prefab != null)
+            obj.transform.localScale = Prefab.transform.localScale;
         obj.SetActive(false);
 
         int hash = obj.GetHashCode();

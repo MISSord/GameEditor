@@ -3,9 +3,10 @@ using EGamePlay.Combat;
 
 namespace ACTGameEditor.Combat
 {
-    /// <summary>? Package ??? CombatFxSpec ??? Director?</summary>
+    /// <summary>将 Package 展开为 <see cref="CombatFxSpec"/> 并交给 Director。</summary>
     public static class CombatFxPackagePlayer
     {
+        /// <summary>播放目录中的 Package；至少一条成功返回 true。</summary>
         public static bool TryPlay(CombatFxPackageId packageId, in CombatFxPlayContext context)
         {
             if (packageId == CombatFxPackageId.None)
@@ -18,9 +19,11 @@ namespace ACTGameEditor.Combat
             return TryPlayDefinition(package, in context);
         }
 
+        /// <summary>播放目录中的 Package。</summary>
         public static void Play(CombatFxPackageId packageId, in CombatFxPlayContext context) =>
             TryPlay(packageId, in context);
 
+        /// <summary>展开 Package 内全部 Entry；至少一条成功返回 true。</summary>
         public static bool TryPlayDefinition(CombatFxPackageDefinition package, in CombatFxPlayContext context)
         {
             if (package?.Entries == null || package.Entries.Count == 0)
@@ -39,6 +42,7 @@ namespace ACTGameEditor.Combat
         public static void PlayDefinition(CombatFxPackageDefinition package, in CombatFxPlayContext context) =>
             TryPlayDefinition(package, in context);
 
+        /// <summary>ActionPoint 规则：判条件 + 播包。</summary>
         public static bool TryPlayActionPointRule(
             CombatFxTriggerRuleDefinition rule,
             CombatEntity owner,

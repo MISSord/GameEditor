@@ -7,6 +7,10 @@ using ACTGameEditor;
 using ACTGameEditor.Combat;
 
 #if UNITY
+/// <summary>
+/// 战斗主循环。100：晚于默认 EventSystem（0）再 Sample，避免点按轮盘前把空轴锁进快照。
+/// </summary>
+[DefaultExecutionOrder(100)]
 public class EGamePlayInit : MonoBehaviour
 {
     public static EGamePlayInit Instance { get; private set; }
@@ -60,13 +64,13 @@ public class EGamePlayInit : MonoBehaviour
         TimeScaleEffectManager.Tick();
         GameTimeManager.Tick();
         ETTimerManager.Instance.Update(GameTimeManager.WorldDelta);
+        ConfigurableInputManager.Instance.Update();
         var combatContext = CombatContext.Instance;
         if (combatContext != null)
         {
             combatContext.UseAbilityGate = UseAbilityGate;
             combatContext.Update(GameTimeManager.WorldDelta);
         }
-        ConfigurableInputManager.Instance.Update();
     }
 
     private void FixedUpdate()

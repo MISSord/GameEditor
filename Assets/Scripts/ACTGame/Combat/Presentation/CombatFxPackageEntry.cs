@@ -3,28 +3,28 @@ using UnityEngine;
 
 namespace ACTGameEditor.Combat
 {
-    /// <summary>???????????</summary>
+    /// <summary>表现包内单条原子效果。</summary>
     [Serializable]
     public struct CombatFxPackageEntry
     {
         public CombatFxKind Kind;
         public CombatFxTargetMode TargetMode;
 
-        [Tooltip("Duration seconds; 0 uses Kind default.")]
+        [Tooltip("时长（秒）；0 表示使用该 Kind 的默认。")]
         public float Duration;
 
-        [Tooltip("WorldScale for HitStop / TimeFracture.")]
+        [Tooltip("WorldScale；HitStop / TimeFracture 使用。")]
         [Range(0f, 1f)]
         public float WorldScale;
 
-        [Tooltip("PlayerScale for SkillTimeStop.")]
+        [Tooltip("PlayerScale；SkillTimeStop 使用。")]
         [Range(0f, 1f)]
         public float PlayerScale;
 
-        [Tooltip("Link camera CA/RadialBlur on HitStop.")]
+        [Tooltip("HitStop 是否联动镜头 CA/RadialBlur。")]
         public bool PlayCameraImpact;
 
-        [Tooltip("Respect GraphicsFx global gate.")]
+        [Tooltip("是否尊重 GraphicsFx 总开关。")]
         public bool RespectGraphicsGate;
 
         public static CombatFxPackageEntry HitFlash(float duration = 0.12f) => new CombatFxPackageEntry

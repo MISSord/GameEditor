@@ -319,4 +319,26 @@ namespace EGamePlay.Combat
         //大招
         Ultimate = 4000,
     }
+
+    /// <summary>
+    /// 槽位 Sort = (int)<see cref="SkillSort"/> + Offset，用区间判断技能大类。
+    /// </summary>
+    public static class SkillSortUtil
+    {
+        /// <summary>
+        /// 是否为普攻（含连招偏移）或大招。闪避、武器技、分支技能返回 false。
+        /// </summary>
+        public static bool IsNormalOrUltimate(int sort)
+        {
+            if (sort >= (int)SkillSort.Normal && sort < (int)SkillSort.Speical)
+                return true;
+            return sort >= (int)SkillSort.Ultimate;
+        }
+
+        /// <summary>是否为闪避槽（含同档偏移）。</summary>
+        public static bool IsRoll(int sort)
+        {
+            return sort >= (int)SkillSort.Roll && sort < (int)SkillSort.Ultimate;
+        }
+    }
 }

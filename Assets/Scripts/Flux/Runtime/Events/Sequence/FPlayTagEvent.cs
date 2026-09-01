@@ -7,9 +7,9 @@ namespace Flux
     public class FPlayTagEvent : FEvent
     {
         public List<string> SkillTagList = new List<string>();
-        /// <summary>只触发一次的效果 ID；为空时触发全部。</summary>
+        /// <summary>只触发一次、打在自身的效果 ID。标签轨请留空。</summary>
         public List<int> NormalEffectIds = new List<int>();
-        /// <summary>跟随轨道生命周期的效果 ID；为空时触发全部。</summary>
+        /// <summary>跟随轨道生命周期、打在自身的效果 ID。标签轨请留空。</summary>
         public List<int> SkillEffectIds = new List<int>();
 
         public override string Text => "Tag";

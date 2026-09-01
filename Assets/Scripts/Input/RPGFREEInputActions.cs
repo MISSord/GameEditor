@@ -98,6 +98,24 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""WalkToggle"",
+                    ""type"": ""Button"",
+                    ""id"": ""c1d2e3f4-a5b6-4789-8c0d-1e2f3a4b5c6d"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Sprint"",
+                    ""type"": ""Button"",
+                    ""id"": ""d2e3f4a5-b6c7-4890-9d1e-2f3a4b5c6d7e"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -254,6 +272,72 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
                     ""action"": ""Jump"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e3f4a5b6-c7d8-4901-ae2f-3a4b5c6d7e8f"",
+                    ""path"": ""<Keyboard>/leftCtrl"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""WalkToggle"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f4a5b6c7-d8e9-4012-bf3a-4b5c6d7e8f90"",
+                    ""path"": ""<Keyboard>/rightCtrl"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""WalkToggle"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""a5b6c7d8-e9f0-4123-c04b-5c6d7e8f9012"",
+                    ""path"": ""<Gamepad>/leftStickPress"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""WalkToggle"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b6c7d8e9-f012-4234-d15c-6d7e8f901234"",
+                    ""path"": ""<Keyboard>/leftShift"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""Sprint"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""c7d8e9f0-0123-4345-e26d-7e8f90123456"",
+                    ""path"": ""<Keyboard>/rightShift"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""Sprint"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d8e9f012-1234-4456-f37e-8f9012345678"",
+                    ""path"": ""<Gamepad>/leftTrigger"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Sprint"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -292,6 +376,8 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         m_ACTPlayer_Death = m_ACTPlayer.FindAction("Death", throwIfNotFound: true);
         m_ACTPlayer_LongButtonX = m_ACTPlayer.FindAction("LongButtonX", throwIfNotFound: true);
         m_ACTPlayer_Jump = m_ACTPlayer.FindAction("Jump", throwIfNotFound: true);
+        m_ACTPlayer_WalkToggle = m_ACTPlayer.FindAction("WalkToggle", throwIfNotFound: true);
+        m_ACTPlayer_Sprint = m_ACTPlayer.FindAction("Sprint", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -361,6 +447,8 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_ACTPlayer_Death;
     private readonly InputAction m_ACTPlayer_LongButtonX;
     private readonly InputAction m_ACTPlayer_Jump;
+    private readonly InputAction m_ACTPlayer_WalkToggle;
+    private readonly InputAction m_ACTPlayer_Sprint;
     public struct ACTPlayerActions
     {
         private @RPGFREEInputActions m_Wrapper;
@@ -373,6 +461,8 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         public InputAction @Death => m_Wrapper.m_ACTPlayer_Death;
         public InputAction @LongButtonX => m_Wrapper.m_ACTPlayer_LongButtonX;
         public InputAction @Jump => m_Wrapper.m_ACTPlayer_Jump;
+        public InputAction @WalkToggle => m_Wrapper.m_ACTPlayer_WalkToggle;
+        public InputAction @Sprint => m_Wrapper.m_ACTPlayer_Sprint;
         public InputActionMap Get() { return m_Wrapper.m_ACTPlayer; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -406,6 +496,12 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
             @Jump.started += instance.OnJump;
             @Jump.performed += instance.OnJump;
             @Jump.canceled += instance.OnJump;
+            @WalkToggle.started += instance.OnWalkToggle;
+            @WalkToggle.performed += instance.OnWalkToggle;
+            @WalkToggle.canceled += instance.OnWalkToggle;
+            @Sprint.started += instance.OnSprint;
+            @Sprint.performed += instance.OnSprint;
+            @Sprint.canceled += instance.OnSprint;
         }
 
         private void UnregisterCallbacks(IACTPlayerActions instance)
@@ -434,6 +530,12 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
             @Jump.started -= instance.OnJump;
             @Jump.performed -= instance.OnJump;
             @Jump.canceled -= instance.OnJump;
+            @WalkToggle.started -= instance.OnWalkToggle;
+            @WalkToggle.performed -= instance.OnWalkToggle;
+            @WalkToggle.canceled -= instance.OnWalkToggle;
+            @Sprint.started -= instance.OnSprint;
+            @Sprint.performed -= instance.OnSprint;
+            @Sprint.canceled -= instance.OnSprint;
         }
 
         public void RemoveCallbacks(IACTPlayerActions instance)
@@ -479,5 +581,7 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         void OnDeath(InputAction.CallbackContext context);
         void OnLongButtonX(InputAction.CallbackContext context);
         void OnJump(InputAction.CallbackContext context);
+        void OnWalkToggle(InputAction.CallbackContext context);
+        void OnSprint(InputAction.CallbackContext context);
     }
 }

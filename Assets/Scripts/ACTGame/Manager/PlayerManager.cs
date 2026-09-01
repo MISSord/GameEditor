@@ -122,6 +122,7 @@ namespace ACTGameEditor
         public void DisRegisterPlayer(uint netID)
         {
             DisRegisterAttacker(netID);
+            PlayerNetIdList.Remove(netID);
             OnValueChangeEvent?.Invoke(netID);
         }
 
@@ -152,13 +153,7 @@ namespace ACTGameEditor
 
         public void AddTruePlayer()
         {
-            GameObject asset = AssetBundleManager.Instance.LoadAssetSync<GameObject>("actors/character_prefab","ActPlayer");
-            GameObject obj = GameObject.Instantiate(asset);
-            obj.transform.position = Vector3.zero;
-
-            ActPlayer player = obj.GetComponent<ActPlayer>();
-            player.Agent = AgentTag.PlayerA;
-            player.Init();
+            ActPlayer player = SpawnActPlayer(PrefabPath.Player, "ActPlayer", Vector3.zero, AgentTag.PlayerA);
 
             //跟随玩家
             CameraManager.Instance.ChangeCurFollowTarget(player);
@@ -176,16 +171,37 @@ namespace ACTGameEditor
             string prefabPath = agentName == AgentModelType.Player ? PrefabPath.Player : PrefabPath.EnemyB;
             string assetPath = agentName == AgentModelType.Player ? "ActPlayer" : "EnemyB";
 
-            GameObject asset = AssetBundleManager.Instance.LoadAssetSync<GameObject>(prefabPath, assetPath);
-            GameObject obj = GameObject.Instantiate(asset);
-            obj.transform.position = startPos;
-
-            ActPlayer player = obj.GetComponent<ActPlayer>();
-            player.Agent = agentTag;
-            player.Init();
+            ActPlayer player = SpawnActPlayer(prefabPath, assetPath, startPos, agentTag);
 
             PlayerNetIdList.Add(player.Combat.NetId);
             RegisterPlayer(player);
+        }
+
+        /// <summary>
+        /// 从运行时对象池取出角色；池未就绪时回退 Instantiate。
+        /// </summary>
+        ActPlayer SpawnActPlayer(string bundle, string asset, Vector3 position, AgentTag agent)
+        {
+            GameObject obj = RunTimePoolManager.Instance != null
+                ? RunTimePoolManager.Instance.LoadResPoolObj(bundle, asset)
+                : null;
+
+            if (obj == null)
+            {
+                GameObject prefab = AssetBundleManager.Instance.LoadAssetSync<GameObject>(bundle, asset);
+                obj = GameObject.Instantiate(prefab);
+            }
+
+            RunTimePoolManager.Instance.AttachToSceneLayer(obj.transform);
+            obj.transform.SetPositionAndRotation(position, Quaternion.identity);
+            obj.SetActive(true);
+
+            ActPlayer player = obj.GetComponent<ActPlayer>();
+            player.SetPoolResPath(bundle, asset);
+            player.RestoreForReuse();
+            player.Agent = agent;
+            player.Init();
+            return player;
         }
 
         public ActPlayer GetOtherPlayer()

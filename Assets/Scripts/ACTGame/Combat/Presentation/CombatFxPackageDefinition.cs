@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace ACTGameEditor.Combat
 {
-    /// <summary>??????ID + ?????</summary>
+    /// <summary>单个表现包定义：ID + 有序条目列表。</summary>
     [Serializable]
     public sealed class CombatFxPackageDefinition
     {
@@ -16,7 +16,7 @@ namespace ACTGameEditor.Combat
         public List<CombatFxPackageEntry> Entries = new List<CombatFxPackageEntry>(2);
     }
 
-    /// <summary>ActionPoint ? Package ??????</summary>
+    /// <summary>ActionPoint → Package 路由规则。</summary>
     [Serializable]
     public sealed class CombatFxTriggerRuleDefinition
     {

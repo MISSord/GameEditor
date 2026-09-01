@@ -1,4 +1,5 @@
 using ACTGameEditor.Combat;
+using EGamePlay.Unity;
 using EGamePlay.Unity.Locomotion;
 using UnityEngine;
 
@@ -31,16 +32,19 @@ namespace ACTGameEditor.Locomotion
 
         public CombatLocomotionStateSink(CombatEntity entity) => _entity = entity;
 
-        public void SetLocomotionState(bool isMoving, bool isRun)
+        public void SetLocomotionState(bool isMoving, bool isRun, bool isWalk)
         {
             if (_entity == null)
                 return;
-            _entity.StateDirector?.NotifyLocomotion(isMoving, isRun);
+            _entity.StateDirector?.NotifyLocomotion(isMoving, isRun, isWalk);
         }
 
         public void NotifyJumpStarted()
         {
-            _entity?.StateDirector?.NotifyJumpStarted();
+            if (_entity == null)
+                return;
+            _entity.StateDirector?.NotifyJumpStarted();
+            _entity.GetComponent<AnimComponent>()?.Director?.TryPlayLocomotionJump();
         }
 
         public void SyncAirborneState(bool isGrounded, bool isFalling)
@@ -49,7 +53,27 @@ namespace ACTGameEditor.Locomotion
         }
     }
 
-    /// <summary>从 ConfigurableInputManager 读移动轴（空安全）。</summary>
+    /// <summary>锁定时朝向目标，位移仍相机相对（绕圈）。</summary>
+    public sealed class CombatLockFacingProvider : IMoveFacingProvider
+    {
+        /// <inheritdoc />
+        public bool TryGetFacingPoint(out Vector3 worldPoint)
+        {
+            worldPoint = default;
+            LockSystem lockSys = LockSystem.Instance;
+            if (lockSys == null || !lockSys.IsLocked)
+                return false;
+
+            CombatEntity target = lockSys.LockedCombatEntity;
+            if (target == null || target.IsDisposed || target.IsDead)
+                return false;
+
+            worldPoint = target.Position;
+            return true;
+        }
+    }
+
+    /// <summary>从本帧 <see cref="PlayerInputSnapshot"/> 读移动轴（空安全）。</summary>
     public sealed class ConfigurableInputMoveProvider : IMoveInputProvider
     {
         public Vector2 MoveAxis
@@ -57,7 +81,27 @@ namespace ACTGameEditor.Locomotion
             get
             {
                 var mgr = ConfigurableInputManager.Instance;
-                return mgr != null ? mgr.PlayerInput : Vector2.zero;
+                return mgr != null ? mgr.Snapshot.MoveAxis : Vector2.zero;
+            }
+        }
+
+        /// <inheritdoc />
+        public bool WalkTogglePressed
+        {
+            get
+            {
+                var mgr = ConfigurableInputManager.Instance;
+                return mgr != null && mgr.WalkTogglePressed;
+            }
+        }
+
+        /// <inheritdoc />
+        public bool SprintPressed
+        {
+            get
+            {
+                var mgr = ConfigurableInputManager.Instance;
+                return mgr != null && mgr.SprintPressed;
             }
         }
     }

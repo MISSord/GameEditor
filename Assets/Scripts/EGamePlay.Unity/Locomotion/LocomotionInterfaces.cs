@@ -7,6 +7,12 @@ namespace EGamePlay.Unity.Locomotion
     {
         /// <summary>平面移动轴（x=右, y=前），通常为 -1~1。</summary>
         Vector2 MoveAxis { get; }
+
+        /// <summary>Ctrl：切换走路 / 慢跑。</summary>
+        bool WalkTogglePressed { get; }
+
+        /// <summary>Shift：慢跑中点按切入快跑。</summary>
+        bool SprintPressed { get; }
     }
 
     /// <summary>用于计算相机相对移动方向。</summary>
@@ -26,10 +32,19 @@ namespace EGamePlay.Unity.Locomotion
         bool CanMove { get; }
     }
 
+    /// <summary>
+    /// 锁定朝向：有点则转向该世界坐标（绕圈 strafing），无则仍朝移动方向。
+    /// </summary>
+    public interface IMoveFacingProvider
+    {
+        /// <summary>锁定目标的世界坐标；无锁或目标无效时返回 false。</summary>
+        bool TryGetFacingPoint(out Vector3 worldPoint);
+    }
+
     /// <summary>跳跃门控（技能占轴、禁移、空中等）。</summary>
     public interface IJumpGate
     {
-        /// <summary>当前是否允许起跳（仅一段跳，落地后才能再次跳）。</summary>
+        /// <summary>当前是否允许起跳（战斗禁跳、技能占轴等；着地/土狼由电机判断）。</summary>
         bool CanJump { get; }
     }
 
@@ -52,8 +67,8 @@ namespace EGamePlay.Unity.Locomotion
     /// <summary>移动状态回调（地面移动 / 跳跃 / 空中）。</summary>
     public interface ILocomotionStateSink
     {
-        /// <summary>同步地面移动意图（Run/Idle）。</summary>
-        void SetLocomotionState(bool isMoving, bool isRun);
+        /// <summary>同步地面移动意图。</summary>
+        void SetLocomotionState(bool isMoving, bool isRun, bool isWalk);
 
         /// <summary>Locomotion 一段跳成功。</summary>
         void NotifyJumpStarted();

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ACTGameEditor;
+using EGamePlay.Combat;
 using UnityEngine;
 
 namespace XiaoCao
@@ -125,7 +126,21 @@ namespace XiaoCao
         /// <inheritdoc />
         public void ShowDamage(float damageValue, Vector3 worldPosition)
         {
-            MainUIPanel.ShowDamageText(string.Format("-{0}", (int)damageValue), worldPosition);
+            ShowDamage(new DamageTextRequest(
+                damageValue, worldPosition, DamageTextKind.Skill, 0, false, DamageType.Physic, false));
+        }
+
+        /// <inheritdoc />
+        public void ShowDamage(float damageValue, Vector3 worldPosition, DamageTextKind kind, long targetId)
+        {
+            ShowDamage(new DamageTextRequest(
+                damageValue, worldPosition, kind, targetId, false, DamageType.Physic, false));
+        }
+
+        /// <inheritdoc />
+        public void ShowDamage(in DamageTextRequest request)
+        {
+            MainUIPanel.ShowDamageText(request);
         }
 
         public void PlayDamageText(float damageValue, Vector3 vector3)

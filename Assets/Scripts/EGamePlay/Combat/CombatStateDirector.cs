@@ -24,6 +24,7 @@ namespace EGamePlay.Combat
 
         bool _wantMoving;
         bool _wantRun;
+        bool _wantWalk;
 
         bool _airborne;
         bool _jumpAirborne;
@@ -55,6 +56,9 @@ namespace EGamePlay.Combat
             Current = PlayerStateEnum.Idle;
             _airborne = false;
             _jumpAirborne = false;
+            _wantMoving = false;
+            _wantRun = false;
+            _wantWalk = false;
         }
 
         /// <summary>技能开轴。同槽后写覆盖（连招顶替）。</summary>
@@ -130,10 +134,11 @@ namespace EGamePlay.Combat
         }
 
         /// <summary>Locomotion 只报意图，不直接写 CurState；地面时才刷新 CurMoveState。</summary>
-        public void NotifyLocomotion(bool isMoving, bool isRun)
+        public void NotifyLocomotion(bool isMoving, bool isRun, bool isWalk = false)
         {
             _wantMoving = isMoving;
-            _wantRun = isRun && isMoving;
+            _wantWalk = isWalk && isMoving;
+            _wantRun = isRun && isMoving && !_wantWalk;
             if (_owner != null && !_airborne)
                 ApplyGroundMoveState();
 
@@ -179,7 +184,12 @@ namespace EGamePlay.Combat
 
         void ApplyGroundMoveState()
         {
-            _owner.CurMoveState = _wantRun ? MoveTypeEnum.Run : MoveTypeEnum.Idle;
+            if (!_wantMoving)
+                _owner.CurMoveState = MoveTypeEnum.Idle;
+            else if (_wantWalk)
+                _owner.CurMoveState = MoveTypeEnum.Walk;
+            else
+                _owner.CurMoveState = MoveTypeEnum.Run;
         }
 
         /// <summary>推进受击计时。</summary>

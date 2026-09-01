@@ -1,6 +1,5 @@
-using ACTGameEditor.Combat;
+﻿using ACTGameEditor.Combat;
 using EGamePlay;
-using EGamePlay.Combat;
 using EGamePlay.Unity;
 using EGamePlay.Unity.Locomotion;
 using UnityEngine;
@@ -39,6 +38,7 @@ namespace ACTGameEditor.Locomotion
                 new CombatLocomotionStateSink(entity));
 
             motor.SetJumpGate(new CombatJumpGate(entity));
+            motor.SetFacingProvider(new CombatLockFacingProvider());
 
             CombatAnimDirector director = anim?.Director;
             if (anim?.Motion != null)
@@ -49,7 +49,7 @@ namespace ACTGameEditor.Locomotion
                 director.MoveIntentProvider = () =>
                 {
                     var mgr = ConfigurableInputManager.Instance;
-                    return mgr != null ? mgr.PlayerInput : Vector2.zero;
+                    return mgr != null ? mgr.Snapshot.MoveAxis : Vector2.zero;
                 };
                 director.MoveIntentDeadZone = tuning.InputDeadZone;
                 motor.SetAnimParamWriteGate(() => !director.HasSkillOwner);

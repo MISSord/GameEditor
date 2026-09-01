@@ -3,7 +3,7 @@ using EGamePlay.Combat;
 
 namespace ACTGameEditor.Combat
 {
-    /// <summary>???????? TagSource ???? StopBySource?</summary>
+    /// <summary>表现效果来源，与 <see cref="TagSource"/> 对齐，便于 StopBySource 按技能同生命周期撤销。</summary>
     public readonly struct CombatFxSource : IEquatable<CombatFxSource>
     {
         public readonly TagSourceKind Kind;

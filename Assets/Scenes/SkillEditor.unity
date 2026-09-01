@@ -2450,11 +2450,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3930689722382814123, guid: c7df8fe36e7c77844ac72e12d61c1cec, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.00000022034868
+      value: 0.00000022034872
       objectReference: {fileID: 0}
     - target: {fileID: 3930689722382814123, guid: c7df8fe36e7c77844ac72e12d61c1cec, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.00029538883
+      value: 0.00029538892
       objectReference: {fileID: 0}
     - target: {fileID: 4030302721337079306, guid: c7df8fe36e7c77844ac72e12d61c1cec, type: 3}
       propertyPath: m_RootOrder
@@ -2923,7 +2923,7 @@ PrefabInstance:
     - target: {fileID: 6993718776427179120, guid: c7df8fe36e7c77844ac72e12d61c1cec, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 54940d2238d8bfe4088b38d26ed1c873, type: 2}
+      objectReference: {fileID: 9100000, guid: 3e32be09d7e4b324892edf5bb2c7b285, type: 2}
     - target: {fileID: 7026196028106941577, guid: c7df8fe36e7c77844ac72e12d61c1cec, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0.0000000010629173
@@ -3405,6 +3405,18 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2259367745276021361, guid: bb9179ddcc88ac84dbf5bd40164706dd, type: 3}
+      propertyPath: startPos.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2259367745276021361, guid: bb9179ddcc88ac84dbf5bd40164706dd, type: 3}
+      propertyPath: startPos.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6925799392229753692, guid: bb9179ddcc88ac84dbf5bd40164706dd, type: 3}
+      propertyPath: batchBuffIds.Array.size
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7917298871892744003, guid: bb9179ddcc88ac84dbf5bd40164706dd, type: 3}
       propertyPath: m_Name
       value: Scene

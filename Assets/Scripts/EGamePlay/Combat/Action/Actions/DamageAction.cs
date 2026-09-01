@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 namespace EGamePlay.Combat
 {
@@ -36,6 +37,13 @@ namespace EGamePlay.Combat
         public TriggerContext TriggerContext { get; set; }
         public DamageSource DamageSource { get; set; }
         public int DamageValue { get; set; }
+        /// <summary>本次结算是否暴击；供飘字放大，不参与扣血。</summary>
+        public bool IsCritical { get; set; }
+        /// <summary>本次结算使用的属性类型；供飘字染色。</summary>
+        public DamageType AppliedDamageType { get; set; }
+        /// <summary>攻击盒与受击体接触点；无盒体采样（如 DoT）时为 false，飘字回退胸口。</summary>
+        public bool HasHitWorldPosition { get; set; }
+        public Vector3 HitWorldPosition { get; set; }
         public ICombatUnit Creator { get; set; }
         public ICombatUnit Target { get; set; }
         public DamageActionEffect DamageActionEffect { get; set; }
@@ -51,15 +59,21 @@ namespace EGamePlay.Combat
             Entity creatorEntity = Creator?.Entity;
             Entity targetEntity = Target?.Entity;
 
+            DamageContext ctx;
             if (skillId > 0 && segmentIndex > 0)
             {
                 DamageValue = DamageCalcuFormula.CalculateBySkillConfig(
-                    creatorEntity, targetEntity, skillId, segmentIndex);
+                    creatorEntity, targetEntity, skillId, segmentIndex, out ctx);
             }
             else
             {
-                DamageValue = DamageCalcuFormula.Calculate(creatorEntity, targetEntity, DamageEffect);
+                DamageValue = DamageCalcuFormula.Calculate(creatorEntity, targetEntity, DamageEffect, out ctx);
             }
+
+            IsCritical = ctx.IsCritical;
+            AppliedDamageType = ctx.DamageType;
+            HasHitWorldPosition = TriggerContext.HasHitWorldPosition;
+            HitWorldPosition = TriggerContext.HitWorldPosition;
 
             Creator?.TriggerActionPoint(ActionPointType.PreCauseDamage, this);
             Target?.TriggerActionPoint(ActionPointType.PreReceiveDamage, this);
@@ -120,6 +134,10 @@ namespace EGamePlay.Combat
             TriggerContext = default;
             DamageSource = default;
             DamageValue = 0;
+            IsCritical = false;
+            AppliedDamageType = DamageType.Physic;
+            HasHitWorldPosition = false;
+            HitWorldPosition = default;
             Creator = null;
             Target = null;
             DamageActionEffect = DamageActionEffect.None;

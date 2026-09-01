@@ -216,17 +216,25 @@ namespace ACTGameEditor
             base.Init(owner, runner);
             _eventData = (XCObjEventData)EventData;
             LoadObj = RunTimePoolManager.Instance.LoadResPoolObj(_eventData.BundlePath, _eventData.AssetPath);
-            LoadObj.SetActive(false);
+            if (LoadObj != null)
+                LoadObj.SetActive(false);
             SelfRunner.ObjEvent = this;  //赋值给运行器
         }
 
         public override void OnTrigger(float timeSinceTrigger)
         {
+            if (LoadObj == null)
+            {
+                base.OnTrigger(timeSinceTrigger);
+                return;
+            }
+
             SetFirstPos();
             if (_eventData.IsEffect)
             {
-                _ps = LoadObj.GetComponentInChildren<ParticleSystem>();
-                _ps.Play(true);
+                ResetPooledVfx(LoadObj);
+                _ps = LoadObj.GetComponentInChildren<ParticleSystem>(true);
+                _ps?.Play(true);
             }
             LoadObj.SetActive(true);
             base.OnTrigger(timeSinceTrigger);
@@ -252,27 +260,37 @@ namespace ACTGameEditor
             LoadObj.transform.localScale = _eventData.StartScale;
 
             if (_eventData.TransfromType == TransfromType.FollowPlayer)
-            {
                 LoadObj.transform.SetParent(OwnCombat.RootTransform, true);
-            }
+            else
+                RunTimePoolManager.Instance.AttachToSceneLayer(LoadObj.transform);
         }
 
         public override void OnFinish()
         {
-            if (_ps)
-            {
-                _ps.Stop(true);
-                _ps = null;
-            }
-
             if (LoadObj != null)
             {
-                LoadObj.gameObject.SetActive(false);
+                ResetPooledVfx(LoadObj);
+                _ps = null;
+                LoadObj.SetActive(false);
                 RunTimePoolManager.Instance.ReCycle(
-                    RunTimePoolManager.GetResPath(_eventData.BundlePath, _eventData.AssetPath), 
+                    RunTimePoolManager.GetResPath(_eventData.BundlePath, _eventData.AssetPath),
                     LoadObj);
                 LoadObj = null;
             }
+        }
+
+        static void ResetPooledVfx(GameObject vfx)
+        {
+            if (vfx == null)
+                return;
+
+            ParticleSystem[] particles = vfx.GetComponentsInChildren<ParticleSystem>(true);
+            for (int i = 0; i < particles.Length; i++)
+                particles[i]?.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            TrailRenderer[] trails = vfx.GetComponentsInChildren<TrailRenderer>(true);
+            for (int i = 0; i < trails.Length; i++)
+                trails[i]?.Clear();
         }
     }
 
@@ -466,7 +484,7 @@ namespace ACTGameEditor
             ScanExistingOverlaps();
         }
 
-        void TryEnqueueHit(ICombatUnit target)
+        void TryEnqueueHit(ICombatUnit target, Collider hitCollider)
         {
             if (target == null || SelfRunner == null || SelfRunner.IsDisposed)
                 return;
@@ -485,7 +503,34 @@ namespace ACTGameEditor
                 Defender = target,
                 Runner = SelfRunner,
                 TriggerEvent = this,
+                HasHitWorldPosition = true,
+                HitWorldPosition = ResolveOverlapHitPoint(_collider, hitCollider),
             });
+        }
+
+        /// <summary>
+        /// 攻击盒与受击体的接触近似：受击体上靠近攻击盒中心的点。
+        /// 非凸 MeshCollider 的 ClosestPoint 会失败，回退到 AABB。
+        /// </summary>
+        static Vector3 ResolveOverlapHitPoint(Collider attack, Collider defender)
+        {
+            if (defender == null)
+                return Vector3.zero;
+            if (attack == null)
+                return defender.bounds.center;
+
+            Vector3 attackCenter = attack.bounds.center;
+            Vector3 onDefender = defender.ClosestPoint(attackCenter);
+            if (!IsUsableClosestPoint(defender, attackCenter, onDefender))
+                onDefender = defender.bounds.ClosestPoint(attackCenter);
+            return onDefender;
+        }
+
+        static bool IsUsableClosestPoint(Collider col, Vector3 query, Vector3 result)
+        {
+            if ((result - query).sqrMagnitude > 0.0001f)
+                return true;
+            return col.bounds.Contains(query);
         }
 
         static bool IsColliderUnderRoot(Collider col, Transform unitRoot)
@@ -540,7 +585,7 @@ namespace ACTGameEditor
                 if (!ScanDedup.Add(target.Id))
                     continue;
 
-                TryEnqueueHit(target);
+                TryEnqueueHit(target, hitCollider);
             }
         }
 
@@ -600,6 +645,8 @@ namespace ACTGameEditor
             if (isNeed)
             {
                 _colliderObj = RunTimePoolManager.Instance.LoadResPoolObj(colliderBundle, colliderAsset);
+                if (_colliderObj == null)
+                    return;
 
                 if (TriggerEventData.CubeRange.colliderType == ColliderType.Box)
                 {
@@ -777,9 +824,12 @@ namespace ACTGameEditor
         {
             base.OnTrigger(timeSinceTrigger);
 
-            //触发技能效果
-            SelfRunner.TriggerEffectList(eventData.NormalEffectIds, OwnCombat, 0);
-            SelfRunner.TriggerEffectList(eventData.SkillEffectIds, OwnCombat, 0);
+            // 空列表在 TriggerEffectList 里表示「该技能全部效果」。
+            // 标签轨（闪避 Buff.Roll 等）常不配 EffectIds，绝不能把技能伤害打到自己身上。
+            if (eventData.NormalEffectIds != null && eventData.NormalEffectIds.Count > 0)
+                SelfRunner.TriggerEffectList(eventData.NormalEffectIds, OwnCombat, 0);
+            if (eventData.SkillEffectIds != null && eventData.SkillEffectIds.Count > 0)
+                SelfRunner.TriggerEffectList(eventData.SkillEffectIds, OwnCombat, 0);
 
             //触发标签添加
             List<string> list = eventData.SkillTagList;
@@ -795,7 +845,8 @@ namespace ACTGameEditor
         //轨道结束时立马移除
         public override void OnFinish()
         {
-            SelfRunner.RemoveTriggerEffectList(eventData.SkillEffectIds, OwnCombat);
+            if (eventData.SkillEffectIds != null && eventData.SkillEffectIds.Count > 0)
+                SelfRunner.RemoveTriggerEffectList(eventData.SkillEffectIds, OwnCombat);
 
             List<string> list = eventData.SkillTagList;
             if (list != null && list.Count > 0)

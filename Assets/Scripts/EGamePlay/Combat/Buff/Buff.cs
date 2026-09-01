@@ -201,13 +201,26 @@ namespace EGamePlay.Combat
             if (stateCheckResult)
             {
                 if (TryGet(out BuffModifyComponent modifyCom))
-                    modifyCom.OnTriggerModify(actionExecution);
+                    modifyCom.OnTriggerModify(ResolveModifyTarget(actionExecution));
                 //次数耗尽
                 if (Setting.BuffType.HasFlag(BuffType.NumberBuff) && _frequency != null && _frequency.ConsumeStack())
                 {
                     CheckIsCanRemove();
                 }
             }
+        }
+
+        /// <summary>
+        /// 行动点回调传入的是 Action 实体，不能直接当战斗单位。
+        /// 伤害/施加状态取 <see cref="IActionExecute.Target"/>；否则落到 Buff 拥有者。
+        /// </summary>
+        Entity ResolveModifyTarget(Entity actionExecution)
+        {
+            if (actionExecution is IActionExecute action && action.Target?.Entity != null)
+                return action.Target.Entity;
+            if (actionExecution is ICombatUnit unit && unit.Entity != null)
+                return unit.Entity;
+            return OwnerEntity?.Entity ?? actionExecution;
         }
 
         public void CheckIsCanRemove()

@@ -65,9 +65,20 @@ namespace EGamePlay.Unity
         /// <summary>尝试一段跳。</summary>
         public bool TryJump() => _motor.TryJump();
 
+        /// <summary>当前水平移动方向（世界空间）；无迈步意图时返回 false。</summary>
+        public bool TryGetPlanarMoveDir(out Vector3 worldDir)
+        {
+            worldDir = _motor.MoveDir;
+            worldDir.y = 0f;
+            if (worldDir.sqrMagnitude < 0.0001f)
+                return false;
+            worldDir.Normalize();
+            return true;
+        }
+
         public override void OnDestroy()
         {
-            _motor.LocomotionEnabled = false;
+            _motor.ResetRuntimeState();
             _combatEntity = null;
             _controller = null;
         }

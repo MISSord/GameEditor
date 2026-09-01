@@ -61,7 +61,7 @@ namespace EGamePlay.Combat
                     continue;
                 if (!request.Runner.CommitHit(request.Defender, request.TriggerEvent))
                     continue;
-                request.Runner.ApplyAcceptedHit(request.Defender, request.TriggerEvent);
+                request.Runner.ApplyAcceptedHit(request);
             }
 
             for (int i = 0; i < _landed.Count; i++)

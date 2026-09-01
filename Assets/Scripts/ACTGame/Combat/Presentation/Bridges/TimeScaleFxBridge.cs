@@ -2,6 +2,7 @@ using EGamePlay;
 
 namespace ACTGameEditor.Combat
 {
+    /// <summary>全局时间流速：TimeScaleEffectManager。</summary>
     sealed class TimeScaleFxBridge : ICombatFxBridge
     {
         public bool CanPlay(in CombatFxSpec spec) => spec.Duration > 0f || spec.Kind == CombatFxKind.SkillTimeStop;

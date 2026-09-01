@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using EGamePlay;
 
 namespace EGamePlay.Combat
 {
@@ -171,6 +172,31 @@ namespace EGamePlay.Combat
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// 本次行动是否为“释放普攻或大招”。被动/Buff 伤害不会走施法 Session，因此不会命中。
+        /// </summary>
+        /// <summary>
+        /// 本次伤害是否为主动技能真实命中。Buff/点燃跳字不会再触发，闪避与免疫也不算命中。
+        /// </summary>
+        public static bool IsActiveSkillHit(Entity target, Buff buff)
+        {
+            if (target is not DamageAction damage)
+                return false;
+            if (damage.DamageSource != DamageSource.Skill)
+                return false;
+            if (damage.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
+                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
+                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Immunity))
+                return false;
+            if (damage.Target == null || damage.Target.IsDisposed || damage.Target.IsDead)
+                return false;
+
+            var config = damage.TriggerContext.SourceAbility?.Definition?.Config;
+            if (config != null && config.Type == AbilityType.PassiveSkill.ToString())
+                return false;
+            return true;
         }
     }
 }

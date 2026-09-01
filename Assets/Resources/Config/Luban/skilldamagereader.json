@@ -1,6 +1,6 @@
 [
   {
-    "SkillId": 11000,
+    "SkillId": 11001,
     "SkillName": "",
     "SegmentIndex": 1,
     "Ratio": 1,
@@ -9,7 +9,7 @@
     "CanCrit": 1
   },
   {
-    "SkillId": 11001,
+    "SkillId": 11002,
     "SkillName": "",
     "SegmentIndex": 1,
     "Ratio": 3,
@@ -18,7 +18,7 @@
     "CanCrit": 1
   },
   {
-    "SkillId": 11002,
+    "SkillId": 11003,
     "SkillName": "",
     "SegmentIndex": 1,
     "Ratio": 3,
