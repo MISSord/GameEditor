@@ -137,6 +137,19 @@ namespace EGamePlay.Combat
             OnChangeNumber();
         }
 
+        /// <summary>
+        /// 修饰器 <see cref="FloatModifier.Value"/> 已就地改写时，重新汇总该类型并刷新总属性。热路径无分配。
+        /// </summary>
+        public void RefreshModifier(ModifyType modifierType)
+        {
+            if (!TypeModifierCollections.TryGetValue((int)modifierType, out var collection) || collection == null)
+                return;
+            collection.Update();
+            if (modifierType == ModifyType.Add) baseAdd = collection.TotalValue;
+            if (modifierType == ModifyType.PctAdd) pctAdd = collection.TotalValue;
+            OnChangeNumber();
+        }
+
         public void OnChangeNumber()
         {
             OldValue = Value;

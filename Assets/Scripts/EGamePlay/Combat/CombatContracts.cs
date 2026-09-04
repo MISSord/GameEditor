@@ -18,7 +18,10 @@ namespace EGamePlay.Combat
         AddStatusActionAbility AddStatusAbility { get; }
 
         bool IsCanSpellSkill { get; }
+        /// <summary>高优先级自身取消（大招顶普攻等）。闪避另走 <see cref="IsCanRollSkill"/>。</summary>
         bool IsCanSelfCancelSkill { get; }
+        /// <summary>闪避槽：死亡/受击/禁移不可；沉默（仅 SkillForbid）仍可。</summary>
+        bool IsCanRollSkill { get; }
         bool IsDead { get; }
         bool isTruePlayer { get; }
 
@@ -31,15 +34,50 @@ namespace EGamePlay.Combat
         /// <summary>StateDirector 合成后的可见行为态。</summary>
         void ApplyStateFromDirector(PlayerStateEnum state);
 
+        /// <summary>MoveForbid 叶子计数 0→1 / 1→0。硬控断招与控制槽。</summary>
+        void NotifyHardControlChanged(bool entered);
+
         ISkillExecutionHandle ActiveExecution { get; set; }
 
         float GetTimeScale();
         void TriggerActionPoint(ActionPointType actionPointType, Entity action);
+        /// <summary>角色 Buff 列表；伤害流程通过它按优先级 Dispatch。</summary>
+        StatusComponent Status { get; }
+        /// <summary>技能组等级。未挂组件时按 1 级结算。</summary>
+        SkillLevelComponent SkillLevels { get; }
         void PopTagsFrom(TagSource source);
         bool CanSpellSkillWithTagLists(List<string> required, List<string> blocked);
 
         /// <summary>HP 归零后的统一死亡落地。</summary>
         void ApplyDeath();
+    }
+
+    /// <summary>卸 Buff 上下文，供正在卸的那条 TriggerBuff 在 Revert 前开火。</summary>
+    public interface ICombatRemoveStatusContext
+    {
+        /// <summary>Buff 持有者。</summary>
+        ICombatUnit Owner { get; }
+        /// <summary>正在卸、仍 Enable 的 Buff。</summary>
+        Buff RemovedBuff { get; }
+        /// <summary>表 Id。</summary>
+        int BuffId { get; }
+        /// <summary>本次卸除原因。</summary>
+        BuffRemoveReason Reason { get; }
+    }
+
+    /// <summary>施加 Buff 行动上下文，供 PreGiveStatus / PreReceiveStatus 改单。</summary>
+    public interface ICombatAddStatusContext
+    {
+        /// <summary>施加者。</summary>
+        ICombatUnit Caster { get; }
+        /// <summary>承受者。</summary>
+        ICombatUnit Target { get; }
+        /// <summary>本次要挂的 BuffId；Pre 回调可改写（本切片 Resolver 只处理免疫）。</summary>
+        int BuffId { get; set; }
+        /// <summary>请求原值，只读。</summary>
+        int RequestedBuffId { get; }
+        /// <summary>裁决结果：Interrupt 不落地不后置；Immunity / Resisted 不落地仍后置。</summary>
+        AddStatusActionEffect Effect { get; set; }
     }
 
     /// <summary>施法行动上下文，供 PreSpell/PostSpell 行动点消费。</summary>

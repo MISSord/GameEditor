@@ -92,6 +92,7 @@ namespace EGamePlay.Unity
         static readonly int IsRunId = Animator.StringToHash("IsRun");
         static readonly int JumpHash = Animator.StringToHash("Jump");
         static readonly int DamageHash = Animator.StringToHash("Damage");
+        static readonly int StunHash = Animator.StringToHash("Stun");
 
         const float DefaultLocomotionBlendSeconds = 0.08f;
         const float DefaultMoveDeadZone = 0.1f;
@@ -264,6 +265,22 @@ namespace EGamePlay.Unity
         public int PlayDamageReaction(float blendSeconds = 0.05f)
         {
             return PlayReaction(DamageHash, blendSeconds);
+        }
+
+        /// <summary>
+        /// 硬控姿态：优先 Stun，否则 Damage。不自动交回 Locomotion，由 ExitControl 再 ForceLocomotion。
+        /// </summary>
+        public int PlayHeldControlReaction(float blendSeconds = 0.05f)
+        {
+            Animator animator = _anim.animator;
+            if (animator == null)
+                return 0;
+
+            int hash = HasAnimatorState(animator, StunHash) ? StunHash : DamageHash;
+            if (!HasAnimatorState(animator, hash))
+                return 0;
+
+            return PlaySkill(hash, blendSeconds, 0f, 1f, applyRootMotion: false, suppressGravity: true);
         }
 
         /// <summary>

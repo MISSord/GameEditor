@@ -1,6 +1,4 @@
-using ACTGameEditor;
-using EGamePlay;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace EGamePlay.Combat
 {
@@ -33,10 +31,14 @@ namespace EGamePlay.Combat
             MoveForbidIndex = TagCollection.TagToIndexDic[CombatTags.BuffMoveForbid];
             SkillForbidIndex = TagCollection.TagToIndexDic[CombatTags.BuffSkillForbid];
             UnStoppedIndex = TagCollection.TagToIndexDic[CombatTags.BuffUnStopped];
+            if (_container != null)
+                _container.LeafCountChanged += OnLeafCountChanged;
         }
 
         public override void OnDestroy()
         {
+            if (_container != null)
+                _container.LeafCountChanged -= OnLeafCountChanged;
             _timedTagReleases.Clear();
             _container = null;
         }
@@ -133,6 +135,14 @@ namespace EGamePlay.Combat
                 _timedTagReleases.RemoveAt(i);
                 PopTag(entry.Source, entry.TagName);
             }
+        }
+
+        void OnLeafCountChanged(int tagIndex, bool present)
+        {
+            if (tagIndex != MoveForbidIndex)
+                return;
+            if (Entity is ICombatUnit unit)
+                unit.NotifyHardControlChanged(present);
         }
     }
 }

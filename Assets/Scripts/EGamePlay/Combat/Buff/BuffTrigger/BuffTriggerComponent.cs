@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace EGamePlay.Combat
 {
     /// <summary>
-    /// Buff 触发器注册数据：ActionPointType + Callback，用于 ListenActionPoint。
+    /// Buff 触发器注册数据：供编辑/调试查看关心的行动点。开火走 StatusComponent.Dispatch。
     /// </summary>
     public sealed class BuffTriggerRegistration
     {
@@ -13,7 +13,8 @@ namespace EGamePlay.Combat
     }
 
     /// <summary>
-    /// Buff 触发器组件：持有 BuffTriggerRegistration[]，用 ListenActionPoint 注册，不创建 BuffTrigger 子 Entity。
+    /// Buff 触发器组件：记录 Trigger / RemoveTrigger 配置。
+    /// 实际开火由 <see cref="StatusComponent.Dispatch"/> 按优先级遍历，不再向 ActionPoint 注册监听。
     /// </summary>
     public class BuffTriggerComponent : Component, ILifecycleLogic
     {
@@ -41,27 +42,8 @@ namespace EGamePlay.Combat
                 Registrations.Add(new BuffTriggerRegistration
                 {
                     ActionPointType = buff.Setting.RemoveActionPointType,
-                    Callback = (Entity entity) =>
-                    {
-                        ShouldRemove = true;
-                        buff.CheckIsCanRemove();
-                    },
+                    Callback = null,
                 });
-            }
-        }
-
-        public override void OnEnable()
-        {
-            var owner = Entity.As<Buff>()?.OwnerEntity;
-            if (owner == null || owner.IsDisposed) return;
-
-            var actionPointComp = owner.Entity?.GetComponent<ActionPointComponent>();
-            if (actionPointComp == null) return;
-
-            foreach (var reg in Registrations)
-            {
-                if (reg.Callback != null)
-                    actionPointComp.AddListener(reg.ActionPointType, reg.Callback);
             }
         }
 
@@ -70,43 +52,12 @@ namespace EGamePlay.Combat
             return ShouldRemove;
         }
 
-        public override void OnDisable()
-        {
-            var owner = Entity.As<Buff>()?.OwnerEntity;
-            if (owner != null && !owner.IsDisposed)
-            {
-                var actionPointComp = owner.Entity?.GetComponent<ActionPointComponent>();
-                if (actionPointComp != null)
-                {
-                    foreach (var reg in Registrations)
-                    {
-                        if (reg.Callback != null)
-                            actionPointComp.RemoveListener(reg.ActionPointType, reg.Callback);
-                    }
-                }
-            }
-        }
-
         public override void OnDestroy()
         {
-            var owner = Entity.As<Buff>()?.OwnerEntity;
-            if (owner != null && !owner.IsDisposed)
-            {
-                var actionPointComp = owner.Entity?.GetComponent<ActionPointComponent>();
-                if (actionPointComp != null)
-                {
-                    foreach (var reg in Registrations)
-                    {
-                        if (reg.Callback != null)
-                            actionPointComp.RemoveListener(reg.ActionPointType, reg.Callback);
-                    }
-                }
-            }
             foreach (var reg in Registrations)
-            {
                 reg.Callback = null;
-            }
             Registrations?.Clear();
+            ShouldRemove = false;
         }
     }
 }

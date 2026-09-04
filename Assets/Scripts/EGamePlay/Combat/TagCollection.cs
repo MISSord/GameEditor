@@ -79,6 +79,12 @@ namespace EGamePlay.Combat
             "Buff.MoveForbid",
             "Buff.SkillForbid",
             "Buff.UnStopped",
+            "Buff.Debuff",
+            "Buff.Buff",
+            "Buff.Bind.Skill",
+            "Buff.Bind.Form",
+            "Buff.Bind.HitsTaken",
+            "Buff.Bind.HitsDealt",
             "Buff.Fire.Normal",
             "Buff.Fire.Hight",
             "Buff.Fire.Ignite",
@@ -98,6 +104,18 @@ namespace EGamePlay.Combat
         public const string BuffSkillForbid = "Buff.SkillForbid";
         public const string BuffUnStopped = "Buff.UnStopped";
         public const string BuffRoll = "Buff.Roll";
+        /// <summary>减益极性，净化 DebuffOnly 认表 BuffTag，不是运行时容器。</summary>
+        public const string BuffDebuff = "Buff.Debuff";
+        /// <summary>增益极性，净化 BuffOnly 认表 BuffTag。</summary>
+        public const string BuffGain = "Buff.Buff";
+        /// <summary>直到施加时那次技能轴结束。</summary>
+        public const string BuffBindSkill = "Buff.Bind.Skill";
+        /// <summary>直到持有者离开施加时的形态。</summary>
+        public const string BuffBindForm = "Buff.Bind.Form";
+        /// <summary>持有者被实际扣血 N 次后卸，N 用 BaseTimes。</summary>
+        public const string BuffBindHitsTaken = "Buff.Bind.HitsTaken";
+        /// <summary>持有者打出实际扣血 N 次后卸，N 用 BaseTimes。</summary>
+        public const string BuffBindHitsDealt = "Buff.Bind.HitsDealt";
         /// <summary>处于非默认战斗形态（明心境、变身等）。</summary>
         public const string StanceForm = "Stance.Form";
         /// <summary>空中；Resolver 主要用 IsAirborne，此标签供技能边条件。</summary>

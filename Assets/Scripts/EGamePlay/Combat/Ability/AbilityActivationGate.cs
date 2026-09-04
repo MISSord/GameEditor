@@ -47,7 +47,12 @@ namespace EGamePlay.Combat
             bool hardInterrupt = current != null
                 && SkillCancelService.IsHardInterrupt(current.Sort, incomingSort);
 
-            if (hardInterrupt)
+            if (SkillSortUtil.IsRoll(incomingSort))
+            {
+                if (!actor.IsCanRollSkill)
+                    return ActivateFail.State;
+            }
+            else if (hardInterrupt)
             {
                 if (!actor.IsCanSelfCancelSkill)
                     return ActivateFail.State;

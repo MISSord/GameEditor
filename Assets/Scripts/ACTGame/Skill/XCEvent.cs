@@ -823,8 +823,7 @@ namespace ACTGameEditor
         {
             base.OnTrigger(timeSinceTrigger);
 
-            // 空列表在 TriggerEffectList 里表示「该技能全部效果」。
-            // 标签轨（闪避 Buff.Roll 等）常不配 EffectIds，绝不能把技能伤害打到自己身上。
+            // 空列表不再表示「技能全部效果」。标签轨常不配 Id，不能把段表伤害打到自己身上。
             if (eventData.NormalEffectIds != null && eventData.NormalEffectIds.Count > 0)
                 SelfRunner.TriggerEffectList(eventData.NormalEffectIds, OwnCombat, 0);
             if (eventData.SkillEffectIds != null && eventData.SkillEffectIds.Count > 0)

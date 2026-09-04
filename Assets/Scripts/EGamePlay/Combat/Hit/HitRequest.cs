@@ -35,6 +35,7 @@ namespace EGamePlay.Combat
 
         /// <summary>对已通过过滤的命中执行效果列表。</summary>
         void ApplyAcceptedHit(in HitRequest request);
+        /// <summary>落地后钩子。不要在这里 Break 近战子轴；指定目标只走过滤。</summary>
         void PostAcceptedHit();
     }
 

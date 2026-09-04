@@ -91,12 +91,12 @@ namespace ACTGameEditor
             if (!MonoAttackerDic.ContainsKey(netID))
             {
                 MonoAttackerDic.Add(netID, attacker);
+                AddAckerAct?.Invoke(attacker);
             }
             else
             {
                 Debug.LogError($"重复注册攻击者 NetId:{netID}");
             }
-            AddAckerAct?.Invoke(attacker);
         }
 
         private void DisRegisterAttacker(uint netID)
@@ -153,7 +153,7 @@ namespace ACTGameEditor
 
         public void AddTruePlayer()
         {
-            ActPlayer player = SpawnActPlayer(PrefabPath.Player, "ActPlayer", Vector3.zero, AgentTag.PlayerA);
+            ActPlayer player = SpawnActPlayer(PrefabPath.Player, "ActPlayer", Vector3.zero, AgentTag.PlayerA, isTruePlayer: true);
 
             //跟随玩家
             CameraManager.Instance.ChangeCurFollowTarget(player);
@@ -171,7 +171,7 @@ namespace ACTGameEditor
             string prefabPath = agentName == AgentModelType.Player ? PrefabPath.Player : PrefabPath.EnemyB;
             string assetPath = agentName == AgentModelType.Player ? "ActPlayer" : "EnemyB";
 
-            ActPlayer player = SpawnActPlayer(prefabPath, assetPath, startPos, agentTag);
+            ActPlayer player = SpawnActPlayer(prefabPath, assetPath, startPos, agentTag, isTruePlayer: false);
 
             PlayerNetIdList.Add(player.Combat.NetId);
             RegisterPlayer(player);
@@ -180,7 +180,7 @@ namespace ACTGameEditor
         /// <summary>
         /// 从运行时对象池取出角色；池未就绪时回退 Instantiate。
         /// </summary>
-        ActPlayer SpawnActPlayer(string bundle, string asset, Vector3 position, AgentTag agent)
+        ActPlayer SpawnActPlayer(string bundle, string asset, Vector3 position, AgentTag agent, bool isTruePlayer)
         {
             GameObject obj = RunTimePoolManager.Instance != null
                 ? RunTimePoolManager.Instance.LoadResPoolObj(bundle, asset)
@@ -200,7 +200,7 @@ namespace ACTGameEditor
             player.SetPoolResPath(bundle, asset);
             player.RestoreForReuse();
             player.Agent = agent;
-            player.Init();
+            player.Init(isTruePlayer);
             return player;
         }
 

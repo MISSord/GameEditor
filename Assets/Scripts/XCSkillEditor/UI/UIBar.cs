@@ -41,6 +41,8 @@ namespace XiaoCao
         public bool autoSize = false;
 
         private Tween _uiTween;
+        private int _lastHp = int.MinValue;
+        private int _lastMaxHp = int.MinValue;
 
         private void Start()
         {
@@ -49,39 +51,79 @@ namespace XiaoCao
 
         public void OnUpdate()
         {
-            if (IsCanvasInited && target != null)
+            if (!IsCanvasInited || target == null || !isMove)
+                return;
+
+            Camera worldCam = MainCam;
+            RectTransform followRect = Rect;
+            if (worldCam == null || followRect == null || canvas == null)
+                return;
+
+            Vector3 worldPos = target.position + offSet;
+            Vector3 screen = worldCam.WorldToScreenPoint(worldPos);
+            if (screen.z <= 0f)
+                return;
+
+            Camera uiCam = canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
+            RectTransform parentRect = followRect.parent as RectTransform;
+            if (parentRect == null)
+                parentRect = canvasRect;
+            if (parentRect == null)
+                return;
+
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(parentRect, screen, uiCam, out Vector2 localPoint))
+                return;
+
+            followRect.anchoredPosition = localPoint;
+            ResetBarChildLocal();
+
+            if (autoSize)
             {
-                if (isMove)
-                {
-                    barImgTF.position = UITool.WorldToUiPostion(target.position + offSet, MainCam);
-                    if (autoSize)
-                    {
-                        float dis = Vector3.Distance(target.position, MainCam.transform.position);
-                        barImgTF.localScale = GetScaleByDistance(dis,scaleRate_Bar) * Vector3.one;
-                    }
-                }
+                float dis = Vector3.Distance(worldPos, worldCam.transform.position);
+                if (dis < 0.01f)
+                    dis = 0.01f;
+                followRect.localScale = GetScaleByDistance(dis, scaleRate_Bar) * Vector3.one;
             }
+        }
+
+        void ResetBarChildLocal()
+        {
+            if (barImgTF == null)
+                return;
+
+            if (barImgTF is RectTransform barRt)
+                barRt.anchoredPosition = Vector2.zero;
+            else
+                barImgTF.localPosition = Vector3.zero;
         }
 
         public void SetFillValue(int value, int count)
         {
-            SetFill(value / (float)count);
-            if (isShowNum)
-            {
-                numText.text = string.Format("{0}/{1}", value, count);
-            }
+            if (count <= 0)
+                count = 1;
+            if (value == _lastHp && count == _lastMaxHp)
+                return;
 
+            _lastHp = value;
+            _lastMaxHp = count;
+            SetFill(value / (float)count);
+            if (isShowNum && numText != null)
+                numText.text = string.Format("{0}/{1}", value, count);
         }
 
         private void SetFill(float p)
         {
             if (_uiTween != null)
-            {
                 _uiTween.Kill();
-            }
-            _uiTween = DOTween.To(x => barImgSlow.fillAmount = x, barImg.fillAmount, p, tweenDuration);
-            barImg.fillAmount = p;
-            //barImg.color = Color.Lerp(emptyColor, fullColor, p);
+
+            float from = barImgSlow != null ? barImgSlow.fillAmount : p;
+            _uiTween = DOTween.To(x =>
+            {
+                if (barImgSlow != null)
+                    barImgSlow.fillAmount = x;
+            }, from, p, tweenDuration);
+            if (barImg != null)
+                barImg.fillAmount = p;
         }
 
         public void SetFillValueNoBreak(int value, int count)
@@ -106,6 +148,9 @@ namespace XiaoCao
         public void SetTarget(Transform transform)
         {
             target = transform;
+            _lastHp = int.MinValue;
+            _lastMaxHp = int.MinValue;
+            ResetBarChildLocal();
         }
 
         public float scaleRate_Bar = 2;

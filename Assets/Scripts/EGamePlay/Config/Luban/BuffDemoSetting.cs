@@ -38,6 +38,7 @@ public sealed partial class BuffDemoSetting : Luban.BeanBase
         { if(!_buf["IntervalTime"].IsNumber) { throw new SerializationException(); }  IntervalTime = _buf["IntervalTime"]; }
         { if(!_buf["TriggerFormula"].IsString) { throw new SerializationException(); }  TriggerFormula = _buf["TriggerFormula"]; }
         { if(!_buf["RemoveActionPointType"].IsNumber) { throw new SerializationException(); }  RemoveActionPointType = (ActionPointType)_buf["RemoveActionPointType"].AsInt; }
+        { if(!_buf["Priority"].IsNumber) { throw new SerializationException(); }  Priority = _buf["Priority"]; }
     }
 
     public static BuffDemoSetting DeserializeBuffDemoSetting(JSONNode _buf)
@@ -129,6 +130,10 @@ public sealed partial class BuffDemoSetting : Luban.BeanBase
     /// Buff移除触发点
     /// </summary>
     public readonly ActionPointType RemoveActionPointType;
+    /// <summary>
+    /// Buff优先级
+    /// </summary>
+    public readonly int Priority;
    
     public const int __ID__ = 1895923834;
     public override int GetTypeId() => __ID__;
@@ -161,6 +166,7 @@ public sealed partial class BuffDemoSetting : Luban.BeanBase
         + "IntervalTime:" + IntervalTime + ","
         + "TriggerFormula:" + TriggerFormula + ","
         + "RemoveActionPointType:" + RemoveActionPointType + ","
+        + "Priority:" + Priority + ","
         + "}";
     }
 }

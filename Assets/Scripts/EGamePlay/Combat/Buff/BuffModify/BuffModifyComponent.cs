@@ -13,6 +13,7 @@ namespace EGamePlay.Combat
         public FloatModifier AttributeModifier { get; set; }
         public bool AttributeApplied { get; set; }
         public bool ControlApplied { get; set; }
+        public bool ShieldApplied { get; set; }
         public Action<Entity> ActionCallback { get; set; }
     }
 
@@ -22,6 +23,9 @@ namespace EGamePlay.Combat
     public class BuffModifyComponent : Component
     {
         public List<ModifyRegistration> Registrations { get; private set; } = new List<ModifyRegistration>();
+
+        BuffProperty _stackProperty;
+        Action<BuffProperty> _stackChangedHandler;
 
         public override void Awake()
         {
@@ -49,25 +53,22 @@ namespace EGamePlay.Combat
         {
             var buff = GetEntity<Buff>();
             if (buff == null || buff.IsDisposed) return;
-
-            foreach (var reg in Registrations)
+            SubscribeStack(buff);
+            for (int i = 0; i < Registrations.Count; i++)
             {
-                //if (reg.Config.EffectModifyType == EffectModifyType.ActionModify)
-                //    BuffModifyProcessorTable.RegisterActionModify(reg, buff);
+                if (Registrations[i]?.Config?.EffectModifyType == EffectModifyType.AddShield)
+                    BuffModifyProcessorTable.ApplyOnTrigger(Registrations[i], buff, buff.OwnerEntity?.Entity);
             }
         }
 
         public override void OnDisable()
         {
+            UnsubscribeStack();
             var buff = GetEntity<Buff>();
             if (buff == null) return;
 
             foreach (var reg in Registrations)
-            {
-                //if (reg.Config.EffectModifyType == EffectModifyType.ActionModify)
-                //    BuffModifyProcessorTable.UnregisterActionModify(reg, buff);
                 BuffModifyProcessorTable.RevertOnDisable(reg, buff);
-            }
         }
 
         public void OnTriggerModify(Entity target)
@@ -89,23 +90,50 @@ namespace EGamePlay.Combat
 
         public override void OnDestroy()
         {
+            UnsubscribeStack();
             var buff = GetEntity<Buff>();
             if (buff != null)
             {
                 foreach (var reg in Registrations)
-                {
-                    //if (reg.Config?.EffectModifyType == EffectModifyType.ActionModify && reg.ActionCallback != null)
-                    //    BuffModifyProcessorTable.UnregisterActionModify(reg, buff);
                     BuffModifyProcessorTable.RevertOnDisable(reg, buff);
-                }
             }
             foreach (var reg in Registrations)
             {
                 reg.Config = null;
                 reg.AttributeModifier = null;
                 reg.ActionCallback = null;
+                reg.ShieldApplied = false;
             }
             Registrations?.Clear();
+        }
+
+        void SubscribeStack(Buff buff)
+        {
+            UnsubscribeStack();
+            if (buff == null || !buff.IsCanStack)
+                return;
+            var attrs = buff.GetComponent<BuffAttributesComponent>();
+            _stackProperty = attrs?.GetNumeric(AttributeType.BuffMaxStacks);
+            if (_stackProperty == null)
+                return;
+            _stackChangedHandler ??= OnStackChanged;
+            _stackProperty.OnCurrentValueChanged += _stackChangedHandler;
+        }
+
+        void UnsubscribeStack()
+        {
+            if (_stackProperty != null && _stackChangedHandler != null)
+                _stackProperty.OnCurrentValueChanged -= _stackChangedHandler;
+            _stackProperty = null;
+        }
+
+        void OnStackChanged(BuffProperty _)
+        {
+            var buff = GetEntity<Buff>();
+            if (buff == null || buff.IsDisposed)
+                return;
+            BuffModifyProcessorTable.RefreshStickyAttributes(this, buff);
+            BuffModifyProcessorTable.RefreshStickyShields(buff);
         }
     }
 }

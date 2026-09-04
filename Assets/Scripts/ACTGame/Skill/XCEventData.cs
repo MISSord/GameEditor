@@ -168,11 +168,11 @@ namespace ACTGameEditor
     public class XCTriggerEventData : XCEventData
     {
         public CubeRange CubeRange;
-        /// <summary>该触发对应技能的第几段伤害（从 1 开始），0 表示未指定。</summary>
-        public int DamageSegmentIndex = 0;
+        /// <summary>该触发对应技能的第几段伤害（从 1 开始）。</summary>
+        public int DamageSegmentIndex = 1;
         /// <summary>同一击多盒共用的组。0 表示按该触发事件实例去重。</summary>
         public int HitGroupId = 0;
-        /// <summary>触发时执行的效果 ID；为空时触发该技能下全部效果。</summary>
+        /// <summary>命中额外效果 ID；为空时只结算该段伤害。</summary>
         public List<int> EffectIds = new List<int>();
     }
 

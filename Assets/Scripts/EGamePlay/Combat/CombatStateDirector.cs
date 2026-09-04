@@ -2,7 +2,7 @@ namespace EGamePlay.Combat
 {
     /// <summary>
     /// 战斗行为态唯一写入口：按优先级槽位合成 CurState。
-    /// Dead &gt; Hit &gt; Skill &gt; Locomotion(Idle/Moving)。
+    /// Dead &gt; Control &gt; Hit &gt; Skill &gt; Locomotion(Idle/Moving)。
     /// </summary>
     public sealed class CombatStateDirector
     {
@@ -20,6 +20,8 @@ namespace EGamePlay.Combat
         long _hitSourceId;
         float _hitEndTime;
 
+        bool _controlActive;
+
         bool _dead;
 
         bool _wantMoving;
@@ -35,6 +37,9 @@ namespace EGamePlay.Combat
         /// <summary>是否已进入死亡槽。</summary>
         public bool IsDead => _dead;
 
+        /// <summary>是否处于硬控槽（眩晕等，跟 MoveForbid 时长）。</summary>
+        public bool IsControl => _controlActive;
+
         /// <summary>绑定实体并同步初始 Idle。</summary>
         public void Bind(ICombatUnit owner)
         {
@@ -49,6 +54,7 @@ namespace EGamePlay.Combat
             _owner = null;
             _skillActive = false;
             _hitActive = false;
+            _controlActive = false;
             _dead = false;
             _skillSourceId = 0;
             _hitSourceId = 0;
@@ -61,10 +67,10 @@ namespace EGamePlay.Combat
             _wantWalk = false;
         }
 
-        /// <summary>技能开轴。同槽后写覆盖（连招顶替）。</summary>
+        /// <summary>技能开轴。同槽后写覆盖（连招顶替）。硬控/死亡中忽略。</summary>
         public void EnterSkill(long sourceId)
         {
-            if (_dead)
+            if (_dead || _controlActive)
                 return;
             _skillActive = true;
             _skillSourceId = sourceId;
@@ -88,10 +94,10 @@ namespace EGamePlay.Combat
             Recompute();
         }
 
-        /// <summary>受击硬直。duration≤0 需手动 ExitHit。</summary>
+        /// <summary>受击硬直。duration≤0 需手动 ExitHit。硬控中忽略，避免短硬直冲掉控制槽。</summary>
         public void EnterHit(long sourceId, float durationSeconds = 0.35f)
         {
-            if (_dead)
+            if (_dead || _controlActive)
                 return;
             _hitActive = true;
             _hitSourceId = sourceId;
@@ -121,6 +127,28 @@ namespace EGamePlay.Combat
             _hitActive = false;
             _hitSourceId = 0;
             _hitEndTime = 0f;
+            _controlActive = false;
+            Recompute();
+        }
+
+        /// <summary>进入硬控。清短硬直；技能槽可仍为 true，合成时 Control 盖住 Skill，直到 Break 后 ExitSkill。</summary>
+        public void EnterControl()
+        {
+            if (_dead)
+                return;
+            _controlActive = true;
+            _hitActive = false;
+            _hitSourceId = 0;
+            _hitEndTime = 0f;
+            Recompute();
+        }
+
+        /// <summary>退出硬控（MoveForbid 计数归零）。</summary>
+        public void ExitControl()
+        {
+            if (!_controlActive)
+                return;
+            _controlActive = false;
             Recompute();
         }
 
@@ -143,7 +171,7 @@ namespace EGamePlay.Combat
                 ApplyGroundMoveState();
 
             // 仅当行为层落在 Locomotion 时刷新 Idle/Moving
-            if (!_dead && !_hitActive && !_skillActive)
+            if (!_dead && !_controlActive && !_hitActive && !_skillActive)
                 Recompute();
         }
 
@@ -210,6 +238,8 @@ namespace EGamePlay.Combat
             PlayerStateEnum next;
             if (_dead)
                 next = PlayerStateEnum.Dead;
+            else if (_controlActive)
+                next = PlayerStateEnum.Control;
             else if (_hitActive)
                 next = PlayerStateEnum.Hit;
             else if (_skillActive)

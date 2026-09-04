@@ -1,10 +1,4 @@
-using UnityEngine;
-#if EGAMEPLAY_ET
-using SkillConfig = cfg.Skill.SkillCfg;
-using AO;
-#endif
-
-namespace EGamePlay.Combat
+﻿namespace EGamePlay.Combat
 {
     /// <summary>
     /// 能力统一接口。Ability（技能）与 Buff 均为此能力的具象，具备挂载实体与激活/反激活生命周期。
@@ -80,9 +74,6 @@ namespace EGamePlay.Combat
             }
 
             Name = Definition.Name;
-            // 技能触发器仍然可以基于 TriggerConfig 工作，此处不再挂载 AbilityEffectComponent，
-            // 效果数据已提升到 AbilityDefinition.EffectDatas 上统一管理。
-            //AddComponent<AbilityTriggerComponent>(Definition.ConfigObject.TriggerActions);
         }
 
         /// <summary>尝试激活能力（挂载时调用）。</summary>

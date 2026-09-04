@@ -34,6 +34,10 @@ namespace EGamePlay.Combat
         /// </summary>
         CurveEffect = 5,
         /// <summary>
+        /// //命中乘区条件增伤（挂在攻击者或受击者 Buff 上，结算时扫描）
+        /// </summary>
+        ActionModify = 6,
+        /// <summary>
         /// //施加Buff
         /// </summary>
         AddStatus = 7,
@@ -59,6 +63,14 @@ namespace EGamePlay.Combat
         BuffResource = 12,
         SkillAddStatus = 13,
         BuffAddStatus = 14,
+        /// <summary>
+        /// //上 Buff 前置扫描（免疫/抵抗/改写，不在 OnTrigger 执行）
+        /// </summary>
+        StatusApplyModify = 15,
+        /// <summary>
+        /// //护盾吸收层（挂在 Vital，卸 Buff 掉剩余盾）
+        /// </summary>
+        AddShield = 16,
     }
 
 } 

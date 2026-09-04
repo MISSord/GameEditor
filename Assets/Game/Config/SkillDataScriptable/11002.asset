@@ -88,7 +88,7 @@ MonoBehaviour:
           radius: 0
           height: 0
           colliderType: 0
-        DamageSegmentIndex: 1
+        DamageSegmentIndex: 2
         HitGroupId: 0
         EffectIds: 
     SkillInputEvents:

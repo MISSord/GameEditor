@@ -153,7 +153,8 @@ namespace ACTGameEditor
             return feet + Vector3.up * 1.05f;
         }
 
-        public void Init()
+        /// <summary>装配战斗实体。人机不要传 isTruePlayer。</summary>
+        public void Init(bool isTruePlayer = false)
         {
             _modelShow = transform.Find("ActTest");
             _cameraTarget = transform.Find("CinemachineCameraTarget");
@@ -174,6 +175,7 @@ namespace ACTGameEditor
                 animTimeScale = GameTimeAnimTimeScaleSource.Default,
                 CharacterId = CharacterId,
                 Level = Level,
+                isTruePlayer = isTruePlayer,
             };
 
             PlayerTimeSource = data.animTimeScale ?? GameTimeAnimTimeScaleSource.Default;

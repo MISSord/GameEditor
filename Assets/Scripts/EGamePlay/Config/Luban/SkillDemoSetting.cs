@@ -33,6 +33,8 @@ public sealed partial class SkillDemoSetting : Luban.BeanBase
         { if(!_buf["CostAttrType"].IsNumber) { throw new SerializationException(); }  CostAttrType = _buf["CostAttrType"]; }
         { if(!_buf["CostA"].IsNumber) { throw new SerializationException(); }  CostA = _buf["CostA"]; }
         { if(!_buf["CostB"].IsNumber) { throw new SerializationException(); }  CostB = _buf["CostB"]; }
+        { if(!_buf["SkillGroupId"].IsNumber) { throw new SerializationException(); }  SkillGroupId = _buf["SkillGroupId"]; }
+        { if(!_buf["MaxLevel"].IsNumber) { throw new SerializationException(); }  MaxLevel = _buf["MaxLevel"]; }
     }
 
     public static SkillDemoSetting DeserializeSkillDemoSetting(JSONNode _buf)
@@ -81,11 +83,11 @@ public sealed partial class SkillDemoSetting : Luban.BeanBase
     /// </summary>
     public readonly System.Collections.Generic.List<string> BlockedTags;
     /// <summary>
-    /// 技能效果列表
+    /// 命中额外效果
     /// </summary>
     public readonly System.Collections.Generic.List<int> EffectIds;
     /// <summary>
-    /// 技能效果列表
+    /// 内联Buff效果
     /// </summary>
     public readonly System.Collections.Generic.List<int> InlineBuffEffectIds;
     /// <summary>
@@ -97,13 +99,21 @@ public sealed partial class SkillDemoSetting : Luban.BeanBase
     /// </summary>
     public readonly int CostAttrType;
     /// <summary>
-    /// 公式的A部分
+    /// 公式A
     /// </summary>
     public readonly float CostA;
     /// <summary>
-    /// 公式的B部分
+    /// 公式B
     /// </summary>
     public readonly float CostB;
+    /// <summary>
+    /// 升级组；0=自身一组
+    /// </summary>
+    public readonly int SkillGroupId;
+    /// <summary>
+    /// 技能等级上限
+    /// </summary>
+    public readonly int MaxLevel;
    
     public const int __ID__ = 642189308;
     public override int GetTypeId() => __ID__;
@@ -131,6 +141,8 @@ public sealed partial class SkillDemoSetting : Luban.BeanBase
         + "CostAttrType:" + CostAttrType + ","
         + "CostA:" + CostA + ","
         + "CostB:" + CostB + ","
+        + "SkillGroupId:" + SkillGroupId + ","
+        + "MaxLevel:" + MaxLevel + ","
         + "}";
     }
 }

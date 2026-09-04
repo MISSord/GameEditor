@@ -20,10 +20,11 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
         { if(!_buf["SkillId"].IsNumber) { throw new SerializationException(); }  SkillId = _buf["SkillId"]; }
         { if(!_buf["SkillName"].IsString) { throw new SerializationException(); }  SkillName = _buf["SkillName"]; }
         { if(!_buf["SegmentIndex"].IsNumber) { throw new SerializationException(); }  SegmentIndex = _buf["SegmentIndex"]; }
-        { if(!_buf["Ratio"].IsNumber) { throw new SerializationException(); }  Ratio = _buf["Ratio"]; }
+        { var __json0 = _buf["RatioByLevel"]; if(!__json0.IsArray) { throw new SerializationException(); } RatioByLevel = new System.Collections.Generic.List<float>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { float __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  RatioByLevel.Add(__v0); }   }
         { if(!_buf["DamageType"].IsNumber) { throw new SerializationException(); }  DamageType = (DamageType)_buf["DamageType"].AsInt; }
         { if(!_buf["FormulaType"].IsNumber) { throw new SerializationException(); }  FormulaType = _buf["FormulaType"]; }
         { if(!_buf["CanCrit"].IsNumber) { throw new SerializationException(); }  CanCrit = _buf["CanCrit"]; }
+        { var __json0 = _buf["OnHitEffectIds"]; if(!__json0.IsArray) { throw new SerializationException(); } OnHitEffectIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  OnHitEffectIds.Add(__v0); }   }
     }
 
     public static SkillDamageSetting DeserializeSkillDamageSetting(JSONNode _buf)
@@ -40,13 +41,13 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
     /// </summary>
     public readonly string SkillName;
     /// <summary>
-    /// 伤害段数
+    /// 伤害段号
     /// </summary>
     public readonly int SegmentIndex;
     /// <summary>
-    /// 伤害系数
+    /// 各级伤害系数
     /// </summary>
-    public readonly float Ratio;
+    public readonly System.Collections.Generic.List<float> RatioByLevel;
     /// <summary>
     /// 伤害类型
     /// </summary>
@@ -59,6 +60,10 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
     /// 是否支持暴击
     /// </summary>
     public readonly int CanCrit;
+    /// <summary>
+    /// 本段额外效果
+    /// </summary>
+    public readonly System.Collections.Generic.List<int> OnHitEffectIds;
    
     public const int __ID__ = -527803088;
     public override int GetTypeId() => __ID__;
@@ -73,10 +78,11 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
         + "SkillId:" + SkillId + ","
         + "SkillName:" + SkillName + ","
         + "SegmentIndex:" + SegmentIndex + ","
-        + "Ratio:" + Ratio + ","
+        + "RatioByLevel:" + Luban.StringUtil.CollectionToString(RatioByLevel) + ","
         + "DamageType:" + DamageType + ","
         + "FormulaType:" + FormulaType + ","
         + "CanCrit:" + CanCrit + ","
+        + "OnHitEffectIds:" + Luban.StringUtil.CollectionToString(OnHitEffectIds) + ","
         + "}";
     }
 }

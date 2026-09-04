@@ -60,8 +60,11 @@ namespace EGamePlay.Combat
 
         void PostProcess()
         {
-            Creator?.TriggerActionPoint(ActionPointType.PostGiveCure, this);
-            Target?.TriggerActionPoint(ActionPointType.PostReceiveCure, this);
+            using (CombatBuffPipeline.Lock(Creator, Target))
+            {
+                CombatBuffPipeline.Notify(Creator, ActionPointType.PostGiveCure, this);
+                CombatBuffPipeline.Notify(Target, ActionPointType.PostReceiveCure, this);
+            }
         }
     }
 }

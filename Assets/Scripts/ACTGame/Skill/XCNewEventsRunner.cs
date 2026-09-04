@@ -226,8 +226,7 @@ namespace ACTGameEditor
 
         HitResultKind PeekHitCore(ICombatUnit defender, XCTriggerEvent triggerEvent)
         {
-            string rejectReason = EvaluateHitRejectReason(defender, triggerEvent, out var key);
-            if (rejectReason != null)
+            if (!TryBuildHitKey(defender, triggerEvent, out var key))
                 return HitResultKind.Ignored;
             if (_resolvedHits.Contains(key))
                 return HitResultKind.Ignored;
@@ -236,64 +235,36 @@ namespace ACTGameEditor
 
         bool CommitHitCore(ICombatUnit defender, XCTriggerEvent triggerEvent)
         {
-            string rejectReason = EvaluateHitRejectReason(defender, triggerEvent, out var key);
-            if (rejectReason != null)
+            if (!TryBuildHitKey(defender, triggerEvent, out var key))
                 return false;
             return _resolvedHits.Add(key);
         }
 
-        static string EvaluateHitRejectReason(
-            XCNewEventsRunner runner,
-            ActSkillRunner parentRunner,
-            ICombatUnit defender,
-            XCTriggerEvent triggerEvent,
-            out HitKey key)
+        /// <summary>
+        /// 盒内目标是否可结算。锁定 / InputTarget 只用于转向，不在这里过滤。
+        /// </summary>
+        bool TryBuildHitKey(ICombatUnit defender, XCTriggerEvent triggerEvent, out HitKey key)
         {
             key = default;
-            if (runner == null || runner.IsDisposed)
-                return "runner-disposed";
-            if (runner.State != RunnerState.Update)
-                return $"runner-state-{runner.State}";
-
+            if (IsDisposed)
+                return false;
+            if (State != RunnerState.Update)
+                return false;
             if (triggerEvent == null || triggerEvent.TriggerEventData == null)
-                return "trigger-null";
+                return false;
+            if (defender == null || defender.IsDisposed || defender.IsDead)
+                return false;
 
-            if (defender == null || defender.IsDisposed)
-                return "defender-null";
-            if (defender.IsDead)
-                return "defender-dead";
-
-            ICombatUnit owner = runner.OwnerEntity;
+            ICombatUnit owner = OwnerEntity;
             if (owner != null && defender.Id == owner.Id)
-                return "self-hit";
-
-            CombatEntity designated = ResolveDesignatedTarget(parentRunner);
-            if (designated != null && defender.Entity != designated)
-                return $"not-designated-target need={designated.Id}";
+                return false;
 
             int group = triggerEvent.TriggerEventData.HitGroupId;
             if (group == 0)
                 group = triggerEvent.HitInstanceId;
 
             key = new HitKey(group, defender.Id);
-            return null;
-        }
-
-        string EvaluateHitRejectReason(ICombatUnit defender, XCTriggerEvent triggerEvent, out HitKey key) =>
-            EvaluateHitRejectReason(this, _parentRunner, defender, triggerEvent, out key);
-
-        /// <summary>锁定目标优先；已死亡/销毁的指定目标视为无指定，避免后续普攻全部被挡。</summary>
-        static CombatEntity ResolveDesignatedTarget(ActSkillRunner parentRunner)
-        {
-#if UNITY
-            var locked = ACTGameEditor.LockSystem.Instance?.LockedCombatEntity;
-            if (locked != null && !locked.IsDisposed && !locked.IsDead)
-                return locked;
-#endif
-            var input = parentRunner?.InputTarget;
-            if (input != null && !input.IsDisposed && !input.IsDead)
-                return input;
-            return null;
+            return true;
         }
 
         void ApplyAcceptedHitCore(
@@ -309,16 +280,31 @@ namespace ACTGameEditor
             if (defender.Entity is not CombatEntity targetEntity)
                 return;
 
-            TriggerEffectList(triggerEvent.TriggerEventData.EffectIds, targetEntity,
+            var ability = _parentRunner?.AbilityEntity;
+            if (ability == null)
+                return;
+
+            EffectApplier.ApplySkillSegment(
+                OwnerEntity,
+                targetEntity,
+                ability,
                 triggerEvent.TriggerEventData.DamageSegmentIndex,
-                hasHitWorldPosition, hitWorldPosition);
+                hasHitWorldPosition,
+                hitWorldPosition);
+
+            TriggerEffectList(
+                triggerEvent.TriggerEventData.EffectIds,
+                targetEntity,
+                0,
+                hasHitWorldPosition,
+                hitWorldPosition);
         }
 
-        /// <summary>命中后处理：指定目标命中后结束该子轴。受击打断等后续在此扩展。</summary>
+        /// <summary>
+        /// 命中后钩子。锁定只影响转向，不在这里 Break；多盒是否同一击只看 HitGroup。
+        /// </summary>
         public void PostAcceptedHit()
         {
-            if (_parentRunner?.InputTarget != null)
-                State = RunnerState.Break;
         }
 
         private readonly struct HitKey : IEquatable<HitKey>
@@ -340,14 +326,14 @@ namespace ACTGameEditor
         }
 
         /// <summary>
-        /// 触发效果：按 BuffModifySetting.EffectModifyID 执行；空列表时触发全部。
+        /// 触发技能定义里的额外效果。空列表不出伤、不执行效果（伤害由段表结算）。
         /// </summary>
         public void TriggerEffectList(List<int> effectIds, Entity target, int damageSegmentIndex = 0)
         {
             TriggerEffectList(effectIds, target, damageSegmentIndex, false, default);
         }
 
-        /// <summary>带命中世界坐标的效果触发；无盒体时 hasHitWorldPosition 为 false。</summary>
+        /// <summary>带命中世界坐标的额外效果；空列表直接返回。</summary>
         public void TriggerEffectList(
             List<int> effectIds,
             Entity target,
@@ -355,31 +341,28 @@ namespace ACTGameEditor
             bool hasHitWorldPosition,
             Vector3 hitWorldPosition)
         {
-            if (effectIds == null) return;
+            if (effectIds == null || effectIds.Count == 0)
+                return;
             var ability = _parentRunner?.AbilityEntity;
-            if (ability == null || OwnerEntity == null || OwnerEntity.IsDisposed) return;
+            if (ability == null || OwnerEntity == null || OwnerEntity.IsDisposed)
+                return;
 
-            var owner = OwnerEntity;
             var settings = ability.Definition?.EffectModifyEffects;
-            if (settings == null || settings.Count == 0) return;
+            if (settings == null || settings.Count == 0)
+                return;
             BuildEffectLookupIfNeeded(settings);
 
-            if (effectIds.Count == 0)
+            var owner = OwnerEntity;
+            for (int i = 0; i < effectIds.Count; i++)
             {
-                for (int i = 0; i < settings.Count; i++)
-                    EffectApplier.ApplySkillInline(settings[i], owner, target, ability, damageSegmentIndex,
-                        hasHitWorldPosition, hitWorldPosition);
-                return;
-            }
-
-            foreach (var effectId in effectIds)
-            {
-                if (effectId <= 0) continue;
-                if (_effectSettingsById.TryGetValue(effectId, out var setting))
-                {
-                    EffectApplier.ApplySkillInline(setting, owner, target, ability, damageSegmentIndex,
-                        hasHitWorldPosition, hitWorldPosition);
-                }
+                int effectId = effectIds[i];
+                if (effectId <= 0)
+                    continue;
+                if (!_effectSettingsById.TryGetValue(effectId, out var setting))
+                    continue;
+                EffectApplier.ApplySkillInline(
+                    setting, owner, target, ability, damageSegmentIndex,
+                    hasHitWorldPosition, hitWorldPosition);
             }
         }
 

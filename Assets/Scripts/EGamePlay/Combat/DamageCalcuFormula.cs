@@ -20,9 +20,15 @@ namespace EGamePlay.Combat
         public bool CanCrit;
         public DamageCalcuFormulaType FormulaType;
         public float SkillRate;
+        /// <summary>来源技能 Id；Buff 跳伤为 0。供 ActionModify 按技能过滤。</summary>
+        public int SkillId;
+        /// <summary>技能伤害或 Buff 跳伤。供 ActionModify 按来源过滤。</summary>
+        public DamageSource DamageSource;
 
         public AttributeComponent CreatorAttri;
         public AttributeComponent TargetAttri;
+        public StatusComponent CreatorStatus;
+        public StatusComponent TargetStatus;
 
         public float BaseDamage;
         public float AfterDefense;
@@ -47,14 +53,23 @@ namespace EGamePlay.Combat
         /// <summary>计算伤害并带回乘区上下文（含暴击与属性类型，供飘字使用）。</summary>
         public static int Calculate(Entity creator, Entity target, DamageEffect effect, out DamageContext ctx)
         {
+            return Calculate(creator, target, effect, 0, DamageSource.Skill, out ctx);
+        }
+
+        /// <summary>按 DamageEffect 算值，并带上技能 Id / 伤害来源供条件增伤过滤。</summary>
+        public static int Calculate(Entity creator, Entity target, DamageEffect effect, int skillId,
+            DamageSource damageSource, out DamageContext ctx)
+        {
             if (effect == null)
-                return Calculate(creator, target, DamageType.Physic, false, DamageCalcuFormulaType.Default, 1f, out ctx);
+                return Calculate(creator, target, DamageType.Physic, false, DamageCalcuFormulaType.Default, 1f,
+                    skillId, damageSource, out ctx);
             float rate = effect.DamageValueProperty > 0 ? effect.DamageValueProperty : 1f;
-            return Calculate(creator, target, effect.DamageType, effect.CanCrit, effect.FormulaType, rate, out ctx);
+            return Calculate(creator, target, effect.DamageType, effect.CanCrit, effect.FormulaType, rate,
+                skillId, damageSource, out ctx);
         }
 
         /// <summary>
-        /// 基于技能伤害配置表计算伤害（支持多段）。找不到配置时回退到默认物理伤害。
+        /// 按段表计算伤害。无行或倍率 ≤ 0 返回 0，不回退 1 倍攻击。
         /// </summary>
         public static int CalculateBySkillConfig(Entity creator, Entity target, int skillId, int segmentIndex)
         {
@@ -64,18 +79,39 @@ namespace EGamePlay.Combat
         /// <summary>按技能伤害段计算，并带回暴击/属性等上下文。</summary>
         public static int CalculateBySkillConfig(Entity creator, Entity target, int skillId, int segmentIndex, out DamageContext ctx)
         {
+            return CalculateBySkillConfig(creator, target, skillId, segmentIndex, DamageSource.Skill, out ctx);
+        }
+
+        /// <summary>按技能伤害段计算；技能等级从施法者 <c>SkillLevelComponent</c> 读取。</summary>
+        public static int CalculateBySkillConfig(Entity creator, Entity target, int skillId, int segmentIndex,
+            DamageSource damageSource, out DamageContext ctx)
+        {
+            int skillLevel = SkillSettingMgr.Instance.GetSkillLevel(creator as ICombatUnit, skillId);
+            return CalculateBySkillConfig(creator, target, skillId, segmentIndex, damageSource, skillLevel, out ctx);
+        }
+
+        /// <summary>按技能伤害段与指定技能等级计算。</summary>
+        public static int CalculateBySkillConfig(Entity creator, Entity target, int skillId, int segmentIndex,
+            DamageSource damageSource, int skillLevel, out DamageContext ctx)
+        {
             var setting = SkillSettingMgr.Instance.GetSkillDamageSetting(skillId, segmentIndex);
             if (setting == null)
             {
-                return Calculate(creator, target, DamageType.Physic, false, DamageCalcuFormulaType.Default, 1f, out ctx);
+                ctx = default;
+                return 0;
             }
 
             var damageType = setting.DamageType;
             var canCrit = setting.CanCrit != 0;
             var formulaType = (DamageCalcuFormulaType)setting.FormulaType;
-            var ratio = setting.Ratio > 0 ? setting.Ratio : 1f;
+            float ratio = setting.GetRatioAtLevel(skillLevel);
+            if (ratio <= 0f)
+            {
+                ctx = default;
+                return 0;
+            }
 
-            return Calculate(creator, target, damageType, canCrit, formulaType, ratio, out ctx);
+            return Calculate(creator, target, damageType, canCrit, formulaType, ratio, skillId, damageSource, out ctx);
         }
 
         public static int Calculate(Entity creator, Entity target, DamageType damageType, bool canCrit,
@@ -88,6 +124,14 @@ namespace EGamePlay.Combat
         public static int Calculate(Entity creator, Entity target, DamageType damageType, bool canCrit,
             DamageCalcuFormulaType formulaType, float skillRate, out DamageContext ctx)
         {
+            return Calculate(creator, target, damageType, canCrit, formulaType, skillRate, 0, DamageSource.Skill, out ctx);
+        }
+
+        /// <summary>填充伤害上下文后走六段乘区，结果写在 <paramref name="ctx"/>。</summary>
+        public static int Calculate(Entity creator, Entity target, DamageType damageType, bool canCrit,
+            DamageCalcuFormulaType formulaType, float skillRate, int skillId, DamageSource damageSource,
+            out DamageContext ctx)
+        {
             ctx = new DamageContext
             {
                 Creator = creator,
@@ -96,8 +140,12 @@ namespace EGamePlay.Combat
                 CanCrit = canCrit,
                 FormulaType = formulaType,
                 SkillRate = skillRate,
+                SkillId = skillId,
+                DamageSource = damageSource,
                 CreatorAttri = creator?.GetComponent<AttributeComponent>(),
                 TargetAttri = target?.GetComponent<AttributeComponent>(),
+                CreatorStatus = creator?.GetComponent<StatusComponent>(),
+                TargetStatus = target?.GetComponent<StatusComponent>(),
             };
             return Calculate(ref ctx);
         }
@@ -106,6 +154,8 @@ namespace EGamePlay.Combat
         {
             if (ctx.CreatorAttri == null) ctx.CreatorAttri = ctx.Creator?.GetComponent<AttributeComponent>();
             if (ctx.TargetAttri == null) ctx.TargetAttri = ctx.Target?.GetComponent<AttributeComponent>();
+            if (ctx.CreatorStatus == null) ctx.CreatorStatus = ctx.Creator?.GetComponent<StatusComponent>();
+            if (ctx.TargetStatus == null) ctx.TargetStatus = ctx.Target?.GetComponent<StatusComponent>();
 
             CalcBaseZone(ref ctx);
             CalcDefenseZone(ref ctx);
@@ -187,15 +237,16 @@ namespace EGamePlay.Combat
         //计算增伤
         private static void CalcBonusZone(ref DamageContext ctx)
         {
-            ctx.AfterBonus = ctx.AfterCrit;
-            if (ctx.CreatorAttri == null) return;
-
             float bonus = 0f;
-            if (ctx.CreatorAttri.TryGetNumeric(AttributeType.DamageBonus, out var db))
-                bonus += db.Value;
-            AttributeType bonusType = GetBonusAttributeType(ctx.DamageType);
-            if (ctx.CreatorAttri.TryGetNumeric(bonusType, out var typeBonus))
-                bonus += typeBonus.Value;
+            if (ctx.CreatorAttri != null)
+            {
+                if (ctx.CreatorAttri.TryGetNumeric(AttributeType.DamageBonus, out var db))
+                    bonus += db.Value;
+                AttributeType bonusType = GetBonusAttributeType(ctx.DamageType);
+                if (ctx.CreatorAttri.TryGetNumeric(bonusType, out var typeBonus))
+                    bonus += typeBonus.Value;
+            }
+            bonus += BuffModifyProcessorTable.CollectConditionalDamageBonus(ref ctx);
             ctx.AfterBonus = ctx.AfterCrit * (1f + bonus);
         }
 

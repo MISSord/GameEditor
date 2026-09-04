@@ -15,7 +15,7 @@ public class SkillEditorScene : MonoBehaviour
     [Button("添加Npc")]
     public void AddNpc()
     {
-        PlayerManager.Instance.AddFakePlayer(startPos, false, agentTag);
+        PlayerManager.Instance.AddFakePlayer(startPos, false, agentTag, agentName);
     }
 }
 #endif

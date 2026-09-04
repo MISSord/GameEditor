@@ -32,7 +32,7 @@ namespace EGamePlay.Combat
         public Ability SourceAbility;
         public Entity TriggerSource;
         public Entity Target;
-        /// <summary>技能多段伤害使用的段索引（从 1 开始），0 表示未指定或不适用。</summary>
+        /// <summary>技能多段伤害使用的段索引（从 1 开始）。Buff / 非段表伤害为 0。</summary>
         public int DamageSegmentIndex;
         /// <summary>攻击盒与受击体接触点；Buff 跳字等无盒体时为 false。</summary>
         public bool HasHitWorldPosition;
