@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using EGamePlay;
+﻿using System.Collections.Generic;
 
 namespace EGamePlay.Combat
 {
@@ -7,8 +6,8 @@ namespace EGamePlay.Combat
     {
         public int SkillID { get; private set; }
         /// <summary>
-        /// 技能效果行（表化）：由 SkillDemoSetting.EffectIds 解析为 BuffModifySetting 列表。
-        /// 约定：XCEventData.EffectIds 存 BuffModifySetting.EffectModifyID（空列表表示触发全部）。
+        /// 命中额外效果（上 Buff、回能等）。由 SkillDemoSetting.EffectIds 解析。
+        /// 主动技伤害走段表，不在这里挂 SkillHpDamage。盒上 EffectIds 为空只出该段伤害。
         /// </summary>
         public List<BuffModifySetting> EffectModifyEffects { get; private set; } = new List<BuffModifySetting>();
         public SkillDemoSetting Config { get; private set; }
@@ -19,7 +18,7 @@ namespace EGamePlay.Combat
 
         public static AbilityDefinition Load(int skillId)
         {
-            var config = SkillSettingMgr.Instance.GetSkillDemoSetting(skillId);
+            var config = SkillSettingMgr.Instance.GetSkillDemoSettingOrNull(skillId);
             if (config == null) return null;
 
             var definition = new AbilityDefinition
@@ -32,24 +31,18 @@ namespace EGamePlay.Combat
 
             definition.EffectModifyEffects.Clear();
             var effectIds = config.EffectIds;
-            if (effectIds != null && effectIds.Count > 0)
+            if (effectIds != null)
             {
                 for (int i = 0; i < effectIds.Count; i++)
                 {
                     var effectId = effectIds[i];
-                    if (effectId <= 0) continue;
+                    if (effectId <= 0)
+                        continue;
 
-                    var setting = SkillSettingMgr.Instance.GetBuffModifySetting(effectId);
+                    var setting = SkillSettingMgr.Instance.GetBuffModifySettingOrNull(effectId);
                     if (setting != null)
                         definition.EffectModifyEffects.Add(setting);
                 }
-            }
-            else if (SkillSettingMgr.Instance.HasSkillDamageConfig(skillId))
-            {
-                // 技能表未配 EffectIds 但伤害表有段配置时，回退到默认 SkillHpDamage 行。
-                var fallback = SkillSettingMgr.Instance.GetBuffModifySetting(SkillSettingMgr.DefaultSkillHpDamageEffectId);
-                if (fallback != null)
-                    definition.EffectModifyEffects.Add(fallback);
             }
 
             return definition;
@@ -64,9 +57,7 @@ namespace EGamePlay.Combat
     {
         private static AbilityDefinitionManager _instance;
         public static AbilityDefinitionManager Instance => _instance ??= new AbilityDefinitionManager();
-
         private readonly Dictionary<int, AbilityDefinition> _definitions = new Dictionary<int, AbilityDefinition>(64);
-
         private AbilityDefinitionManager() { }
 
         /// <summary>获取或加载指定技能的定义，失败返回 null。</summary>

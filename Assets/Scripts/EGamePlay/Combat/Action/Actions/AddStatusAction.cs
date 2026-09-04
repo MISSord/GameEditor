@@ -1,8 +1,33 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace EGamePlay.Combat
 {
+    /// <summary>本次施加 Buff 的来源。非 Combat 跳过 Pre / 免疫，避免被动被控抗挡掉。</summary>
+    public enum AddStatusSource : byte
+    {
+        /// <summary>技能命中、Buff 点燃等战斗施加。</summary>
+        Combat = 0,
+        /// <summary>被动技能常驻 Buff。</summary>
+        Passive = 1,
+        /// <summary>系统 / 调试直接挂载。</summary>
+        System = 2,
+    }
+
+    /// <summary>本次上 Buff 的裁决结果，对齐 <see cref="DamageActionEffect"/>。</summary>
+    [Flags]
+    public enum AddStatusActionEffect
+    {
+        /// <summary>正常施加（新建或刷新）。</summary>
+        None = 0,
+        /// <summary>流程中断（目标非法/已死亡等）；不落地，且跳过 PostGive/PostReceive。</summary>
+        Interrupt = 1,
+        /// <summary>目标免疫本次施加；不落地，仍走后置（抵抗飘字等）。</summary>
+        Immunity = 2,
+        /// <summary>抵抗掷骰失败；不落地，仍走后置。</summary>
+        Resisted = 4,
+    }
+
     public class AddStatusActionAbility : Entity, IActionAbility
     {
         public ICombatUnit OwnerEntity => GetParent<Entity>() as ICombatUnit;
@@ -23,9 +48,10 @@ namespace EGamePlay.Combat
     }
 
     /// <summary>
-    /// 施加 Buff 行动
+    /// 施加 Buff 行动：填单 → PreGive/PreReceive → 免疫裁决 → 落地或入队。
+    /// Combat 源全程效果锁：裁决后的新建在锁内入队，解锁才 Attach，避免免疫被 DelayAdd 绕过。
     /// </summary>
-    public class AddStatusAction : Entity, IActionExecute
+    public class AddStatusAction : Entity, IActionExecute, ICombatAddStatusContext
     {
         public TriggerContext TriggerContext { get; set; }
         /// <summary>释放者。</summary>
@@ -33,132 +59,118 @@ namespace EGamePlay.Combat
         /// <summary>目标实体。</summary>
         public ICombatUnit Target { get; set; }
 
+        /// <inheritdoc />
+        public ICombatUnit Caster => Creator;
+
+        /// <summary>本次要挂的 BuffId。</summary>
+        public int BuffId { get; set; }
+
+        /// <summary>请求原值。</summary>
+        public int RequestedBuffId { get; private set; }
+
+        /// <summary>施加来源。默认 Combat。</summary>
+        public AddStatusSource Source { get; set; }
+
+        /// <summary>裁决 Flags。</summary>
+        public AddStatusActionEffect Effect { get; set; }
+
+        /// <summary>本次累加的抵抗百分比（0–100）。未扫描或免疫时为 0。</summary>
+        public float ResistPercent { get; set; }
+
+        /// <summary>落地时写入 Buff 的 KV 参数。</summary>
+        public List<string> ParamString1 { get; set; }
+
         public void FinishAction() => Entity.Destroy(this);
 
-        void PreProcess() { }
-
-        void HandleReApplyExistingBuff(Buff existingBuff, BuffDemoSetting config)
+        /// <summary>
+        /// 结算本张上 Buff 单。Combat 源顺序：
+        /// 1. 填 BuffId / RequestedBuffId；
+        /// 2. 施加者 PreGiveStatus，承受者 PreReceiveStatus（TriggerBuff 可改 BuffId / Effect）；
+        /// 3. <see cref="StatusApplyResolver"/>：死亡 Interrupt；新建扫描免疫，再按抵抗%掷骰；
+        /// 4. Interrupt 不落地不后置；Immunity / Resisted 不落地仍后置；
+        /// 5. RequestAddStatus：锁内新建入队（带已裁决 BuffId），已有则立即刷新。
+        /// 非 Combat 源跳过 2–3，直接落地。
+        /// </summary>
+        public void ApplyAddStatusBySetting(int statusId, List<string> paramString1)
         {
-            if (existingBuff == null || config == null)
+            BuffId = statusId;
+            RequestedBuffId = statusId;
+            ParamString1 = paramString1;
+            Effect = AddStatusActionEffect.None;
+            ResistPercent = 0f;
+
+            if (statusId <= 0 || Target?.Status == null)
+            {
+                FinishAction();
                 return;
-
-            var rule = config.ReApplyRule;
-            existingBuff.TryGet(out BuffTimeComponent timeComponent);
-
-            if (rule == BuffReApplyRule.AddDuration)
-            {
-                if (timeComponent != null && config.BaseDuration > 0f)
-                    timeComponent.ExtendDuration(config.BaseDuration);
             }
-            else if (rule == BuffReApplyRule.RefreshDuration)
+
+            if (Source != AddStatusSource.Combat)
             {
-                if (timeComponent != null && config.BaseDuration > 0f)
-                    timeComponent.ResetDuration(config.BaseDuration);
+                CommitWithoutPipeline();
+                return;
             }
-            else if (rule == BuffReApplyRule.AddStackAndRefresh)
+
+            using (CombatBuffPipeline.Lock(Creator, Target))
             {
-                if (existingBuff.IsCanStack)
+                CombatBuffPipeline.Notify(Creator, ActionPointType.PreGiveStatus, this);
+                CombatBuffPipeline.Notify(Target, ActionPointType.PreReceiveStatus, this);
+
+                StatusApplyResolver.Resolve(this);
+
+                if (Effect.HasFlag(AddStatusActionEffect.Interrupt) || BuffId <= 0)
                 {
-                    var attrs = existingBuff.GetComponent<BuffAttributesComponent>();
-                    if (attrs != null)
-                    {
-                        var stackProperty = attrs.GetNumeric(AttributeType.BuffMaxStacks);
-                        if (stackProperty != null)
-                            stackProperty.CurrentValue = stackProperty.CurrentValue + 1f;
-                    }
+                    FinishAction();
+                    return;
                 }
 
-                if (timeComponent != null && config.BaseDuration > 0f)
-                    timeComponent.ResetDuration(config.BaseDuration);
-            }
-            else if (rule == BuffReApplyRule.Exclusive)
-            {
-            }
-            else if (timeComponent != null && config.BaseDuration > 0f)
-            {
-                timeComponent.ResetDuration(config.BaseDuration);
+                if (!ShouldApplyStatus())
+                {
+                    PostProcess();
+                    FinishAction();
+                    return;
+                }
+
+                BuffAddRequestResult result = Target.Status.RequestAddStatus(BuffId, Creator, ParamString1);
+                if (result != BuffAddRequestResult.Queued)
+                    PostProcess();
+
+                FinishAction();
             }
         }
 
-        public void ApplyAddStatusBySetting(int statusId, List<string> paramString1)
+        void CommitWithoutPipeline()
         {
-            PreProcess();
-
-            if (statusId <= 0 || Target?.Entity == null || !Target.Entity.TryGet(out StatusComponent statusComp))
-            {
-                FinishAction();
-                return;
-            }
-
-            var buffConfig = SkillSettingMgr.Instance.GetBuffDemoSetting(statusId);
-
-            if (statusComp.HasBuffId(statusId))
-            {
-                var existingBuff = statusComp.GetBuffById(statusId);
-                if (existingBuff != null && !existingBuff.Enable)
-                    existingBuff.ActivateBuff();
-                else
-                    HandleReApplyExistingBuff(existingBuff, buffConfig);
+            BuffAddRequestResult result = Target.Status.RequestAddStatus(BuffId, Creator, ParamString1);
+            if (result != BuffAddRequestResult.Queued)
                 PostProcess();
-                FinishAction();
-                return;
-            }
-
-            Buff buffAbility = statusComp.AttachStatus(statusId);
-            buffAbility.Caster = Creator?.Entity;
-            ProcessInputKVParams(buffAbility, paramString1);
-            buffAbility.ActivateBuff();
-
-            PostProcess();
             FinishAction();
         }
 
         void PostProcess()
         {
-            Creator?.TriggerActionPoint(ActionPointType.PostGiveStatus, this);
-            Target?.TriggerActionPoint(ActionPointType.PostReceiveStatus, this);
+            CombatBuffPipeline.Notify(Creator, ActionPointType.PostGiveStatus, this);
+            CombatBuffPipeline.Notify(Target, ActionPointType.PostReceiveStatus, this);
         }
 
-        void ProcessInputKVParams(Buff ability, Dictionary<string, string> Params)
+        bool ShouldApplyStatus()
         {
-            foreach (var keyValue in Params)
-            {
-                if (Enum.IsDefined(typeof(AttributeType), int.Parse(keyValue.Key)))
-                {
-                    ability.AddBuffAttribute(
-                        (AttributeType)int.Parse(keyValue.Key),
-                        ModifyType.SetBase,
-                        null,
-                        int.Parse(keyValue.Value),
-                        true);
-                }
-            }
+            return !Effect.HasFlag(AddStatusActionEffect.Interrupt)
+                && !Effect.HasFlag(AddStatusActionEffect.Immunity)
+                && !Effect.HasFlag(AddStatusActionEffect.Resisted);
         }
 
-        void ProcessInputKVParams(Buff ability, List<string> paramPairs)
+        public override void OnReset()
         {
-            if (paramPairs == null || paramPairs.Count == 0)
-                return;
-
-            for (int i = 0; i < paramPairs.Count; i++)
-            {
-                string s = paramPairs[i];
-                if (string.IsNullOrEmpty(s))
-                    continue;
-                int eq = s.IndexOf('=');
-                if (eq <= 0 || eq >= s.Length - 1)
-                    continue;
-
-                if (!int.TryParse(s.Substring(0, eq), out var keyInt))
-                    continue;
-                if (!int.TryParse(s.Substring(eq + 1), out var valInt))
-                    continue;
-
-                if (Enum.IsDefined(typeof(AttributeType), keyInt))
-                {
-                    ability.AddBuffAttribute((AttributeType)keyInt, ModifyType.SetBase, null, valInt, true);
-                }
-            }
+            TriggerContext = default;
+            Creator = null;
+            Target = null;
+            BuffId = 0;
+            RequestedBuffId = 0;
+            Source = AddStatusSource.Combat;
+            Effect = AddStatusActionEffect.None;
+            ParamString1 = null;
+            ResistPercent = 0f;
         }
     }
 }

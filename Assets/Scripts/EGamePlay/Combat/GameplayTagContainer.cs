@@ -74,6 +74,9 @@ namespace EGamePlay.Combat
         private readonly short[] _tagCounts = new short[128];
         private readonly List<TagGrant> _grants = new List<TagGrant>(16);
 
+        /// <summary>叶子 Tag 计数 0↔1 时回调（index, present）。硬控沿变用，无分配。</summary>
+        public Action<int, bool> LeafCountChanged;
+
         struct TagGrant
         {
             public TagSource Source;
@@ -85,9 +88,11 @@ namespace EGamePlay.Combat
         {
             if (string.IsNullOrEmpty(tagName))
                 return;
-            if (!TryAddTagInternal(tagName))
+            if (!TryAddTagInternal(tagName, out int leafIndex, out bool becamePresent))
                 return;
             _grants.Add(new TagGrant { Source = source, TagName = tagName });
+            if (becamePresent)
+                LeafCountChanged?.Invoke(leafIndex, true);
         }
 
         /// <summary>配对弹出一条同名授予。</summary>
@@ -102,11 +107,11 @@ namespace EGamePlay.Combat
                 if (!g.Source.Equals(source) || g.TagName != tagName)
                     continue;
                 _grants.RemoveAt(i);
-                TryRemoveTagInternal(tagName);
+                NotifyRemove(tagName);
                 return;
             }
 
-            TryRemoveTagInternal(tagName);
+            NotifyRemove(tagName);
         }
 
         /// <summary>移除某来源的全部授予（技能 Break / 切形态）。</summary>
@@ -118,7 +123,7 @@ namespace EGamePlay.Combat
                     continue;
                 string name = _grants[i].TagName;
                 _grants.RemoveAt(i);
-                TryRemoveTagInternal(name);
+                NotifyRemove(name);
             }
         }
 
@@ -139,13 +144,26 @@ namespace EGamePlay.Combat
                 break;
             }
 
-            TryRemoveTagInternal(tagName);
+            NotifyRemove(tagName);
         }
 
-        bool TryAddTagInternal(string tagName)
+        void NotifyRemove(string tagName)
         {
+            if (!TryRemoveTagInternal(tagName, out int leafIndex, out bool becameAbsent))
+                return;
+            if (becameAbsent)
+                LeafCountChanged?.Invoke(leafIndex, false);
+        }
+
+        bool TryAddTagInternal(string tagName, out int leafIndex, out bool becamePresent)
+        {
+            leafIndex = 0;
+            becamePresent = false;
             if (TagCollection.TagKeyValueDic == null
                 || !TagCollection.TagKeyValueDic.TryGetValue(tagName, out var hierarchy))
+                return false;
+            if (TagCollection.TagToIndexDic == null
+                || !TagCollection.TagToIndexDic.TryGetValue(tagName, out leafIndex))
                 return false;
 
             foreach (var tag in hierarchy)
@@ -155,15 +173,23 @@ namespace EGamePlay.Combat
                 if (_tagCounts[tag] > 0)
                     _currentMask.SetBit(tag);
             }
+
+            becamePresent = _tagCounts[leafIndex] == 1;
             return true;
         }
 
-        bool TryRemoveTagInternal(string tagName)
+        bool TryRemoveTagInternal(string tagName, out int leafIndex, out bool becameAbsent)
         {
+            leafIndex = 0;
+            becameAbsent = false;
             if (TagCollection.TagKeyValueDic == null
                 || !TagCollection.TagKeyValueDic.TryGetValue(tagName, out var hierarchy))
                 return false;
+            if (TagCollection.TagToIndexDic == null
+                || !TagCollection.TagToIndexDic.TryGetValue(tagName, out leafIndex))
+                return false;
 
+            bool wasPresent = _tagCounts[leafIndex] > 0;
             foreach (var tag in hierarchy)
             {
                 if (_tagCounts[tag] <= 0)
@@ -175,6 +201,8 @@ namespace EGamePlay.Combat
                     _currentMask.ClearBit(tag);
                 }
             }
+
+            becameAbsent = wasPresent && _tagCounts[leafIndex] <= 0;
             return true;
         }
 

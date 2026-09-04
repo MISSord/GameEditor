@@ -1,4 +1,4 @@
-﻿using ACTGameEditor.Combat;
+using ACTGameEditor.Combat;
 using ACTGameEditor.Locomotion;
 using EGamePlay;
 using EGamePlay.Combat;
@@ -275,9 +275,11 @@ namespace ACTGameEditor
             bool occupying = Combat.SpellingExecution != null && !Combat.SpellingExecution.IsMainFinish;
             if (occupying)
             {
-                if (!Combat.IsCanSelfCancelSkill) return;
+                // 占轴：大招仍看 SkillForbid；闪避只看禁移，由 Gate 按 Sort 再判
+                if (!Combat.IsCanSelfCancelSkill && !Combat.IsCanRollSkill)
+                    return;
             }
-            else if (!Combat.IsCanSpellSkill)
+            else if (!Combat.IsCanSpellSkill && !Combat.IsCanRollSkill)
             {
                 return;
             }

@@ -1,4 +1,5 @@
-using ACTGameEditor;
+﻿using ACTGameEditor;
+using ACTGameEditor.Combat;
 using DG.Tweening;
 using EGamePlay.Combat;
 using System.Collections.Generic;
@@ -94,6 +95,8 @@ namespace XiaoCao
                 addFakePlayerButton.onClick.AddListener(OnAddFakePlayerClick);
             if (addEnemyButton != null)
                 addEnemyButton.onClick.AddListener(OnAddEnemyClick);
+
+            WaitStart();
         }
 
         private void WaitStart()
@@ -114,7 +117,37 @@ namespace XiaoCao
                 PlayerManager.Instance.AddEnemyFromUI();
             }
 
+            if (Input.GetKeyDown(KeyCode.F9))
+                DebugToggleLocalSkillGroupLevel();
+
             RefreshSwitchViewCooldowns();
+        }
+
+        /// <summary>Debug：本地玩家普攻组在 1 与 MaxLevel 间切换，便于核对 RatioByLevel。</summary>
+        void DebugToggleLocalSkillGroupLevel()
+        {
+            var player = PlayerManager.Instance?.LocalPlayer;
+            if (player == null)
+                return;
+            var levels = player.Combat?.SkillLevels;
+            if (levels == null)
+                return;
+
+            const int debugSkillId = 11001;
+            int current = levels.GetLevel(debugSkillId);
+            int max = SkillSettingMgr.Instance != null
+                ? SkillSettingMgr.Instance.ResolveSkillMaxLevel(debugSkillId)
+                : 10;
+            int next = current >= max ? 1 : max;
+            int applied = levels.SetLevelBySkill(debugSkillId, next);
+
+            var mgr = SkillSettingMgr.Instance;
+            float r1 = mgr?.GetSkillDamageSetting(11001, 1)?.GetRatioAtLevel(applied) ?? 0f;
+            float r21 = mgr?.GetSkillDamageSetting(11002, 1)?.GetRatioAtLevel(applied) ?? 0f;
+            float r22 = mgr?.GetSkillDamageSetting(11002, 2)?.GetRatioAtLevel(applied) ?? 0f;
+            float r3 = mgr?.GetSkillDamageSetting(11003, 1)?.GetRatioAtLevel(applied) ?? 0f;
+            Debug.Log($"[SkillLevel] 普攻组 lv={applied} ratio 11001={r1} 11002={r21}/{r22} 11003={r3}");
+            ShowDamageText($"Lv{applied}", player.GetPlayerPos(), true);
         }
 
         /// <summary> 每帧刷新所有视角切换按钮的冷却显示（参考崩坏3）。 </summary>
@@ -128,110 +161,155 @@ namespace XiaoCao
             {
                 if (kv.Value == null) continue;
                 kv.Value.SetCooldown(remaining, total, currentNetId == kv.Key);
-            //if (Input.GetKeyDown(KeyCode.F3))
-            //{
-            //    var player = playerMrg.LocalPlayer;
-            //    Vector3 forward = player.transform.forward;
-            //    forward.y = 0;
+                //if (Input.GetKeyDown(KeyCode.F3))
+                //{
+                //    var player = playerMrg.LocalPlayer;
+                //    Vector3 forward = player.transform.forward;
+                //    forward.y = 0;
 
-            //    playerMrg.AddFakePlayer(player.transform.position + forward * 5, GameSetting.HasAIEnable, AgentTag.PlayerA, modelType);
-            //}
+                //    playerMrg.AddFakePlayer(player.transform.position + forward * 5, GameSetting.HasAIEnable, AgentTag.PlayerA, modelType);
+                //}
 
-            //if (Input.GetKeyDown(KeyCode.F5))
-            //{
-            //    //playerMrg.LocalPlayer.skin
-            //    int len = Enum.GetValues(typeof(PlayerSkin)).Length;
-            //    int next = (int)playerMrg.LocalPlayer.skin + 1;
-            //    if (next >= len)
-            //    {
-            //        next = 0;
-            //    }
-            //    playerMrg.LocalPlayer.ChangeSkin((PlayerSkin)next);
-            //}
+                //if (Input.GetKeyDown(KeyCode.F5))
+                //{
+                //    //playerMrg.LocalPlayer.skin
+                //    int len = Enum.GetValues(typeof(PlayerSkin)).Length;
+                //    int next = (int)playerMrg.LocalPlayer.skin + 1;
+                //    if (next >= len)
+                //    {
+                //        next = 0;
+                //    }
+                //    playerMrg.LocalPlayer.ChangeSkin((PlayerSkin)next);
+                //}
 
-            //需要的功能 (AI开关)
-            //if (Input.GetKeyDown(KeyCode.F1))
-            //{
-            //    bool isEnbale = true;
-            //    bool isFrist = true;
-            //    foreach (var item in playerMrg.MonoAttackerDic.Values)
-            //    {
-            //        if (!item.isTruePlayer)
-            //        {
-            //            if (isFrist)
-            //            {
-            //                isEnbale = !item.AI.enabled;
-            //                isFrist = false;
-            //                Debug.Log($"yns AI enble {isEnbale} count {playerMrg.MonoAttackerDic.Count}");
-            //            }
-            //            GameSetting.HasAIEnable = isEnbale;
-            //            item.AI.enabled = isEnbale;
-            //        }
-            //    }
-            //    ShowDamageText("AI "+isEnbale, PlayerManager.Instance.LocalPlayer.transform.position, true);
-            //}
+                //需要的功能 (AI开关)
+                //if (Input.GetKeyDown(KeyCode.F1))
+                //{
+                //    bool isEnbale = true;
+                //    bool isFrist = true;
+                //    foreach (var item in playerMrg.MonoAttackerDic.Values)
+                //    {
+                //        if (!item.isTruePlayer)
+                //        {
+                //            if (isFrist)
+                //            {
+                //                isEnbale = !item.AI.enabled;
+                //                isFrist = false;
+                //                Debug.Log($"yns AI enble {isEnbale} count {playerMrg.MonoAttackerDic.Count}");
+                //            }
+                //            GameSetting.HasAIEnable = isEnbale;
+                //            item.AI.enabled = isEnbale;
+                //        }
+                //    }
+                //    ShowDamageText("AI "+isEnbale, PlayerManager.Instance.LocalPlayer.transform.position, true);
+                //}
 
-            //if (Input.GetKeyDown(KeyCode.F4))
-            //{
-            //    var enums = Enum.GetValues(typeof(AgentModelType));
-            //    int len = enums.Length;
-            //    modelType = (AgentModelType)(((int)modelType + 1) % len);
-            //    ShowDamageText(modelType.ToString(), PlayerManager.Instance.LocalPlayer.transform.position,true);
-            //}
+                //if (Input.GetKeyDown(KeyCode.F4))
+                //{
+                //    var enums = Enum.GetValues(typeof(AgentModelType));
+                //    int len = enums.Length;
+                //    modelType = (AgentModelType)(((int)modelType + 1) % len);
+                //    ShowDamageText(modelType.ToString(), PlayerManager.Instance.LocalPlayer.transform.position,true);
+                //}
 
-            //if (Input.GetKeyDown(KeyCode.F6))
-            //{
-            //    int len = playerMrg.MonoAttackerDic.Count;
-            //    Debug.Log($"len = {len}");
+                //if (Input.GetKeyDown(KeyCode.F6))
+                //{
+                //    int len = playerMrg.MonoAttackerDic.Count;
+                //    Debug.Log($"len = {len}");
 
-            //    foreach (var item in playerMrg.MonoAttackerDic)
-            //    {
-            //        Debug.Log($"yns {item.Key} {item.Value.gameObject}");
-            //    }
-            //}
+                //    foreach (var item in playerMrg.MonoAttackerDic)
+                //    {
+                //        Debug.Log($"yns {item.Key} {item.Value.gameObject}");
+                //    }
+                //}
 
-            //foreach (var item in skillIcons)
-            //{
-            //    item.OnUpdate();
-            //}
+                //foreach (var item in skillIcons)
+                //{
+                //    item.OnUpdate();
+                //}
 
-            //foreach (var item in disSkillIcons)
-            //{
-            //    item.OnDisUpdate();
-            //}
+                //foreach (var item in disSkillIcons)
+                //{
+                //    item.OnDisUpdate();
+                //}
+            }
         }
 
-            
-        }
-
-        private void FixedUpdate()
+        private void LateUpdate()
         {
             if (_isReady)
-            {
                 UpdateUIBars();
-            }
         }
 
         private void AddNewBar(ActPlayer item)
         {
-            UIBar newUIBar = null;
-            if (item.Combat.isTruePlayer)
+            if (item == null || item.Combat == null)
+                return;
+
+            uint netId = item.Combat.NetId;
+            if (uiBarDic.ContainsKey(netId))
+                return;
+
+            UIBar newUIBar;
+            Transform follow = ResolveBarTarget(item);
+            bool useLocalHud = item.Combat.isTruePlayer
+                && PlayerManager.Instance.LocalPlayer == item;
+            if (useLocalHud)
             {
                 newUIBar = localUIBar;
-                newUIBar.SetTarget(item.UINode);
+                if (newUIBar == null)
+                    return;
+                newUIBar.SetTarget(follow);
             }
             else
             {
                 newUIBar = barPool.GetOne();
                 newUIBar.gameObject.SetActive(true);
-                newUIBar.transform.SetParent(CustomHpBarParent, true);
-                newUIBar.transform.localScale = Vector3.one;
-                newUIBar.SetTarget(item.UINode);
+                if (CustomHpBarParent != null)
+                    newUIBar.transform.SetParent(CustomHpBarParent, false);
+                RectTransform barRect = newUIBar.transform as RectTransform;
+                if (barRect != null)
+                {
+                    barRect.localScale = Vector3.one;
+                    barRect.anchoredPosition = Vector2.zero;
+                    barRect.localRotation = Quaternion.identity;
+                }
+                else
+                    newUIBar.transform.localScale = Vector3.one;
+                newUIBar.SetTarget(follow);
             }
+
             newUIBar.InitCanvas(canvas);
-            uiBarDic.Add(item.Combat.NetId, newUIBar);
+            uiBarDic.Add(netId, newUIBar);
+            if (TryGetHp(item, out int hp, out int maxHp))
+                newUIBar.SetFillValue(hp, maxHp);
+            newUIBar.OnUpdate();
 
             AddSwitchViewButton(item);
+        }
+
+        static Transform ResolveBarTarget(ActPlayer item)
+        {
+            if (item.UINode != null)
+                return item.UINode;
+            return item.transform;
+        }
+
+        static bool TryGetHp(ActPlayer item, out int hp, out int maxHp)
+        {
+            hp = 0;
+            maxHp = 1;
+            CombatEntity combat = item?.Combat;
+            if (combat?.CurrentVital == null)
+                return false;
+
+            AttributeComponent attr = combat.GetComponent<AttributeComponent>();
+            if (attr?.HealthPointMax == null)
+                return false;
+
+            hp = (int)combat.CurrentVital.GetVitalValue(AttributeType.HealthPoint);
+            maxHp = Mathf.Max(1, (int)attr.HealthPointMax.Value);
+            return true;
         }
 
         /// <summary> 为指定单位创建视角切换按钮，点击后摄像机会跟随该单位。 </summary>
@@ -306,30 +384,28 @@ namespace XiaoCao
         {
             foreach (var kv in PlayerManager.Instance.MonoAttackerDic)
             {
-                var item = kv.Value;
-                var NetId = kv.Key;
-                if (item == null)
+                uint netId = kv.Key;
+                ActPlayer item = kv.Value;
+                if (item == null || item.Combat == null)
                 {
-                    RemoveOne(NetId);
-                    PlayerManager.Instance.MonoAttackerDic.Remove(NetId);
+                    if (uiBarDic.ContainsKey(netId))
+                        RemoveOne(netId);
+                    continue;
                 }
-                else
+
+                if (!uiBarDic.TryGetValue(netId, out UIBar bar) || bar == null)
                 {
-                    //if (item.IsHideHpBar)
-                    //{
-                    //    RemoveOne(NetId);
-                    //}
-                    //else
-                    //{
-                    //    if (!uiBarDic.ContainsKey(NetId))
-                    //    {
-                    //        AddNewBar(item);
-                    //    }
-                    //    uiBarDic[NetId].SetFillValue(item.Hp, item.MaxHp);
-                    //    uiBarDic[NetId].SetTagUI(item.Agent);
-                    //    uiBarDic[NetId].OnUpdate();
-                    //}
+                    AddNewBar(item);
+                    if (!uiBarDic.TryGetValue(netId, out bar) || bar == null)
+                        continue;
                 }
+
+                Transform follow = ResolveBarTarget(item);
+                if (bar.target != follow)
+                    bar.SetTarget(follow);
+                if (TryGetHp(item, out int hp, out int maxHp))
+                    bar.SetFillValue(hp, maxHp);
+                bar.OnUpdate();
             }
         }
 

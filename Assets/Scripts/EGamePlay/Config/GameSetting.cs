@@ -1,4 +1,4 @@
-﻿namespace EGamePlay
+namespace EGamePlay
 {
 
     [EnumLabel("CameraMode")]
@@ -53,6 +53,8 @@
         Moving, //这里是指角色处于如跑步，飞行等移动状态中
         PlayerSkill, //闪避属于释放技能，闪避技能
         Hit,
-        Dead
+        Dead,
+        /// <summary>硬控（眩晕等），时长跟 MoveForbid Tag，不是短硬直。</summary>
+        Control,
     }
 }

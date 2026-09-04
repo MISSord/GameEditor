@@ -86,7 +86,7 @@ namespace FluxEditor
             xce.Range = new XCRange(fe.Start, fe.End);
             xce.IsLocalTrueOnly = fe.isLocalTrueOnly;
             xce.CubeRange = CopyCubeRange(fe.cubeRange);
-            xce.DamageSegmentIndex = fe.DamageSegmentIndex;
+            xce.DamageSegmentIndex = fe.DamageSegmentIndex; // 原样拷贝；段号合法性由导出校验拦截
             xce.HitGroupId = fe.HitGroupId;
             xce.EffectIds = fe.EffectIds ?? new List<int>();
             return xce;

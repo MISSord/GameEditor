@@ -63,7 +63,8 @@ namespace ACTGameEditor.Combat
         void PreProcess()
         {
             _postProcessed = false;
-            _caster.TriggerActionPoint(ActionPointType.PreSpell, this);
+            using (CombatBuffPipeline.Lock(_caster))
+                CombatBuffPipeline.Notify(_caster, ActionPointType.PreSpell, this);
         }
 
         bool TryConsumeResource()
@@ -152,7 +153,8 @@ namespace ACTGameEditor.Combat
         void PostProcess()
         {
             _postProcessed = true;
-            _caster?.TriggerActionPoint(ActionPointType.PostSpell, this);
+            using (CombatBuffPipeline.Lock(_caster))
+                CombatBuffPipeline.Notify(_caster, ActionPointType.PostSpell, this);
         }
 
         void Finish()
@@ -171,6 +173,7 @@ namespace ACTGameEditor.Combat
             if (_caster != null && !_caster.IsDisposed && _runner != null)
             {
                 _caster.TagHost.PopTagsFrom(TagSource.Skill(_runner.Id));
+                UnbindSkillBuffs(_runner.Id);
                 _caster.StateDirector?.ExitSkill(_runner.Id);
                 if (releasedAxis || _caster.ActiveExecution == null)
                     _caster.EndSkillMoveLock();
@@ -187,6 +190,9 @@ namespace ACTGameEditor.Combat
 
         public override void OnDestroy()
         {
+            if (_caster != null && !_caster.IsDisposed && _runner != null)
+                UnbindSkillBuffs(_runner.Id);
+
             if (_runner != null && !_runner.IsDisposed && _runner.State != RunnerState.Finish)
                 _runner.BreakSkill();
 
@@ -218,6 +224,16 @@ namespace ACTGameEditor.Combat
         void DestroySelf()
         {
             Entity.Destroy(this);
+        }
+
+        void UnbindSkillBuffs(long runnerId)
+        {
+            if (runnerId == 0)
+                return;
+            if (CombatContext.Instance != null)
+                CombatContext.Instance.RemoveBuffsBoundToRunner(runnerId);
+            else
+                _caster?.Status?.RemoveBoundToRunner(runnerId);
         }
     }
 }

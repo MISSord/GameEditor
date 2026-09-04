@@ -1,4 +1,4 @@
-using EGamePlay;
+﻿using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
 using UnityEngine;
@@ -57,6 +57,14 @@ public class EGamePlayInit : MonoBehaviour
         PlayerManager.Instance.AddTruePlayer();
         //绑定角色
         ConfigurableInputManager.Instance.ChangeCurPlayer();
+
+        this.InitUIManager();
+    }
+
+    private void InitUIManager()
+    {
+        GameObject obj = GameObject.Instantiate(AssetBundleManager.Instance.LoadAssetSync<GameObject>("ui/mainui_prefab", "UIMrg"));
+        DontDestroyOnLoad(obj);
     }
 
     private void Update()

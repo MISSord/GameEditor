@@ -110,7 +110,7 @@ MonoBehaviour:
     radius: 0
     height: 0
     colliderType: 0
-  DamageSegmentIndex: 0
+  DamageSegmentIndex: 1
   HitGroupId: 0
   EffectIds: 
 --- !u!1 &969308601

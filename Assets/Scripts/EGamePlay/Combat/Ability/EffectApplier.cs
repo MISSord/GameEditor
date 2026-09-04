@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using EGamePlay;
 
 namespace EGamePlay.Combat
 {
@@ -26,7 +27,7 @@ namespace EGamePlay.Combat
     /// </summary>
     public static class EffectApplier
     {
-        /// <summary>技能命中/轨道效果入口。</summary>
+        /// <summary>技能命中/轨道额外效果入口。主动技伤害请走 <see cref="ApplySkillSegment"/>。</summary>
         public static void ApplySkillInline(
             BuffModifySetting setting,
             ICombatUnit caster,
@@ -36,6 +37,9 @@ namespace EGamePlay.Combat
             bool hasHitWorldPosition = false,
             Vector3 hitWorldPosition = default)
         {
+            if (IsHpDamageModify(setting))
+                return;
+
             Apply(new EffectApplyRequest
             {
                 Setting = setting,
@@ -50,6 +54,99 @@ namespace EGamePlay.Combat
             });
         }
 
+        /// <summary>
+        /// 主动技命中出伤：只查段表。段号 &lt; 1、无行、倍率 ≤ 0 时打日志并跳过，不静默 1 倍。
+        /// 有行时再执行该段 <see cref="SkillDamageSetting.OnHitEffectIds"/>。
+        /// </summary>
+        public static void ApplySkillSegment(
+            ICombatUnit caster,
+            Entity target,
+            Ability sourceAbility,
+            int damageSegmentIndex,
+            bool hasHitWorldPosition,
+            Vector3 hitWorldPosition)
+        {
+            if (caster == null || caster.IsDisposed || target == null || sourceAbility == null)
+                return;
+
+            int skillId = sourceAbility.SkillID;
+            if (damageSegmentIndex <= 0)
+            {
+                GameLog.CombatError($"[SkillDamage] 段号必须 ≥ 1 skillId={skillId} segment={damageSegmentIndex}");
+                return;
+            }
+
+            var setting = SkillSettingMgr.Instance.GetSkillDamageSetting(skillId, damageSegmentIndex);
+            if (setting == null)
+            {
+                GameLog.CombatError($"[SkillDamage] 没有段表行 skillId={skillId} segment={damageSegmentIndex}");
+                return;
+            }
+
+            int skillLevel = SkillSettingMgr.Instance.GetSkillLevel(caster, sourceAbility);
+            float ratio = setting.GetRatioAtLevel(skillLevel);
+            if (ratio <= 0f)
+            {
+                GameLog.CombatError($"[SkillDamage] 倍率 ≤ 0，跳过 skillId={skillId} segment={damageSegmentIndex} level={skillLevel}");
+                return;
+            }
+
+            var dmgEffect = new DamageEffect
+            {
+                DamageType = setting.DamageType,
+                DamageValueProperty = ratio,
+                FormulaType = (DamageCalcuFormulaType)setting.FormulaType,
+                CanCrit = setting.CanCrit != 0,
+            };
+
+            var context = new TriggerContext
+            {
+                EffectConfig = dmgEffect,
+                SourceAbility = sourceAbility,
+                TriggerSource = caster.Entity,
+                Target = target,
+                DamageSegmentIndex = damageSegmentIndex,
+                HasHitWorldPosition = hasHitWorldPosition,
+                HitWorldPosition = hitWorldPosition,
+            };
+
+            if (caster.DamageAbility != null && caster.DamageAbility.TryMakeAction(out var damageAction))
+            {
+                damageAction.TriggerContext = context;
+                damageAction.DamageSource = DamageSource.Skill;
+                damageAction.ApplyDamage();
+            }
+
+            ApplyOnHitEffectIds(setting, caster, target, sourceAbility);
+        }
+
+        static void ApplyOnHitEffectIds(
+            SkillDamageSetting damageSetting,
+            ICombatUnit caster,
+            Entity target,
+            Ability sourceAbility)
+        {
+            var ids = damageSetting.OnHitEffectIds;
+            if (ids == null || ids.Count == 0)
+                return;
+
+            for (int i = 0; i < ids.Count; i++)
+            {
+                var extra = SkillSettingMgr.Instance.GetBuffModifySettingOrNull(ids[i]);
+                if (extra == null)
+                    continue;
+                ApplySkillInline(extra, caster, target, sourceAbility, 0);
+            }
+        }
+
+        static bool IsHpDamageModify(BuffModifySetting setting)
+        {
+            if (setting == null)
+                return false;
+            var type = setting.EffectModifyType;
+            return type == EffectModifyType.SkillHpDamage || type == EffectModifyType.BuffHpDamage;
+        }
+
         /// <summary>按类型分发。未知类型与粘性控制/修饰直接忽略。</summary>
         public static void Apply(in EffectApplyRequest request)
         {
@@ -61,6 +158,7 @@ namespace EGamePlay.Combat
             var type = setting.EffectModifyType;
             if (type == EffectModifyType.SkillHpDamage || type == EffectModifyType.BuffHpDamage)
             {
+                // 主动技命中不走这里；Buff 跳伤 / 非段表临时伤害仍读本行 Param。
                 BuffModifyExecutionCore.ExecuteHpDamage(
                     setting, caster, request.Target, request.TriggerSource,
                     request.DamageSource, request.SourceAbility, request.DamageSegmentIndex,
@@ -98,6 +196,7 @@ namespace EGamePlay.Combat
             {
                 action.Creator = caster;
                 action.Target = target as ICombatUnit;
+                action.Source = AddStatusSource.Combat;
                 action.ApplyAddStatusBySetting(buffId, setting.ParamString1);
             }
         }

@@ -15,7 +15,9 @@
     "CostFormulaType": 0,
     "CostAttrType": 0,
     "CostA": 0,
-    "CostB": 0
+    "CostB": 0,
+    "SkillGroupId": 0,
+    "MaxLevel": 10
   },
   {
     "SkillId": 11001,
@@ -33,7 +35,9 @@
     "CostFormulaType": 0,
     "CostAttrType": 0,
     "CostA": 0,
-    "CostB": 0
+    "CostB": 0,
+    "SkillGroupId": 11001,
+    "MaxLevel": 10
   },
   {
     "SkillId": 11002,
@@ -51,7 +55,9 @@
     "CostFormulaType": 0,
     "CostAttrType": 0,
     "CostA": 0,
-    "CostB": 0
+    "CostB": 0,
+    "SkillGroupId": 11001,
+    "MaxLevel": 10
   },
   {
     "SkillId": 11003,
@@ -69,7 +75,9 @@
     "CostFormulaType": 0,
     "CostAttrType": 0,
     "CostA": 0,
-    "CostB": 0
+    "CostB": 0,
+    "SkillGroupId": 11001,
+    "MaxLevel": 10
   },
   {
     "SkillId": 11004,
@@ -87,7 +95,9 @@
     "CostFormulaType": 0,
     "CostAttrType": 0,
     "CostA": 0,
-    "CostB": 0
+    "CostB": 0,
+    "SkillGroupId": 0,
+    "MaxLevel": 10
   },
   {
     "SkillId": 19001,
@@ -105,7 +115,9 @@
     "CostFormulaType": 0,
     "CostAttrType": 0,
     "CostA": 0,
-    "CostB": 0
+    "CostB": 0,
+    "SkillGroupId": 0,
+    "MaxLevel": 10
   },
   {
     "SkillId": 19002,
@@ -123,6 +135,8 @@
     "CostFormulaType": 0,
     "CostAttrType": 0,
     "CostA": 0,
-    "CostB": 0
+    "CostB": 0,
+    "SkillGroupId": 0,
+    "MaxLevel": 10
   }
 ]

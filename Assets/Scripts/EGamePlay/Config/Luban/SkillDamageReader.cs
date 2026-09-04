@@ -15,13 +15,13 @@ namespace EGamePlay.Combat
 {
 public partial class SkillDamageReader
 {
-    private readonly System.Collections.Generic.Dictionary<int, SkillDamageSetting> _dataMap;
     private readonly System.Collections.Generic.List<SkillDamageSetting> _dataList;
-    
+
+    private System.Collections.Generic.Dictionary<(int, int), SkillDamageSetting> _dataMapUnion;
+
     public SkillDamageReader(JSONNode _buf)
     {
         int count = _buf.Count;
-        _dataMap = new System.Collections.Generic.Dictionary<int, SkillDamageSetting>(count);
         _dataList = new System.Collections.Generic.List<SkillDamageSetting>(count);
         
         foreach(JSONNode _ele in _buf.Children)
@@ -29,17 +29,18 @@ public partial class SkillDamageReader
             SkillDamageSetting _v;
             { if(!_ele.IsObject) { throw new SerializationException(); }  _v = global::EGamePlay.Combat.SkillDamageSetting.DeserializeSkillDamageSetting(_ele);  }
             _dataList.Add(_v);
-            _dataMap.Add(_v.SkillId, _v);
+        }
+        _dataMapUnion = new System.Collections.Generic.Dictionary<(int, int), SkillDamageSetting>();
+        foreach(var _v in _dataList)
+        {
+            _dataMapUnion.Add((_v.SkillId, _v.SegmentIndex), _v);
         }
     }
 
-    public System.Collections.Generic.Dictionary<int, SkillDamageSetting> DataMap => _dataMap;
     public System.Collections.Generic.List<SkillDamageSetting> DataList => _dataList;
 
-    public SkillDamageSetting GetOrDefault(int key) => _dataMap.TryGetValue(key, out var v) ? v : default;
-    public SkillDamageSetting Get(int key) => _dataMap[key];
-    public SkillDamageSetting this[int key] => _dataMap[key];
-
+    public SkillDamageSetting Get(int SkillId, int SegmentIndex) => _dataMapUnion.TryGetValue((SkillId, SegmentIndex), out SkillDamageSetting __v) ? __v : default;
+    
     public void ResolveRef(Tables tables)
     {
         foreach(var _v in _dataList)
@@ -47,7 +48,6 @@ public partial class SkillDamageReader
             _v.ResolveRef(tables);
         }
     }
-
 }
 
 }

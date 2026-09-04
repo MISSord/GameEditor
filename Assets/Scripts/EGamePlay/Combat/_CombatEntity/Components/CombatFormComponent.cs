@@ -64,19 +64,25 @@ namespace EGamePlay.Combat
             if (ActiveFormId == formId && ActiveForm == form)
                 return;
 
+            int oldFormId = ActiveFormId;
             ClearFormTags();
             ActiveFormId = formId;
             ActiveForm = form;
             ApplyFormTags(form);
             TryPushTag(TagSource.Form(formId), CombatTags.StanceForm);
+            _actor?.Status?.RemoveBoundToForm(oldFormId);
         }
 
         /// <summary>退回默认形态（角色槽位表）。</summary>
         public void ClearForm()
         {
+            int oldFormId = ActiveFormId;
+            bool leaving = ActiveForm != null || oldFormId != 0;
             ClearFormTags();
             ActiveForm = null;
             ActiveFormId = 0;
+            if (leaving)
+                _actor?.Status?.RemoveBoundToForm(oldFormId);
         }
 
         /// <summary>收集所有已注册形态的技能 ID。</summary>

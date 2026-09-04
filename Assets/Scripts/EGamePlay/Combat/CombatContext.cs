@@ -73,6 +73,21 @@ namespace EGamePlay.Combat
             return combat;
         }
 
+        /// <summary>卸所有单位上绑在该技能轴的 Buff（含打到敌人身上的）。</summary>
+        public void RemoveBuffsBoundToRunner(long runnerId)
+        {
+            if (runnerId == 0)
+                return;
+            for (int i = 0; i < _combatEntities.Count; i++)
+            {
+                Entity entity = _combatEntities[i];
+                if (entity == null || entity.IsDisposed)
+                    continue;
+                if (entity is ICombatUnit unit)
+                    unit.Status?.RemoveBoundToRunner(runnerId);
+            }
+        }
+
         public override void Update(float deltaTime)
         {
             Entity action;

@@ -1,29 +1,86 @@
 [
   {
     "SkillId": 11001,
-    "SkillName": "",
+    "SkillName": "普攻1",
     "SegmentIndex": 1,
-    "Ratio": 1,
+    "RatioByLevel": [
+      1,
+      1.1,
+      1.2,
+      1.3,
+      1.4,
+      1.5,
+      1.6,
+      1.7,
+      1.8,
+      1.9
+    ],
     "DamageType": 0,
     "FormulaType": 0,
-    "CanCrit": 1
+    "CanCrit": 1,
+    "OnHitEffectIds": []
   },
   {
     "SkillId": 11002,
-    "SkillName": "",
+    "SkillName": "普攻2-1",
     "SegmentIndex": 1,
-    "Ratio": 3,
+    "RatioByLevel": [
+      1.5,
+      1.65,
+      1.8,
+      1.95,
+      2.1,
+      2.25,
+      2.4,
+      2.55,
+      2.7,
+      2.85
+    ],
     "DamageType": 0,
     "FormulaType": 0,
-    "CanCrit": 1
+    "CanCrit": 1,
+    "OnHitEffectIds": []
+  },
+  {
+    "SkillId": 11002,
+    "SkillName": "普攻2-2",
+    "SegmentIndex": 2,
+    "RatioByLevel": [
+      1.5,
+      1.65,
+      1.8,
+      1.95,
+      2.1,
+      2.25,
+      2.4,
+      2.55,
+      2.7,
+      2.85
+    ],
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1,
+    "OnHitEffectIds": []
   },
   {
     "SkillId": 11003,
-    "SkillName": "",
+    "SkillName": "普攻3",
     "SegmentIndex": 1,
-    "Ratio": 3,
+    "RatioByLevel": [
+      3,
+      3.3,
+      3.6,
+      3.9,
+      4.2,
+      4.5,
+      4.8,
+      5.1,
+      5.4,
+      5.7
+    ],
     "DamageType": 0,
     "FormulaType": 0,
-    "CanCrit": 1
+    "CanCrit": 1,
+    "OnHitEffectIds": []
   }
 ]

@@ -1,5 +1,4 @@
-﻿using System;
-using Sirenix.OdinInspector;
+﻿using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace EGamePlay.Combat
@@ -54,17 +53,6 @@ namespace EGamePlay.Combat
         Buff,
     }
 
-    //[LabelText("技能目标阵营")]
-    //public enum SkillAffectTargetType
-    //{
-    //    [LabelText("自身")]
-    //    Self = 0,
-    //    [LabelText("己方")]
-    //    SelfTeam = 1,
-    //    [LabelText("敌方")]
-    //    EnemyTeam = 2,
-    //}
-
     /// <summary>
     /// 坐标轴缩放类型
     /// </summary>
@@ -103,37 +91,6 @@ namespace EGamePlay.Combat
         [LabelText("其他")]
         Other = 4,
     }
-
-    //[LabelText("伤害类型")]
-    //public enum DamageType
-    //{
-    //    [LabelText("物理伤害")]
-    //    Physic = 0,
-    //    [LabelText("火元素伤害")]
-    //    Fire = 1,
-    //    [LabelText("冰元素伤害")]
-    //    Ice = 2,
-    //    [LabelText("雷元素伤害")]
-    //    Electric = 3,
-    //    [LabelText("真实伤害")]
-    //    Real = 4,
-    //}
-
-    //[Flags]
-    //[LabelText("行为禁制")]
-    //public enum ActionControlType
-    //{
-    //    [LabelText("（空）")]
-    //    None = 0,
-    //    [LabelText("移动禁止")]
-    //    MoveForbid = 1,
-    //    [LabelText("闪避禁止")]
-    //    RollForbid = 1 << 1, //2
-    //    [LabelText("攻击禁止")]
-    //    AttackForbid = 1 << 2, //4
-    //    [LabelText("伤害禁止")] //可以施法与攻击，但不会造成伤害
-    //    AttackDamageForbid = 1 << 3, //8
-    //}
 
     //"属性类型"
     public enum AttributeType
@@ -265,7 +222,7 @@ namespace EGamePlay.Combat
         Bool
     }
 
-    //技能释放优先级
+    //技能释放优先级，越大越优先释放
     public enum SkillSort
     {
         //普攻

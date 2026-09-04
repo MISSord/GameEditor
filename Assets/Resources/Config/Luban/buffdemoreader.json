@@ -24,7 +24,8 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 20101,
@@ -51,7 +52,8 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 20201,
@@ -78,7 +80,8 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 20301,
@@ -105,7 +108,8 @@
     "DelayTime": 0,
     "IntervalTime": 0.5,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 20302,
@@ -132,7 +136,8 @@
     "DelayTime": 0,
     "IntervalTime": 0.5,
     "TriggerFormula": "#CheckIsHadFireBigBuff",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 20401,
@@ -157,7 +162,8 @@
     "DelayTime": 0,
     "IntervalTime": 0.5,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 20410,
@@ -183,7 +189,8 @@
     "DelayTime": 0,
     "IntervalTime": 0.5,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 20501,
@@ -208,7 +215,8 @@
     "DelayTime": 0,
     "IntervalTime": 0.5,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 30001,
@@ -233,7 +241,8 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 30002,
@@ -258,7 +267,8 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "",
-    "RemoveActionPointType": 16
+    "RemoveActionPointType": 16,
+    "Priority": 0
   },
   {
     "BuffId": 31000,
@@ -283,7 +293,8 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "#IsNormalOrUltimateSpell",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 31001,
@@ -308,7 +319,8 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 31010,
@@ -333,7 +345,8 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "#IsActiveSkillHit",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   },
   {
     "BuffId": 31011,
@@ -360,6 +373,7 @@
     "DelayTime": 0,
     "IntervalTime": 1,
     "TriggerFormula": "",
-    "RemoveActionPointType": 0
+    "RemoveActionPointType": 0,
+    "Priority": 0
   }
 ]

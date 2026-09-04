@@ -1,5 +1,4 @@
-using UnityEngine;
-using ACTGameEditor;
+﻿using UnityEngine;
 
 namespace ACTGameEditor.Locomotion
 {

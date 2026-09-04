@@ -38,6 +38,10 @@ namespace ACTGameEditor.Combat
         public VitalComponent CurrentVital { get; private set; }
         public CombatTagComponent TagHost { get; private set; }
         public ActionPointComponent ActionPoints { get; private set; }
+        /// <summary>Buff 列表与按优先级分发。</summary>
+        public StatusComponent Status { get; private set; }
+        /// <summary>技能组等级。</summary>
+        public SkillLevelComponent SkillLevels { get; private set; }
         public EntityTimeScaleComponent TimeScale { get; private set; }
         public CombatFormComponent FormComponent => _formComponent;
 
@@ -87,7 +91,7 @@ namespace ACTGameEditor.Combat
             {
                 if (IsDead || _timedMoveLock)
                     return 0f;
-                if (CurState == PlayerStateEnum.Hit)
+                if (CurState == PlayerStateEnum.Hit || CurState == PlayerStateEnum.Control)
                     return 0f;
                 if (TagHost == null || TagHost.HasIndex(TagHost.MoveForbidIndex))
                     return 0f;
@@ -102,7 +106,7 @@ namespace ACTGameEditor.Combat
         {
             get
             {
-                if (IsDead || ActiveExecution != null || CurState == PlayerStateEnum.Hit)
+                if (IsDead || ActiveExecution != null || CurState == PlayerStateEnum.Hit || CurState == PlayerStateEnum.Control)
                     return false;
                 if (_timedMoveLock)
                     return false;
@@ -135,13 +139,25 @@ namespace ACTGameEditor.Combat
             && TagHost != null
             && !TagHost.HasIndex(TagHost.UnStoppedIndex)
             && !TagHost.HasIndex(TagHost.SkillForbidIndex)
-            && CurState != PlayerStateEnum.Hit;
+            && CurState != PlayerStateEnum.Hit
+            && CurState != PlayerStateEnum.Control;
 
-        /// <summary>高优先级自身取消（闪避/大招顶普攻）。</summary>
+        /// <summary>高优先级自身取消（大招顶普攻）。沉默/眩晕的 SkillForbid 会挡住；闪避不走这里。</summary>
         public bool IsCanSelfCancelSkill => !IsDead
             && TagHost != null
             && !TagHost.HasIndex(TagHost.SkillForbidIndex)
-            && CurState != PlayerStateEnum.Hit;
+            && CurState != PlayerStateEnum.Hit
+            && CurState != PlayerStateEnum.Control;
+
+        /// <summary>
+        /// 闪避：禁移（眩晕）不可；仅禁技能（沉默）可以。
+        /// 不认 UnStopped / SkillForbid，避免霸体和沉默误伤闪避。
+        /// </summary>
+        public bool IsCanRollSkill => !IsDead
+            && TagHost != null
+            && !TagHost.HasIndex(TagHost.MoveForbidIndex)
+            && CurState != PlayerStateEnum.Hit
+            && CurState != PlayerStateEnum.Control;
 
         public bool IsUnstopped => TagHost != null && TagHost.HasIndex(TagHost.UnStoppedIndex);
 
@@ -193,6 +209,7 @@ namespace ACTGameEditor.Combat
             Position = default;
             Rotation = default;
             ActiveExecution = null;
+            SkillLevels = null;
             _skillMoveWeight = 1f;
             _timedMoveLock = false;
         }
@@ -222,19 +239,20 @@ namespace ACTGameEditor.Combat
 
         void InitializeIdentity(GameObjectData data)
         {
-            isTruePlayer = data.agent == AgentTag.PlayerA;
+            isTruePlayer = data.isTruePlayer;
             NetId = PlayerManager.GetID(isTruePlayer);
         }
 
         void AddCoreComponents(GameObjectData data)
         {
-            AddComponent<StatusComponent>();
+            Status = AddComponent<StatusComponent>();
             TagHost = AddComponent<CombatTagComponent>();
 
             _stateDirector = new CombatStateDirector();
             _stateDirector.Bind(this);
 
             AddComponent<AttributeComponent>().InitializeCharacter(data.CharacterId, data.Level);
+            SkillLevels = AddComponent<SkillLevelComponent>();
 
             TimeScale = AddComponent<EntityTimeScaleComponent>();
             ActionPoints = AddComponent<ActionPointComponent>();
@@ -274,6 +292,8 @@ namespace ACTGameEditor.Combat
             _stateDirector?.Unbind();
             _stateDirector = null;
             TagHost = null;
+            Status = null;
+            SkillLevels = null;
             ActionPoints = null;
             TimeScale = null;
             CurrentVital = null;
@@ -358,8 +378,6 @@ namespace ACTGameEditor.Combat
         public bool CanSpellSkillWithTagLists(List<string> required, List<string> blocked) =>
             TagHost != null && TagHost.CanSpellSkillWithTagLists(required, blocked);
 
-        public void AddTag(string tagName) => TagHost?.AddTag(tagName);
-        public void RemoveTag(string tagName) => TagHost?.RemoveTag(tagName);
         public void PushTag(TagSource source, string tagName) => TagHost?.PushTag(source, tagName);
         public void PopTag(TagSource source, string tagName) => TagHost?.PopTag(source, tagName);
         public void PopTagsFrom(TagSource source) => TagHost?.PopTagsFrom(source);
@@ -446,12 +464,16 @@ namespace ACTGameEditor.Combat
             SetTimedMoveLock(false);
             ChangeInputMoveState(false);
 #endif
+            Status?.RemoveAll(BuffRemoveReason.Death);
+            GetComponent<PassiveSkillBuffComponent>()?.NotifyOwnerDeath();
         }
 
-        /// <summary>受击硬直 + 打断技能 + 受击动画。霸体/已死亡时返回 false。</summary>
+        /// <summary>受击硬直 + 打断技能 + 受击动画。霸体/已死亡/硬控中返回 false。</summary>
         public bool TryApplyHitReaction(long sourceId, float durationSeconds = 0.35f)
         {
-            if (_curState == PlayerStateEnum.Dead || IsUnstopped)
+            if (_curState == PlayerStateEnum.Dead || _curState == PlayerStateEnum.Control || IsUnstopped)
+                return false;
+            if (TagHost != null && TagHost.HasIndex(TagHost.MoveForbidIndex))
                 return false;
 
             _stateDirector?.EnterHit(sourceId, durationSeconds);
@@ -467,6 +489,54 @@ namespace ACTGameEditor.Combat
             GetComponent<AnimComponent>()?.Director?.PlayDamageReaction();
 #endif
             return true;
+        }
+
+        /// <summary>MoveForbid 0→1 断招进控制槽；1→0 退出。多层眩晕靠 Tag 计数。</summary>
+        public void NotifyHardControlChanged(bool entered)
+        {
+            if (entered)
+                EnterHardControl();
+            else
+                ExitHardControl();
+        }
+
+        void EnterHardControl()
+        {
+            if (IsDead)
+                return;
+
+            _stateDirector?.EnterControl();
+
+            var runner = ActiveExecution;
+            if (runner != null)
+            {
+                ActiveExecution = null;
+                runner.BreakSkill();
+            }
+
+            EndSkillMoveLock();
+            ChangeInputMoveState(false);
+
+#if UNITY
+            AnimComponent anim = GetComponent<AnimComponent>();
+            anim?.Director?.PlayHeldControlReaction();
+#endif
+        }
+
+        void ExitHardControl()
+        {
+            if (IsDead)
+                return;
+
+            _stateDirector?.ExitControl();
+            ChangeInputMoveState(true);
+
+#if UNITY
+            AnimComponent anim = GetComponent<AnimComponent>();
+            anim?.Director?.ForceLocomotion();
+            anim?.Motion?.SetPolicy(MotionPolicy.Locomotion);
+            anim?.Motion?.SetSkillSuppressGravity(false);
+#endif
         }
 
         #endregion

@@ -71,11 +71,15 @@ namespace EGamePlay.Combat
                 return;
             }
 
-            var buff = status.AttachStatus(buffId);
-            if (buff == null)
-                return;
-            buff.Caster = Entity;
-            buff.ActivateBuff();
+            // 被动常驻：不走 AddStatusAction，不受战斗免疫/抵抗。
+            status.RequestAddStatus(buffId, Entity as ICombatUnit, null);
+        }
+
+        /// <summary>死亡清列表后同步跟踪集，避免之后 Sync 以为被动还挂着。</summary>
+        public void NotifyOwnerDeath()
+        {
+            _appliedPassiveBuffIds.Clear();
+            _desiredPassiveBuffIds.Clear();
         }
     }
 }

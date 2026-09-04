@@ -66,6 +66,22 @@ namespace EGamePlay.Combat
         /// //施放技能后
         /// </summary>
         PostSpell = 4096,
+        /// <summary>
+        /// //致死预判后、扣血前（受击者，可改伤害免死）
+        /// </summary>
+        PreBeKilled = 8192,
+        /// <summary>
+        /// //确认仍致死、扣血前（攻击者 onKill）
+        /// </summary>
+        PreCauseKill = 16384,
+        /// <summary>
+        /// //确认仍致死、扣血前（受击者 beKilled）
+        /// </summary>
+        PreReceiveKill = 32768,
+        /// <summary>
+        /// //卸 Buff 前（仅正在卸的那条 TriggerBuff 开火）
+        /// </summary>
+        PreRemoveStatus = 65536,
     }
 
 } 
