@@ -17,6 +17,7 @@ namespace ACTGameEditor.Combat
         Entity ICombatUnit.Entity => this;
         long ICombatUnit.Id => Id;
         bool ICombatUnit.isTruePlayer => isTruePlayer;
+        bool ICombatUnit.UsesPlayerCombatClock => UsesPlayerCombatClock;
 
         #endregion
 
@@ -24,6 +25,7 @@ namespace ACTGameEditor.Combat
 
         public uint NetId { get; private set; }
         public bool isTruePlayer;
+        int _playerCombatClockHold;
         public AgentTag CurAgent { get; set; }
         public Transform ModelTrans { get; set; }
         public Transform RootTransform { get; set; }
@@ -171,6 +173,7 @@ namespace ACTGameEditor.Combat
 
 #if UNITY
         InputMoveComponent _inputMove;
+        AnimComponent _anim;
         public bool useAnimaRoot;
         public bool IsGrounded => _inputMove != null && _inputMove.IsGrounded;
 #endif
@@ -200,6 +203,7 @@ namespace ACTGameEditor.Combat
         public override void OnReset()
         {
             isTruePlayer = false;
+            _playerCombatClockHold = 0;
             NetId = 0;
             CurMoveState = MoveTypeEnum.Idle;
             _curState = PlayerStateEnum.Idle;
@@ -222,7 +226,7 @@ namespace ACTGameEditor.Combat
                 Rotation = RootTransform.rotation;
             }
 
-            _stateDirector?.Tick(GameTimeManager.PlayerTime);
+            _stateDirector?.Tick(CombatTimeClock.GetLayerTime(this));
 
             if (AttackPlayer is IAttackPlayer attack)
                 attack.TickSkillInput();
@@ -275,6 +279,7 @@ namespace ACTGameEditor.Combat
         void AddUnityComponents(GameObjectData data)
         {
             AddComponent<AnimComponent>(initData: data);
+            _anim = GetComponent<AnimComponent>();
             _inputMove = AddComponent<InputMoveComponent>(data);
             useAnimaRoot = false;
         }
@@ -306,6 +311,7 @@ namespace ACTGameEditor.Combat
             AddStatusAbility = null;
 #if UNITY
             _inputMove = null;
+            _anim = null;
             useAnimaRoot = false;
 #endif
         }
@@ -394,11 +400,49 @@ namespace ACTGameEditor.Combat
 
         public float GetTimeScale() => TimeScale != null ? TimeScale.GetTimeScale() : 1f;
 
-        public void AddTimeScaleModifier(int sourceId, float scale) =>
-            TimeScale?.AddTimeScaleModifier(sourceId, scale);
+        /// <summary>本地玩家，或 SkillTimeStop 期间的发起者，走玩家钟。</summary>
+        public bool UsesPlayerCombatClock => isTruePlayer || _playerCombatClockHold > 0;
 
-        public void RemoveTimeScaleModifierBySource(int sourceId) =>
+        /// <summary>SkillTimeStop 开始时调用，与 <see cref="RemovePlayerCombatClockHold"/> 成对。</summary>
+        public void AddPlayerCombatClockHold() => _playerCombatClockHold++;
+
+        /// <summary>SkillTimeStop 结束或撤销时调用。</summary>
+        public void RemovePlayerCombatClockHold()
+        {
+            if (_playerCombatClockHold > 0)
+                _playerCombatClockHold--;
+        }
+
+        /// <summary>叠加实体时间倍率（冻结/减速等）。命中顿帧请用 <see cref="ApplyHitStopTimeScale"/>。</summary>
+        public void AddTimeScaleModifier(int sourceId, float scale)
+        {
+            TimeScale?.AddTimeScaleModifier(sourceId, scale);
+            RefreshAnimSpeed();
+        }
+
+        /// <summary>按来源撤实体时间倍率。</summary>
+        public void RemoveTimeScaleModifierBySource(int sourceId)
+        {
             TimeScale?.RemoveTimeScaleModifierBySource(sourceId);
+            RefreshAnimSpeed();
+        }
+
+        /// <summary>命中顿帧：替换本单位上的 HitStop 实体倍率。</summary>
+        public void ApplyHitStopTimeScale(float scale)
+        {
+            TimeScale?.RemoveBySource(CombatTimeClock.HitStopSourceId);
+            TimeScale?.AddModifier(CombatTimeClock.HitStopSourceId, scale);
+            RefreshAnimSpeed();
+        }
+
+        /// <summary>结束命中顿帧实体倍率。</summary>
+        public void ClearHitStopTimeScale()
+        {
+            TimeScale?.RemoveBySource(CombatTimeClock.HitStopSourceId);
+            RefreshAnimSpeed();
+        }
+
+        void RefreshAnimSpeed() => _anim?.Director?.RefreshSpeedFromOwner();
 
         #endregion
 
@@ -491,16 +535,57 @@ namespace ACTGameEditor.Combat
             return true;
         }
 
-        /// <summary>MoveForbid 0→1 断招进控制槽；1→0 退出。多层眩晕靠 Tag 计数。</summary>
+        /// <summary>MoveForbid 0→1 断招进控制槽；1→0 退出。多层眩晕靠 Tag 计数。冻结仍在时不退出。</summary>
         public void NotifyHardControlChanged(bool entered)
         {
             if (entered)
-                EnterHardControl();
-            else
+                EnterHardControl(playHeldReaction: TagHost == null || !TagHost.HasIndex(TagHost.FreezeIndex));
+            else if (TagHost == null || !TagHost.HasIndex(TagHost.FreezeIndex))
                 ExitHardControl();
         }
 
-        void EnterHardControl()
+        /// <summary>冻结：实体钟归零 + 冰壳；无 MoveForbid 时也进控制槽但不播眩晕动作。</summary>
+        public void NotifyFreezeChanged(bool entered)
+        {
+            if (entered)
+            {
+                ApplyFreezeTimeScale();
+                ApplyFreezeVisual(true);
+                if (_stateDirector == null || !_stateDirector.IsControl)
+                    EnterHardControl(playHeldReaction: false);
+            }
+            else
+            {
+                ClearFreezeTimeScale();
+                ApplyFreezeVisual(false);
+                if (TagHost == null || !TagHost.HasIndex(TagHost.MoveForbidIndex))
+                    ExitHardControl();
+            }
+        }
+
+        /// <summary>冻结：实体 TimeScale=0（替换本源）。</summary>
+        public void ApplyFreezeTimeScale()
+        {
+            TimeScale?.RemoveBySource(CombatTimeClock.FreezeSourceId);
+            TimeScale?.AddModifier(CombatTimeClock.FreezeSourceId, 0f);
+            RefreshAnimSpeed();
+        }
+
+        /// <summary>解除冻结实体钟。</summary>
+        public void ClearFreezeTimeScale()
+        {
+            TimeScale?.RemoveBySource(CombatTimeClock.FreezeSourceId);
+            RefreshAnimSpeed();
+        }
+
+        void ApplyFreezeVisual(bool frozen)
+        {
+#if UNITY
+            AttackPlayer?.GetComponent<CharacterRenderFX>()?.SetFreeze(frozen ? 1f : 0f);
+#endif
+        }
+
+        void EnterHardControl(bool playHeldReaction)
         {
             if (IsDead)
                 return;
@@ -518,8 +603,11 @@ namespace ACTGameEditor.Combat
             ChangeInputMoveState(false);
 
 #if UNITY
-            AnimComponent anim = GetComponent<AnimComponent>();
-            anim?.Director?.PlayHeldControlReaction();
+            if (playHeldReaction)
+            {
+                AnimComponent anim = GetComponent<AnimComponent>();
+                anim?.Director?.PlayHeldControlReaction();
+            }
 #endif
         }
 
@@ -529,7 +617,8 @@ namespace ACTGameEditor.Combat
                 return;
 
             _stateDirector?.ExitControl();
-            ChangeInputMoveState(true);
+            // 人机不要跟主控共用键盘；电机仍由本地玩家 ChangeCurPlayer 打开。
+            ChangeInputMoveState(isTruePlayer);
 
 #if UNITY
             AnimComponent anim = GetComponent<AnimComponent>();

@@ -1,6 +1,5 @@
-using System;
+﻿using System;
 using UnityEngine;
-using EGamePlay;
 
 namespace EGamePlay.Combat
 {

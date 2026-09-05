@@ -3,7 +3,7 @@ using EGamePlay.Combat;
 
 namespace ACTGameEditor.Combat
 {
-    /// <summary>角色 MPB：闪白 / 溶解。</summary>
+    /// <summary>角色 MPB：闪白 / 溶解 / 残影。</summary>
     sealed class CharacterRenderFxBridge : ICombatFxBridge
     {
         public bool CanPlay(in CombatFxSpec spec)
@@ -15,6 +15,7 @@ namespace ACTGameEditor.Combat
             {
                 CombatFxKind.HitFlash => GraphicsFxService.Query(GraphicsFxId.HitFlash),
                 CombatFxKind.DeathDissolve => GraphicsFxService.Query(GraphicsFxId.Dissolve),
+                CombatFxKind.Afterimage => GraphicsFxService.Query(GraphicsFxId.Afterimage),
                 _ => true,
             };
         }
@@ -37,6 +38,10 @@ namespace ACTGameEditor.Combat
                     renderFx.PlayDissolve(dissolveDuration, spec.OnComplete);
                     return renderFx;
 
+                case CombatFxKind.Afterimage:
+                    renderFx.PlayAfterimage();
+                    return renderFx;
+
                 default:
                     return null;
             }
@@ -54,6 +59,9 @@ namespace ACTGameEditor.Combat
                     break;
                 case CombatFxKind.DeathDissolve:
                     renderFx.StopDissolveDriver();
+                    break;
+                case CombatFxKind.Afterimage:
+                    renderFx.StopAfterimage();
                     break;
             }
         }

@@ -73,9 +73,28 @@ namespace ACTGameEditor.Locomotion
         }
     }
 
-    /// <summary>从本帧 <see cref="PlayerInputSnapshot"/> 读移动轴（空安全）。</summary>
+    /// <summary>人机 / NPC：不读键盘。硬控结束若误开电机也不会跟主控一起走。</summary>
+    public sealed class IdleMoveInputProvider : IMoveInputProvider
+    {
+        /// <summary>无状态，可共用。</summary>
+        public static readonly IdleMoveInputProvider Instance = new();
+
+        /// <inheritdoc />
+        public Vector2 MoveAxis => Vector2.zero;
+
+        /// <inheritdoc />
+        public bool WalkTogglePressed => false;
+
+        /// <inheritdoc />
+        public bool SprintPressed => false;
+    }
+
+    /// <summary>从本帧 <see cref="PlayerInputSnapshot"/> 读移动轴（空安全）。仅本地主控使用。</summary>
     public sealed class ConfigurableInputMoveProvider : IMoveInputProvider
     {
+        /// <summary>无状态，可共用。</summary>
+        public static readonly ConfigurableInputMoveProvider Instance = new();
+
         public Vector2 MoveAxis
         {
             get

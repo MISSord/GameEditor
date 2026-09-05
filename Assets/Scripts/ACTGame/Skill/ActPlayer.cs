@@ -189,7 +189,26 @@ namespace ACTGameEditor
             Combat.Rotation = transform.localRotation;
             Combat.AttackPlayer = this;
 
+            EnsureCombatPresentation();
             StartCallBack();
+        }
+
+        void EnsureCombatPresentation()
+        {
+            CharacterRenderFX renderFx = GetComponent<CharacterRenderFX>();
+            if (renderFx != null)
+            {
+                if (GetComponent<CharacterIceShell>() == null)
+                    gameObject.AddComponent<CharacterIceShell>();
+                if (GetComponent<AfterimageController>() == null)
+                    gameObject.AddComponent<AfterimageController>();
+                renderFx.BindModel(_modelShow);
+            }
+
+            CombatParticleClockDriver particleClock = GetComponent<CombatParticleClockDriver>();
+            if (particleClock == null)
+                particleClock = gameObject.AddComponent<CombatParticleClockDriver>();
+            particleClock.Bind(Combat, _modelShow);
         }
 
         //与Init对应，销毁该实体
@@ -270,6 +289,9 @@ namespace ACTGameEditor
 
             var afterimage = GetComponent<AfterimageController>();
             afterimage?.RefreshSources(_modelShow);
+
+            var particleClock = GetComponent<CombatParticleClockDriver>();
+            particleClock?.Bind(Combat, _modelShow);
         }
 
         /// <summary>Locomotion 一段跳：不走路由技能轴，不占 Token。土狼/缓冲由电机消耗。</summary>

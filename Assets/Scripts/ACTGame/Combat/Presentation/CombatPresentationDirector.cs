@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using EGamePlay;
 using EGamePlay.Combat;
 
 namespace ACTGameEditor.Combat
@@ -32,6 +33,11 @@ namespace ACTGameEditor.Combat
             if (spec.Kind == CombatFxKind.SkillTimeStop && spec.Duration <= 0f)
                 return CombatFxHandle.Invalid;
 
+#if UNITY
+            if (!CanReplaceTimeScaleEffect(spec))
+                return CombatFxHandle.Invalid;
+#endif
+
             StopSameSourceKind(spec.Source, spec.Kind);
 
 #if UNITY
@@ -43,6 +49,10 @@ namespace ACTGameEditor.Combat
                     return CombatFxHandle.Invalid;
                 token = bridge.Play(spec);
             }
+
+            if (token == null && spec.Kind is CombatFxKind.HitStop or CombatFxKind.TimeFracture
+                or CombatFxKind.SkillTimeStop or CombatFxKind.Afterimage or CombatFxKind.ScreenDesaturate)
+                return CombatFxHandle.Invalid;
 
             if (spec.PlayCameraImpact && spec.Kind == CombatFxKind.HitStop)
                 CameraBridge.Play(spec);
@@ -130,6 +140,41 @@ namespace ACTGameEditor.Combat
             _nextHandleId = 1;
         }
 
+#if UNITY
+        /// <summary>
+        /// 同类型时间效果未 Stop 前先比 Priority，避免同技能轻段把正在播的重顿帧清掉。
+        /// </summary>
+        static bool CanReplaceTimeScaleEffect(in CombatFxSpec spec)
+        {
+            TimeScaleEffectType type;
+            int fallbackPriority;
+            switch (spec.Kind)
+            {
+                case CombatFxKind.HitStop:
+                    type = TimeScaleEffectType.HitStop;
+                    fallbackPriority = 10;
+                    break;
+                case CombatFxKind.TimeFracture:
+                    type = TimeScaleEffectType.TimeFracture;
+                    fallbackPriority = 50;
+                    break;
+                case CombatFxKind.SkillTimeStop:
+                    type = TimeScaleEffectType.SkillTimescale;
+                    fallbackPriority = 20;
+                    break;
+                default:
+                    return true;
+            }
+
+            TimeScaleEffect existing = TimeScaleEffectManager.FindByType(type);
+            if (existing == null)
+                return true;
+
+            int priority = spec.TimePriority > 0 ? spec.TimePriority : fallbackPriority;
+            return priority >= existing.Priority;
+        }
+#endif
+
         static void StopSameSourceKind(in CombatFxSource source, CombatFxKind kind)
         {
             if (!_bySource.TryGetValue(source, out List<int> list))
@@ -161,8 +206,8 @@ namespace ACTGameEditor.Combat
             return kind switch
             {
                 CombatFxKind.SkillTimeStop or CombatFxKind.TimeFracture or CombatFxKind.HitStop => TimeScaleBridge,
-                CombatFxKind.RadialBlurImpact => CameraBridge,
-                CombatFxKind.HitFlash or CombatFxKind.DeathDissolve => CharacterBridge,
+                CombatFxKind.RadialBlurImpact or CombatFxKind.ScreenDesaturate => CameraBridge,
+                CombatFxKind.HitFlash or CombatFxKind.DeathDissolve or CombatFxKind.Afterimage => CharacterBridge,
                 _ => null,
             };
         }

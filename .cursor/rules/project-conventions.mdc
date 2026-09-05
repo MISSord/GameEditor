@@ -1,0 +1,16 @@
+---
+description: 项目目录、分层与战斗硬约定；改玩法前先对照 Docs/ProjectConventions.md
+alwaysApply: true
+---
+
+# 项目规范
+
+改战斗 / 技能 / Buff / 时间 / 配表前阅读 `Docs/ProjectConventions.md`。入口索引见 `AGENTS.md`。
+
+硬约束（细节以该文档为准）：
+
+- 战斗是 EGamePlay Entity/Component，不是 Unity DOTS；ACT 表现在 `Assets/Scripts/ACTGame/`。
+- 四根钟：世界 / 玩家 / 相机 / 实体。选层用 `CombatTimeClock`。Buff 计时走世界钟，不乘实体 TimeScale。
+- 流程问 Buff 列表和 Tag，不要散落 `if (异常名)`。表现不要写进 `DamageAction`。
+- 主动技伤害只查段表，时间轴不填倍率。
+- 配表改 xlsx 再导出，禁止手改 json。

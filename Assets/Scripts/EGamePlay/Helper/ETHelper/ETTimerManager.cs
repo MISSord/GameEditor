@@ -32,6 +32,7 @@ namespace EGamePlay
 
 	public class RepeatedTimerAwakeData
 	{
+		public long StartTime;
 		public long RepeatedTime;
 		public Action<bool> Callback;
 	}
@@ -41,7 +42,7 @@ namespace EGamePlay
 		public override void Awake(object initData)
 		{
 			var awakeData = initData as RepeatedTimerAwakeData;
-			this.StartTime = TimeHelper.ClientNow();
+			this.StartTime = awakeData.StartTime;
 			this.RepeatedTime = awakeData.RepeatedTime;
 			this.Callback = awakeData.Callback;
 			this.Count = 1;
@@ -95,7 +96,8 @@ namespace EGamePlay
 	}
 
 	/// <summary>
-	/// 集中调度一次性/周期定时器。时间轴走 TimeHelper 毫秒戳，避免业务侧每帧 Update。
+	/// 集中调度一次性/周期定时器。时间轴走战斗世界钟（<see cref="GameTimeManager.WorldDelta"/>），
+	/// 暂停与时空断裂会冻结或拉长；不乘实体 TimeScale，单体减速/冻结不影响到期。
 	/// </summary>
 	public class ETTimerManager : Entity
 	{
@@ -112,22 +114,41 @@ namespace EGamePlay
 
 		private readonly Queue<long> _timeOutTimerIds = new Queue<long>();
 
-		private long _minTime;
+		/// <summary>累计世界毫秒（double 避免每帧截断）。</summary>
+		private double _nowMs;
+
+		private long _minTime = long.MaxValue;
+
+		/// <summary>当前战斗世界钟（毫秒）。无实例时为 0。</summary>
+		public static long NowMs => Instance != null ? (long)Instance._nowMs : 0L;
+
+		/// <summary>当前战斗世界钟（毫秒）。</summary>
+		public long Now => (long)_nowMs;
 
 		public override void Awake()
 		{
 			Instance = this;
+			_nowMs = 0d;
+			_minTime = long.MaxValue;
 		}
 
-		public new void Update(float fixDeltaTime)
+		/// <summary>
+		/// 用本帧世界 delta 推进时钟并触发到期定时器。delta≤0（暂停）时只冻结，不回调。
+		/// </summary>
+		public new void Update(float worldDelta)
 		{
+			if (worldDelta > 0f)
+			{
+				_nowMs += (double)worldDelta * 1000.0;
+			}
+
 			if (this.TimeId.Count == 0)
 			{
+				_minTime = long.MaxValue;
 				return;
 			}
 
-			long timeNow = TimeHelper.ClientNow();
-
+			long timeNow = (long)_nowMs;
 			if (timeNow < this._minTime)
 			{
 				return;
@@ -167,7 +188,7 @@ namespace EGamePlay
 		}
 
 		/// <summary>
-		/// 创建一个周期定时器。间隔必须 ≥ 30ms。
+		/// 创建一个周期定时器。间隔必须 ≥ 30ms（世界毫秒）。
 		/// </summary>
 		public long NewRepeatedTimer(long time, Action<bool> action)
 		{
@@ -175,13 +196,20 @@ namespace EGamePlay
 			{
 				throw new Exception($"repeated time < 30");
 			}
-			long tillTime = TimeHelper.ClientNow() + time;
-			RepeatedTimer timer = this.AddChild<RepeatedTimer>(new RepeatedTimerAwakeData() { Callback = action, RepeatedTime = time });
+			long startTime = Now;
+			long tillTime = startTime + time;
+			RepeatedTimer timer = this.AddChild<RepeatedTimer>(new RepeatedTimerAwakeData()
+			{
+				Callback = action,
+				RepeatedTime = time,
+				StartTime = startTime
+			});
 			this._timers[timer.Id] = timer;
 			AddToTimeId(tillTime, timer.Id);
 			return timer.Id;
 		}
 
+		/// <summary>按 Id 取周期定时器；不存在则返回 null。</summary>
 		public RepeatedTimer GetRepeatedTimer(long id)
 		{
 			if (!this._timers.TryGetValue(id, out ITimer timer))
@@ -191,6 +219,7 @@ namespace EGamePlay
 			return timer as RepeatedTimer;
 		}
 
+		/// <summary>移除并销毁指定定时器。</summary>
 		public void Remove(long id)
 		{
 			if (id == 0)
@@ -207,7 +236,7 @@ namespace EGamePlay
 		}
 
 		/// <summary>
-		/// 创建一个一次性定时器，在 tillTime（毫秒时间戳）触发。
+		/// 创建一个一次性定时器，在 tillTime（世界毫秒戳）触发。
 		/// </summary>
 		public long NewOnceTimer(long tillTime, Action action)
 		{
@@ -217,6 +246,19 @@ namespace EGamePlay
 			return timer.Id;
 		}
 
+		/// <summary>
+		/// 创建一个一次性定时器，在 delayMs 世界毫秒后触发。
+		/// </summary>
+		public long NewOnceTimerAfter(long delayMs, Action action)
+		{
+			if (delayMs < 0L)
+			{
+				delayMs = 0L;
+			}
+			return NewOnceTimer(Now + delayMs, action);
+		}
+
+		/// <summary>按 Id 取一次性定时器；不存在则返回 null。</summary>
 		public OnceTimer GetOnceTimer(long id)
 		{
 			if (!this._timers.TryGetValue(id, out ITimer timer))
@@ -226,6 +268,7 @@ namespace EGamePlay
 			return timer as OnceTimer;
 		}
 
+		/// <summary>将定时器挂到指定世界毫秒戳。业务侧请用 <see cref="Now"/> 或 <see cref="NewOnceTimerAfter"/>，不要用墙钟。</summary>
 		public void AddToTimeId(long tillTime, long id)
 		{
 			this.TimeId.Add(tillTime, id);

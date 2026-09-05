@@ -24,6 +24,8 @@ namespace EGamePlay.Combat
         bool IsCanRollSkill { get; }
         bool IsDead { get; }
         bool isTruePlayer { get; }
+        /// <summary>技能轴、CD、动画走玩家钟（本地玩家，或 SkillTimeStop 发起者 hold）。</summary>
+        bool UsesPlayerCombatClock { get; }
 
         Vector3 Position { get; set; }
         Quaternion Rotation { get; set; }
@@ -36,6 +38,9 @@ namespace EGamePlay.Combat
 
         /// <summary>MoveForbid 叶子计数 0→1 / 1→0。硬控断招与控制槽。</summary>
         void NotifyHardControlChanged(bool entered);
+
+        /// <summary>Buff.Freeze 叶子计数 0→1 / 1→0。实体钟归零 + 冰冻外观。</summary>
+        void NotifyFreezeChanged(bool entered);
 
         ISkillExecutionHandle ActiveExecution { get; set; }
 

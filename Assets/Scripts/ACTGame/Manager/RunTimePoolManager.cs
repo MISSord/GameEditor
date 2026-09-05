@@ -40,8 +40,7 @@ public class RunTimePoolManager : MonoSingleton<RunTimePoolManager>
         var obj = ResPool[resPath].GetObj();
         if (AutoRecycel > 0 && ETTimerManager.Instance != null)
         {
-            long tillTimeMs = TimeHelper.ClientNow() + (long)(AutoRecycel * 1000);
-            long timerId = ETTimerManager.Instance.NewOnceTimer(tillTimeMs, () => ReCycle(resPath, obj));
+            long timerId = ETTimerManager.Instance.NewOnceTimerAfter((long)(AutoRecycel * 1000), () => ReCycle(resPath, obj));
             ResPool[resPath].TimerDic.Add(obj.GetHashCode(), timerId);
         }
         return obj;

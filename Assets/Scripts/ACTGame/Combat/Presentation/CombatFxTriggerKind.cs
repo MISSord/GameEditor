@@ -17,7 +17,7 @@ namespace ACTGameEditor.Combat
 
     /// <summary>ActionPoint 规则过滤条件。</summary>
     [Flags]
-    public enum CombatFxTriggerFlags : byte
+    public enum CombatFxTriggerFlags
     {
         None = 0,
         /// <summary>仅本地玩家实体触发（如攻击者侧 HitStop）。</summary>
@@ -30,5 +30,13 @@ namespace ACTGameEditor.Combat
         SkipOnInterrupt = 1 << 3,
         /// <summary>DamageValue &lt;= 0 时不播。</summary>
         RequirePositiveDamage = 1 << 4,
+        /// <summary>仅闪避成功时播（极限闪避）。</summary>
+        RequireDodge = 1 << 5,
+        /// <summary>仅暴击。</summary>
+        RequireCritical = 1 << 6,
+        /// <summary>暴击时跳过（把顿帧交给 Crit 包）。</summary>
+        SkipOnCritical = 1 << 7,
+        /// <summary>仅技能直伤，跳过 Buff / DoT。</summary>
+        RequireSkillDamage = 1 << 8,
     }
 }

@@ -1,5 +1,5 @@
 // ACT Character — URP 手搓角色着色器
-// 支持：主光 Half-Lambert、受击闪白、噪声图溶解、遮挡外轮廓、ShadowCaster
+// 支持：主光 Half-Lambert、受击闪白、冰冻、噪声图溶解、遮挡外轮廓、ShadowCaster
 
 Shader "ACT/Character"
 {
@@ -31,6 +31,17 @@ Shader "ACT/Character"
 
         [Header(Lighting)]
         _ShadeColor ("Shade Color", Color) = (0.4, 0.4, 0.45, 1)
+
+        [Header(Freeze)]
+        _FreezeAmount ("Freeze Amount", Range(0, 1)) = 0
+        [HDR] _FreezeColor ("Freeze Color", Color) = (0.42, 0.86, 1.15, 1)
+        _FreezeTint ("Ice Tint", Color) = (0.58, 0.82, 0.98, 1)
+        _FreezeFresnelPower ("Fresnel Power", Range(1, 8)) = 3.4
+        _FreezeFresnelIntensity ("Fresnel Intensity", Range(0, 4)) = 1.35
+        _FreezeSpecPower ("Ice Spec Power", Range(8, 128)) = 48
+        _FreezeSpecIntensity ("Ice Spec Intensity", Range(0, 2)) = 0.7
+        _FreezeNoiseStrength ("Frost Noise", Range(0, 1)) = 0.4
+        _FreezeSparkle ("Sparkle", Range(0, 1)) = 0.45
     }
 
     SubShader
@@ -83,21 +94,8 @@ Shader "ACT/Character"
             TEXTURE2D(_DissolveMap);
             SAMPLER(sampler_DissolveMap);
 
-            CBUFFER_START(UnityPerMaterial)
-                float4 _BaseMap_ST;
-                float4 _DissolveMap_ST;
-                half4 _BaseColor;
-                half4 _HitFlashColor;
-                half4 _DissolveEdgeColor;
-                half4 _OutlineColor;
-                half4 _ShadeColor;
-                half _HitFlash;
-                half _Dissolve;
-                half _DissolveEdgeWidth;
-                half _OutlineWidth;
-                half _ForceOutline;
-                half _ProximityDither;
-            CBUFFER_END
+            #include "ACTCharacterProperties.hlsl"
+            #include "ACTFreeze.hlsl"
 
             #pragma shader_feature_local _PROXIMITY_DITHER_ON
             #include "ACTProximityDither.hlsl"
@@ -157,11 +155,22 @@ Shader "ACT/Character"
                 Light mainLight = GetMainLight(shadowCoord);
 
                 half3 n = normalize(input.normalWS);
+                half3 shade = lerp(_ShadeColor.rgb, _FreezeTint.rgb * 0.38h, saturate(_FreezeAmount));
                 half ndotl = saturate(dot(n, mainLight.direction) * 0.5h + 0.5h);
-                half3 lighting = lerp(_ShadeColor.rgb, mainLight.color, ndotl) * mainLight.shadowAttenuation;
+                half3 lighting = lerp(shade, mainLight.color, ndotl) * mainLight.shadowAttenuation;
                 lighting += SampleSH(n) * 0.35h;
 
                 half3 color = albedo.rgb * lighting;
+                half3 viewDir = normalize(GetWorldSpaceViewDir(input.positionWS));
+                color = ACT_ApplyFreeze(
+                    color,
+                    albedo.rgb,
+                    n,
+                    viewDir,
+                    mainLight.direction,
+                    mainLight.color,
+                    input.positionWS,
+                    input.dissolveUV);
                 color = lerp(color, _HitFlashColor.rgb, _HitFlash);
 
                 ApplyDissolve(input.dissolveUV, color);
@@ -205,21 +214,7 @@ Shader "ACT/Character"
             TEXTURE2D(_DissolveMap);
             SAMPLER(sampler_DissolveMap);
 
-            CBUFFER_START(UnityPerMaterial)
-                float4 _BaseMap_ST;
-                float4 _DissolveMap_ST;
-                half4 _BaseColor;
-                half4 _HitFlashColor;
-                half4 _DissolveEdgeColor;
-                half4 _OutlineColor;
-                half4 _ShadeColor;
-                half _HitFlash;
-                half _Dissolve;
-                half _DissolveEdgeWidth;
-                half _OutlineWidth;
-                half _ForceOutline;
-                half _ProximityDither;
-            CBUFFER_END
+            #include "ACTCharacterProperties.hlsl"
 
             #pragma shader_feature_local _PROXIMITY_DITHER_ON
             #include "ACTProximityDither.hlsl"
@@ -284,21 +279,7 @@ Shader "ACT/Character"
             TEXTURE2D(_DissolveMap);
             SAMPLER(sampler_DissolveMap);
 
-            CBUFFER_START(UnityPerMaterial)
-                float4 _BaseMap_ST;
-                float4 _DissolveMap_ST;
-                half4 _BaseColor;
-                half4 _HitFlashColor;
-                half4 _DissolveEdgeColor;
-                half4 _OutlineColor;
-                half4 _ShadeColor;
-                half _HitFlash;
-                half _Dissolve;
-                half _DissolveEdgeWidth;
-                half _OutlineWidth;
-                half _ForceOutline;
-                half _ProximityDither;
-            CBUFFER_END
+            #include "ACTCharacterProperties.hlsl"
 
             #pragma shader_feature_local _PROXIMITY_DITHER_ON
             #include "ACTProximityDither.hlsl"
@@ -368,21 +349,7 @@ Shader "ACT/Character"
             TEXTURE2D(_DissolveMap);
             SAMPLER(sampler_DissolveMap);
 
-            CBUFFER_START(UnityPerMaterial)
-                float4 _BaseMap_ST;
-                float4 _DissolveMap_ST;
-                half4 _BaseColor;
-                half4 _HitFlashColor;
-                half4 _DissolveEdgeColor;
-                half4 _OutlineColor;
-                half4 _ShadeColor;
-                half _HitFlash;
-                half _Dissolve;
-                half _DissolveEdgeWidth;
-                half _OutlineWidth;
-                half _ForceOutline;
-                half _ProximityDither;
-            CBUFFER_END
+            #include "ACTCharacterProperties.hlsl"
 
             #pragma shader_feature_local _PROXIMITY_DITHER_ON
             #include "ACTProximityDither.hlsl"
@@ -455,21 +422,7 @@ Shader "ACT/Character"
             TEXTURE2D(_DissolveMap);
             SAMPLER(sampler_DissolveMap);
 
-            CBUFFER_START(UnityPerMaterial)
-                float4 _BaseMap_ST;
-                float4 _DissolveMap_ST;
-                half4 _BaseColor;
-                half4 _HitFlashColor;
-                half4 _DissolveEdgeColor;
-                half4 _OutlineColor;
-                half4 _ShadeColor;
-                half _HitFlash;
-                half _Dissolve;
-                half _DissolveEdgeWidth;
-                half _OutlineWidth;
-                half _ForceOutline;
-                half _ProximityDither;
-            CBUFFER_END
+            #include "ACTCharacterProperties.hlsl"
 
             #pragma shader_feature_local _PROXIMITY_DITHER_ON
             #include "ACTProximityDither.hlsl"

@@ -52,7 +52,7 @@ namespace ACTGameEditor.Combat
             if (rule == null || rule.TriggerKind != CombatFxTriggerKind.ActionPoint)
                 return false;
 
-            if (action is DamageAction damage && !PassDamageFlags(damage, rule.Flags))
+            if (action is DamageAction damage && !PassTriggerRule(rule, damage))
                 return false;
 
             if (rule.Flags.HasFlag(CombatFxTriggerFlags.LocalTruePlayerOnly)
@@ -65,12 +65,20 @@ namespace ACTGameEditor.Combat
             return true;
         }
 
-        public static bool PassDamageFlags(DamageAction damage, CombatFxTriggerFlags flags)
+        /// <summary>ActionPoint 规则是否匹配本次伤害。</summary>
+        public static bool PassTriggerRule(CombatFxTriggerRuleDefinition rule, DamageAction damage)
         {
+            if (rule == null || damage == null)
+                return false;
+
+            CombatFxTriggerFlags flags = rule.Flags;
             if (flags.HasFlag(CombatFxTriggerFlags.RequirePositiveDamage) && damage.DamageValue <= 0)
                 return false;
             if (flags.HasFlag(CombatFxTriggerFlags.SkipOnDodge)
                 && damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge))
+                return false;
+            if (flags.HasFlag(CombatFxTriggerFlags.RequireDodge)
+                && !damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge))
                 return false;
             if (flags.HasFlag(CombatFxTriggerFlags.SkipOnImmunity)
                 && damage.DamageActionEffect.HasFlag(DamageActionEffect.Immunity))
@@ -78,6 +86,23 @@ namespace ACTGameEditor.Combat
             if (flags.HasFlag(CombatFxTriggerFlags.SkipOnInterrupt)
                 && damage.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt))
                 return false;
+            if (flags.HasFlag(CombatFxTriggerFlags.RequireCritical) && !damage.IsCritical)
+                return false;
+            if (flags.HasFlag(CombatFxTriggerFlags.SkipOnCritical) && damage.IsCritical)
+                return false;
+            if (flags.HasFlag(CombatFxTriggerFlags.RequireSkillDamage)
+                && damage.DamageSource != DamageSource.Skill)
+                return false;
+
+            int segment = damage.TriggerContext.DamageSegmentIndex;
+            if (rule.MinDamageSegment > 0 && segment < rule.MinDamageSegment)
+                return false;
+            if (rule.MaxDamageSegment > 0)
+            {
+                int effectiveSegment = segment > 0 ? segment : 1;
+                if (effectiveSegment > rule.MaxDamageSegment)
+                    return false;
+            }
             return true;
         }
 
@@ -123,7 +148,10 @@ namespace ACTGameEditor.Combat
                         context.Source,
                         ResolveDuration(in entry, in context, preset.HitStopDuration),
                         entry.WorldScale > 0f ? entry.WorldScale : preset.HitStopWorldScale,
-                        entry.PlayCameraImpact);
+                        entry.PlayCameraImpact,
+                        context.ActionCreator ?? context.Owner,
+                        context.ActionTarget,
+                        entry.TimePriority > 0 ? entry.TimePriority : 10);
                     spec.RespectGraphicsGate = entry.RespectGraphicsGate;
                     return true;
 
@@ -138,7 +166,8 @@ namespace ACTGameEditor.Combat
                 case CombatFxKind.SkillTimeStop:
                     spec = CombatFxSpec.SkillTimeStop(
                         context.Source,
-                        ResolveDuration(in entry, in context, 1f));
+                        ResolveDuration(in entry, in context, 1f),
+                        context.Owner);
                     spec.RespectGraphicsGate = entry.RespectGraphicsGate;
                     return true;
 
@@ -158,7 +187,19 @@ namespace ACTGameEditor.Combat
                     return true;
 
                 case CombatFxKind.Afterimage:
+                    spec = CombatFxSpec.Afterimage(
+                        context.Source,
+                        ResolveTarget(entry.TargetMode, in context) ?? context.Owner);
+                    spec.RespectGraphicsGate = entry.RespectGraphicsGate;
+                    return spec.Target != null;
+
                 case CombatFxKind.ScreenDesaturate:
+                    spec = CombatFxSpec.ScreenDesaturate(
+                        context.Source,
+                        ResolveDuration(in entry, in context, 0.5f));
+                    spec.RespectGraphicsGate = entry.RespectGraphicsGate;
+                    return true;
+
                 case CombatFxKind.HitParticle:
                 case CombatFxKind.HitAudio:
                 case CombatFxKind.RadialBlurImpact:

@@ -1,0 +1,39 @@
+---
+description: Luban 配置必须改 Excel 源表并导出，禁止直接改 JSON/生成代码
+alwaysApply: true
+---
+
+# Luban 配置改法
+
+战斗数值与 Buff **只改 Excel 源表**，再导出。禁止手改 `Assets/Resources/Config/Luban/*.json` 或 `Assets/Scripts/EGamePlay/Config/Luban/*.cs`（后者为生成代码；`Buff.cs` 里对 `BuffDemoSetting` 的 partial 扩展除外）。
+
+## 源表
+
+| 要改的内容 | Excel | 工作表 |
+|---|---|---|
+| Buff 行（Id/时长/Tag/Modify 列表） | `Tools/Config/Datas/BuffSetting.xlsx` | `Buff` |
+| Buff 效果（控制、跳伤、护盾、上 Buff） | 同上 | `EffectModify` |
+| 公式行 | 同上 | `FormulaType` |
+| 技能 / 段伤害 | `Tools/Config/Datas/AbilitySetting.xlsx` | 见 `__tables__.xlsx` |
+| 角色基础属性 | `Tools/Config/Datas/RoleAttri.xlsx` | `CharacterAttri` |
+| 表登记 / 枚举 | `Tools/Config/Datas/__tables__.xlsx`、`__enums__.xlsx` | |
+
+新 `EffectModifyType` 等枚举先加 `__enums__.xlsx`，再配数据行。
+
+## 配表习惯
+
+- 以现有行为模板：复制同行结构，不要发明列。
+- `##` 开头的行是注释，Luban 会跳过。
+- 列表字段用 `|`：`Buff.Freeze|Buff.Debuff`，`4|6`。
+- 枚举写名字：`TimeBuff`、`PlayerControll`、`BuffHpDamage`，不要写数字。
+- 空单元格导出为 0 / `""` / `[]`。可用 Python `openpyxl` 改 xlsx。
+
+## 导出（改完必须跑）
+
+在 `Tools/` 下执行（与 Unity 菜单 **Tools/配置/生成技能配置** 相同）：
+
+```bat
+cmd /c gen_code_json.bat
+```
+
+确认对应 json 已更新后再结束。只改 json 会在下次导出走丢。

@@ -166,12 +166,12 @@
 - [x] `StateDirector` 控制槽（Dead > Control > Hit > Skill）；Gate 认 Forbid Tag（第 1 条）
 - [x] 眩晕 = `MoveForbid` 0→1 断招 + 控制槽，时长跟 Tag 计数
 - [x] 沉默 = 禁技能槽、闪避仍可（Gate，不进控制槽）
-- [ ] 冻结 = 停动画与位移（实体 TimeScale）
+- [x] 冻结 = 停动画与位移（实体 TimeScale）
 - [x] 霸体仍是 Tag，只跳过短硬直，不挡硬控 Buff
 - [ ] 硬控互斥：新硬控替换旧硬控，或高 Priority 覆盖（在第 1 条 PreReceiveStatus 里做）
 
 **游戏对照：** 眩晕断招、冻结停动画、沉默只能闪避、霸体吃硬直不吃断招。  
-**现状：** `MoveForbid` 沿变进 `PlayerStateEnum.Control`；硬控中跳过 0.35s 受击。冻结与硬控互斥未做。
+**现状：** `MoveForbid` 沿变进 `PlayerStateEnum.Control`；硬控中跳过 0.35s 受击。冻结 Buff `20601` 推 `Buff.Freeze`，实体钟=0 + 冰壳；点燃仍走世界钟。硬控互斥未做。
 
 ---
 

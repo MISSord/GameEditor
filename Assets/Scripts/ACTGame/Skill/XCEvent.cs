@@ -208,6 +208,7 @@ namespace ACTGameEditor
     {
         private XCObjEventData _eventData;
         private ParticleSystem _ps;
+        ParticleSystem[] _particles;
         public GameObject LoadObj { get; private set; }
 
         public override void Init(CombatEntity owner, XCNewEventsRunner runner)
@@ -233,7 +234,9 @@ namespace ACTGameEditor
             {
                 ResetPooledVfx(LoadObj);
                 _ps = LoadObj.GetComponentInChildren<ParticleSystem>(true);
+                _particles = LoadObj.GetComponentsInChildren<ParticleSystem>(true);
                 _ps?.Play(true);
+                ApplyParticleClock();
             }
             LoadObj.SetActive(true);
             base.OnTrigger(timeSinceTrigger);
@@ -264,12 +267,27 @@ namespace ACTGameEditor
                 RunTimePoolManager.Instance.AttachToSceneLayer(LoadObj.transform);
         }
 
+        public override void OnUpdateEvent(int frame, float timeSinceTrigger)
+        {
+            ApplyParticleClock();
+        }
+
+        void ApplyParticleClock()
+        {
+            if (_particles == null || _particles.Length == 0)
+                return;
+            float speed = CombatTimeClock.GetSimulationSpeed(OwnCombat);
+            for (int i = 0; i < _particles.Length; i++)
+                CombatTimeClock.ApplySimulationSpeed(_particles[i], speed);
+        }
+
         public override void OnFinish()
         {
             if (LoadObj != null)
             {
                 ResetPooledVfx(LoadObj);
                 _ps = null;
+                _particles = null;
                 LoadObj.SetActive(false);
                 RunTimePoolManager.Instance.ReCycle(
                     RunTimePoolManager.GetResPath(_eventData.BundlePath, _eventData.AssetPath),

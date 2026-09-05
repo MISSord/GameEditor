@@ -11,13 +11,13 @@ namespace EGamePlay.Combat
     {
         /// <summary>来源 ID，用于批量移除（如 BuffId、技能 ID）。0 表示无来源。</summary>
         public int SourceId;
-        /// <summary>乘数，如 0.5=半速，1.5=1.5 倍速。最终 scale = 各 modifier 的 Scale 相乘。</summary>
+        /// <summary>乘数。0=停（冻结），0.5=半速。最终 scale = 各 modifier 的 Scale 相乘。</summary>
         public float Scale;
 
         public TimeScaleModifier(int sourceId, float scale)
         {
             SourceId = sourceId;
-            Scale = Mathf.Max(0.0001f, scale);
+            Scale = Mathf.Max(0f, scale);
         }
     }
 

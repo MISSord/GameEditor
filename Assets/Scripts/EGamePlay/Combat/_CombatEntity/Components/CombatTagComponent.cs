@@ -21,6 +21,7 @@ namespace EGamePlay.Combat
         public int MoveForbidIndex { get; private set; }
         public int SkillForbidIndex { get; private set; }
         public int UnStoppedIndex { get; private set; }
+        public int FreezeIndex { get; private set; }
 
         public override bool IsNeedUpdate { get; protected set; } = true;
 
@@ -31,6 +32,7 @@ namespace EGamePlay.Combat
             MoveForbidIndex = TagCollection.TagToIndexDic[CombatTags.BuffMoveForbid];
             SkillForbidIndex = TagCollection.TagToIndexDic[CombatTags.BuffSkillForbid];
             UnStoppedIndex = TagCollection.TagToIndexDic[CombatTags.BuffUnStopped];
+            FreezeIndex = TagCollection.TagToIndexDic[CombatTags.BuffFreeze];
             if (_container != null)
                 _container.LeafCountChanged += OnLeafCountChanged;
         }
@@ -139,10 +141,13 @@ namespace EGamePlay.Combat
 
         void OnLeafCountChanged(int tagIndex, bool present)
         {
-            if (tagIndex != MoveForbidIndex)
+            if (Entity is not ICombatUnit unit)
                 return;
-            if (Entity is ICombatUnit unit)
+
+            if (tagIndex == MoveForbidIndex)
                 unit.NotifyHardControlChanged(present);
+            else if (tagIndex == FreezeIndex)
+                unit.NotifyFreezeChanged(present);
         }
     }
 }

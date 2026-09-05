@@ -72,6 +72,7 @@ namespace EGamePlay.Combat
         public List<string> AllTags = new List<string>()
         {
             "Buff.Dizziness",
+            "Buff.Freeze",
             "Buff.Silence",
             "Buff.Weak",
             "Buff.Roll",
@@ -104,6 +105,8 @@ namespace EGamePlay.Combat
         public const string BuffSkillForbid = "Buff.SkillForbid";
         public const string BuffUnStopped = "Buff.UnStopped";
         public const string BuffRoll = "Buff.Roll";
+        /// <summary>冻结：停动画与位移（实体 TimeScale=0），点燃仍走世界钟。</summary>
+        public const string BuffFreeze = "Buff.Freeze";
         /// <summary>减益极性，净化 DebuffOnly 认表 BuffTag，不是运行时容器。</summary>
         public const string BuffDebuff = "Buff.Debuff";
         /// <summary>增益极性，净化 BuffOnly 认表 BuffTag。</summary>

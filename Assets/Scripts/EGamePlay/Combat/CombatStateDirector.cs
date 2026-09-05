@@ -102,7 +102,7 @@ namespace EGamePlay.Combat
             _hitActive = true;
             _hitSourceId = sourceId;
             _hitEndTime = durationSeconds > 0f
-                ? GameTimeManager.PlayerTime + durationSeconds
+                ? CombatTimeClock.GetLayerTime(_owner) + durationSeconds
                 : 0f;
             Recompute();
         }
@@ -220,12 +220,12 @@ namespace EGamePlay.Combat
                 _owner.CurMoveState = MoveTypeEnum.Run;
         }
 
-        /// <summary>推进受击计时。</summary>
-        public void Tick(float playerTime)
+        /// <summary>推进受击计时（传入宿主层累计时间）。</summary>
+        public void Tick(float layerTime)
         {
             if (!_hitActive || _hitEndTime <= 0f)
                 return;
-            if (playerTime < _hitEndTime)
+            if (layerTime < _hitEndTime)
                 return;
             _hitActive = false;
             _hitSourceId = 0;

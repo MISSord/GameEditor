@@ -171,7 +171,7 @@ namespace XiaoCao
                 return;
             }
 
-            // 使用 GetElapsedSeconds：BuffTimeComponent 由 ETTimerManager 驱动，State.TimeElapsed 不再更新
+            // GetElapsedSeconds 跟战斗世界钟，时空断裂会拉长，单体减速不会
             float elapsed = _timeComponent.GetElapsedSeconds();
             if (elapsed < 0f) elapsed = 0f;
             if (elapsed > _maxDuration) elapsed = _maxDuration;

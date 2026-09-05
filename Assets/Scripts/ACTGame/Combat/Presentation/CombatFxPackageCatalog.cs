@@ -22,8 +22,17 @@ namespace ACTGameEditor.Combat
         public static void SetActive(CombatFxPackageCatalog catalog)
         {
             _active = catalog;
-            if (_active != null && _active.Packages.Count == 0)
+            if (_active == null)
+                return;
+            if (_active.ActionPointRules == null)
+                _active.ActionPointRules = new List<CombatFxTriggerRuleDefinition>(8);
+            if (_active.Packages.Count == 0)
                 _active.ResetToBuiltInDefaults();
+            else if (_active.ActionPointRules.Count <= 2)
+            {
+                _active.ActionPointRules.Clear();
+                _active.FillBuiltInRules();
+            }
         }
 
         /// <summary>按 ID 查找包定义。</summary>
@@ -85,7 +94,7 @@ namespace ACTGameEditor.Combat
                 Id = CombatFxPackageId.HitCausedLight,
                 DisplayName = "轻命中",
                 ReferenceNote = "鸣潮偏轻：短 HitStop + 镜头冲击。",
-                Entries = { CombatFxPackageEntry.HitStop(0.08f, 0.08f, camera: true) },
+                Entries = { CombatFxPackageEntry.HitStop(0.08f, 0.08f, camera: true, timePriority: 10) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
@@ -93,7 +102,7 @@ namespace ACTGameEditor.Combat
                 Id = CombatFxPackageId.HitCausedHeavy,
                 DisplayName = "重命中",
                 ReferenceNote = "ZZZ 风格：更长 HitStop + 强镜头。",
-                Entries = { CombatFxPackageEntry.HitStop(0.14f, 0.05f, camera: true) },
+                Entries = { CombatFxPackageEntry.HitStop(0.14f, 0.05f, camera: true, timePriority: 20) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
@@ -101,31 +110,28 @@ namespace ACTGameEditor.Combat
                 Id = CombatFxPackageId.HitCausedCrit,
                 DisplayName = "暴击命中",
                 ReferenceNote = "暴击：在重命中基础上略延长顿帧。",
-                Entries = { CombatFxPackageEntry.HitStop(0.16f, 0.04f, camera: true) },
+                Entries = { CombatFxPackageEntry.HitStop(0.16f, 0.04f, camera: true, timePriority: 30) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.DodgePlain,
                 DisplayName = "纯闪避",
-                ReferenceNote = "仅残影（Afterimage 待 Bridge）。",
-                Entries =
-                {
-                    new CombatFxPackageEntry
-                    {
-                        Kind = CombatFxKind.Afterimage,
-                        TargetMode = CombatFxTargetMode.Owner,
-                        RespectGraphicsGate = true,
-                    },
-                },
+                ReferenceNote = "仅残影。",
+                Entries = { CombatFxPackageEntry.Afterimage() },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.DodgeTimeFracture,
                 DisplayName = "时空断裂闪避",
-                ReferenceNote = "鸣潮极限闪避：世界减速 0.5s。",
-                Entries = { CombatFxPackageEntry.TimeFracture(0.5f, 0.3f) },
+                ReferenceNote = "鸣潮极限闪避：世界减速 + 残影 + 灰屏。",
+                Entries =
+                {
+                    CombatFxPackageEntry.TimeFracture(0.5f, 0.3f),
+                    CombatFxPackageEntry.ScreenDesaturate(0.5f),
+                    CombatFxPackageEntry.Afterimage(),
+                },
             });
 
             Packages.Add(new CombatFxPackageDefinition
@@ -136,19 +142,8 @@ namespace ACTGameEditor.Combat
                 Entries =
                 {
                     CombatFxPackageEntry.TimeFracture(0.6f, 0.15f),
-                    new CombatFxPackageEntry
-                    {
-                        Kind = CombatFxKind.ScreenDesaturate,
-                        TargetMode = CombatFxTargetMode.None,
-                        Duration = 0.6f,
-                        RespectGraphicsGate = true,
-                    },
-                    new CombatFxPackageEntry
-                    {
-                        Kind = CombatFxKind.Afterimage,
-                        TargetMode = CombatFxTargetMode.Owner,
-                        RespectGraphicsGate = true,
-                    },
+                    CombatFxPackageEntry.ScreenDesaturate(0.6f),
+                    CombatFxPackageEntry.Afterimage(),
                 },
             });
 
@@ -159,7 +154,7 @@ namespace ACTGameEditor.Combat
                 ReferenceNote = "强 HitStop + 闪白。",
                 Entries =
                 {
-                    CombatFxPackageEntry.HitStop(0.2f, 0.05f, camera: true),
+                    CombatFxPackageEntry.HitStop(0.2f, 0.05f, camera: true, timePriority: 40),
                     CombatFxPackageEntry.HitFlash(0.25f),
                 },
             });
@@ -177,7 +172,7 @@ namespace ACTGameEditor.Combat
                         TargetMode = CombatFxTargetMode.ActionTarget,
                         RespectGraphicsGate = true,
                     },
-                    CombatFxPackageEntry.HitStop(0.12f, 0.08f, camera: true),
+                    CombatFxPackageEntry.HitStop(0.12f, 0.08f, camera: true, timePriority: 15),
                 },
             });
 
@@ -186,7 +181,7 @@ namespace ACTGameEditor.Combat
                 Id = CombatFxPackageId.SwitchIn,
                 DisplayName = "切人入场",
                 ReferenceNote = "短 HitStop。",
-                Entries = { CombatFxPackageEntry.HitStop(0.06f, 0.2f, camera: false) },
+                Entries = { CombatFxPackageEntry.HitStop(0.06f, 0.2f, camera: false, timePriority: 5) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
@@ -218,15 +213,59 @@ namespace ACTGameEditor.Combat
 
         void FillBuiltInRules()
         {
+            CombatFxTriggerFlags causeBase = CombatFxTriggerFlags.LocalTruePlayerOnly
+                | CombatFxTriggerFlags.SkipOnDodge
+                | CombatFxTriggerFlags.SkipOnImmunity
+                | CombatFxTriggerFlags.SkipOnInterrupt
+                | CombatFxTriggerFlags.RequirePositiveDamage
+                | CombatFxTriggerFlags.RequireSkillDamage;
+
+            CombatFxTriggerFlags takenBase = CombatFxTriggerFlags.SkipOnDodge
+                | CombatFxTriggerFlags.SkipOnImmunity
+                | CombatFxTriggerFlags.SkipOnInterrupt
+                | CombatFxTriggerFlags.RequirePositiveDamage;
+
             ActionPointRules.Add(new CombatFxTriggerRuleDefinition
             {
                 TriggerKind = CombatFxTriggerKind.ActionPoint,
                 ActionPoint = ActionPointType.PostReceiveDamage,
                 PackageId = CombatFxPackageId.HitTakenLight,
-                Flags = CombatFxTriggerFlags.SkipOnDodge
-                    | CombatFxTriggerFlags.SkipOnImmunity
-                    | CombatFxTriggerFlags.SkipOnInterrupt
-                    | CombatFxTriggerFlags.RequirePositiveDamage,
+                Flags = takenBase | CombatFxTriggerFlags.SkipOnCritical,
+                MaxDamageSegment = 1,
+            });
+
+            ActionPointRules.Add(new CombatFxTriggerRuleDefinition
+            {
+                TriggerKind = CombatFxTriggerKind.ActionPoint,
+                ActionPoint = ActionPointType.PostReceiveDamage,
+                PackageId = CombatFxPackageId.HitTakenHeavy,
+                Flags = takenBase | CombatFxTriggerFlags.SkipOnCritical,
+                MinDamageSegment = 2,
+            });
+
+            ActionPointRules.Add(new CombatFxTriggerRuleDefinition
+            {
+                TriggerKind = CombatFxTriggerKind.ActionPoint,
+                ActionPoint = ActionPointType.PostReceiveDamage,
+                PackageId = CombatFxPackageId.HitTakenHeavy,
+                Flags = takenBase | CombatFxTriggerFlags.RequireCritical,
+            });
+
+            ActionPointRules.Add(new CombatFxTriggerRuleDefinition
+            {
+                TriggerKind = CombatFxTriggerKind.ActionPoint,
+                ActionPoint = ActionPointType.PostCauseDamage,
+                PackageId = CombatFxPackageId.HitCausedCrit,
+                Flags = causeBase | CombatFxTriggerFlags.RequireCritical,
+            });
+
+            ActionPointRules.Add(new CombatFxTriggerRuleDefinition
+            {
+                TriggerKind = CombatFxTriggerKind.ActionPoint,
+                ActionPoint = ActionPointType.PostCauseDamage,
+                PackageId = CombatFxPackageId.HitCausedHeavy,
+                Flags = causeBase | CombatFxTriggerFlags.SkipOnCritical,
+                MinDamageSegment = 2,
             });
 
             ActionPointRules.Add(new CombatFxTriggerRuleDefinition
@@ -234,11 +273,20 @@ namespace ACTGameEditor.Combat
                 TriggerKind = CombatFxTriggerKind.ActionPoint,
                 ActionPoint = ActionPointType.PostCauseDamage,
                 PackageId = CombatFxPackageId.HitCausedLight,
+                Flags = causeBase | CombatFxTriggerFlags.SkipOnCritical,
+                MaxDamageSegment = 1,
+            });
+
+            ActionPointRules.Add(new CombatFxTriggerRuleDefinition
+            {
+                TriggerKind = CombatFxTriggerKind.ActionPoint,
+                ActionPoint = ActionPointType.PostReceiveDamage,
+                PackageId = CombatFxPackageId.DodgeTimeFracture,
                 Flags = CombatFxTriggerFlags.LocalTruePlayerOnly
-                    | CombatFxTriggerFlags.SkipOnDodge
+                    | CombatFxTriggerFlags.RequireDodge
                     | CombatFxTriggerFlags.SkipOnImmunity
                     | CombatFxTriggerFlags.SkipOnInterrupt
-                    | CombatFxTriggerFlags.RequirePositiveDamage,
+                    | CombatFxTriggerFlags.RequireSkillDamage,
             });
         }
     }

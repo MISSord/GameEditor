@@ -98,8 +98,7 @@ namespace ACTGameEditor.Combat
             if (durationSeconds <= 0f)
                 return;
 
-            long tillMs = TimeHelper.ClientNow() + (long)(durationSeconds * 1000f);
-            _unmoveTimerId = ETTimerManager.Instance.NewOnceTimer(tillMs, () =>
+            _unmoveTimerId = ETTimerManager.Instance.NewOnceTimerAfter((long)(durationSeconds * 1000f), () =>
             {
                 _unmoveTimerId = 0;
                 _owner?.SetTimedMoveLock(false);
@@ -141,7 +140,7 @@ namespace ACTGameEditor.Combat
                 ? CombatFxSource.From(timelineSource.Value)
                 : CombatFxSource.Manual(0);
 
-            CombatPresentationDirector.Play(CombatFxSpec.SkillTimeStop(source, durationSeconds));
+            CombatPresentationDirector.Play(CombatFxSpec.SkillTimeStop(source, durationSeconds, _owner));
         }
 
         void ApplyTimeFracture(float durationSeconds, TagSource? timelineSource)
