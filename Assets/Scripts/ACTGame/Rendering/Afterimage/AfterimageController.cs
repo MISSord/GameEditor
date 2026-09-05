@@ -1,6 +1,9 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering;
+using EGamePlay;
+using EGamePlay.Combat;
+using ACTGameEditor.Combat;
 
 namespace ACTGameEditor
 {
@@ -36,6 +39,7 @@ namespace ACTGameEditor
 
         Transform _afterimageRoot;
         ObjectFxController _objectFx;
+        ActPlayer _actPlayer;
         int _sourceCount;
         int _slotCapacity;
         int _pendingCount;
@@ -82,7 +86,7 @@ namespace ACTGameEditor
             if (!_playing)
                 return;
 
-            float dt = Time.deltaTime;
+            float dt = GetAfterimageDelta();
 
             for (int p = 0; p < _pendingCount; p++)
             {
@@ -445,6 +449,15 @@ namespace ACTGameEditor
             public MeshFilter Filter;
             public MeshRenderer Renderer;
             public Mesh BakedMesh;
+        }
+
+        float GetAfterimageDelta()
+        {
+            _actPlayer ??= GetComponent<ActPlayer>();
+            CombatEntity combat = _actPlayer != null ? _actPlayer.Combat : null;
+            if (combat != null && !combat.IsDisposed)
+                return CombatTimeClock.GetLayerDelta(combat);
+            return GameTimeManager.PlayerDelta;
         }
 
         struct GhostSlot

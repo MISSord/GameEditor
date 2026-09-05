@@ -1,4 +1,4 @@
-using ACTGameEditor.Combat;
+﻿using ACTGameEditor.Combat;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
@@ -284,6 +284,7 @@ namespace ACTGameEditor
             if (ability == null)
                 return;
 
+            // 触发技能伤害
             EffectApplier.ApplySkillSegment(
                 OwnerEntity,
                 targetEntity,
@@ -292,6 +293,7 @@ namespace ACTGameEditor
                 hasHitWorldPosition,
                 hitWorldPosition);
 
+            // 触发配置好的命中效果
             TriggerEffectList(
                 triggerEvent.TriggerEventData.EffectIds,
                 targetEntity,

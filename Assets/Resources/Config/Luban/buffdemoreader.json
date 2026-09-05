@@ -375,5 +375,147 @@
     "TriggerFormula": "",
     "RemoveActionPointType": 0,
     "Priority": 0
+  },
+  {
+    "BuffId": 20601,
+    "Name": "冻结",
+    "BuffType": 1,
+    "BigBuffType": 6,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Freeze",
+      "Buff.Debuff"
+    ],
+    "Description": "停动画与位移（实体钟=0），点燃跳伤仍走世界钟",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 3,
+    "BuffModifyList": [
+      24
+    ],
+    "BaseDuration": 3,
+    "BaseTimes": 0,
+    "IsAddPoint": 1,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 20602,
+    "Name": "长冻结",
+    "BuffType": 1,
+    "BigBuffType": 6,
+    "SmallBuffType": 2,
+    "BuffTag": [
+      "Buff.Freeze",
+      "Buff.Debuff"
+    ],
+    "Description": "8 秒冻结，方便看冰壳；点燃/霜蚀仍走世界钟",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 3,
+    "BuffModifyList": [
+      24
+    ],
+    "BaseDuration": 8,
+    "BaseTimes": 0,
+    "IsAddPoint": 1,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 20701,
+    "Name": "霜蚀",
+    "BuffType": 1,
+    "BigBuffType": 7,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Debuff"
+    ],
+    "Description": "每秒 40 点冰伤，持续 6 秒。冻结中应继续跳（世界钟）",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 2,
+    "BuffModifyList": [
+      25
+    ],
+    "BaseDuration": 6,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 1,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 20801,
+    "Name": "测试护盾",
+    "BuffType": 1,
+    "BigBuffType": 8,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Buff"
+    ],
+    "Description": "吸收 400 点伤害，持续 10 秒。可与冻结叠测",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 2,
+    "BuffModifyList": [
+      26
+    ],
+    "BaseDuration": 10,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 21001,
+    "Name": "对冻结增伤",
+    "BuffType": 1,
+    "BigBuffType": 16,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Buff"
+    ],
+    "Description": "挂在攻击者：打带 Buff.Freeze 的目标最终伤害 +50%，持续 15 秒",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 2,
+    "BuffModifyList": [
+      27
+    ],
+    "BaseDuration": 15,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
   }
 ]

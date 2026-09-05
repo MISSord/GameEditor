@@ -5,7 +5,7 @@ using ACTGameEditor.Combat;
 namespace ACTGameEditor
 {
     /// <summary>
-    /// Shader 测试驱动：闪白/溶解/扫描/球显/深度/锥显/迷雾。
+    /// Shader 测试驱动：闪白/冰冻/溶解/扫描/球显/深度/锥显/迷雾。
     /// </summary>
     public sealed class CharacterShaderTester : MonoBehaviour
     {
@@ -36,6 +36,9 @@ namespace ACTGameEditor
         [Range(0f, 1f)]
         public float Dissolve;
 
+        [Range(0f, 1f)]
+        public float Freeze;
+
         [Min(0.01f)]
         public float FlashDuration = 0.12f;
 
@@ -47,6 +50,7 @@ namespace ACTGameEditor
 
         float _lastHitFlash = -1f;
         float _lastDissolve = -1f;
+        float _lastFreeze = -1f;
         Vector2 _hintScroll;
 
         void Awake()
@@ -75,6 +79,9 @@ namespace ACTGameEditor
             if (GetComponent<AfterimageController>() == null)
                 gameObject.AddComponent<AfterimageController>();
 
+            if (GetComponent<CharacterIceShell>() == null)
+                gameObject.AddComponent<CharacterIceShell>();
+
             var objectFx = GetComponent<ObjectFxController>();
             if (objectFx == null)
                 objectFx = gameObject.AddComponent<ObjectFxController>();
@@ -96,6 +103,12 @@ namespace ACTGameEditor
             {
                 renderFX.SetDissolve(Dissolve);
                 _lastDissolve = Dissolve;
+            }
+
+            if (!Mathf.Approximately(Freeze, _lastFreeze))
+            {
+                renderFX.SetFreeze(Freeze);
+                _lastFreeze = Freeze;
             }
 
             if (Input.GetKeyDown(KeyCode.Alpha1))
@@ -126,8 +139,17 @@ namespace ACTGameEditor
                 playerFog?.SetActive(false);
                 HitFlash = 0f;
                 Dissolve = 0f;
+                Freeze = 0f;
                 _lastHitFlash = 0f;
                 _lastDissolve = 0f;
+                _lastFreeze = 0f;
+            }
+
+            if (Input.GetKeyDown(KeyCode.F))
+            {
+                Freeze = Freeze > 0.5f ? 0f : 1f;
+                renderFX.SetFreeze(Freeze);
+                _lastFreeze = Freeze;
             }
 
             if (Input.GetKeyDown(KeyCode.Alpha4))
@@ -159,6 +181,7 @@ namespace ACTGameEditor
             GUILayout.Label("角色 Shader 测试面板");
             _hintScroll = GUILayout.BeginScrollView(_hintScroll, false, true, GUILayout.ExpandHeight(true));
 
+            GUILayout.Label("F = 冰冻 (Freeze + Ice 外壳)");
             GUILayout.Label("1 = 受击闪白 (Hit Flash)");
             GUILayout.Label("2 = 溶解 (Dissolve)");
             GUILayout.Label("3 = 重置 / 取消显现·圆锥·迷雾");

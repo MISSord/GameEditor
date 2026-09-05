@@ -1,12 +1,12 @@
-using System;
-using EGamePlay;
+﻿using System;
 
-// 时间生命周期改为 ETTimerManager 集中调度，不再每帧 Update。
+// Buff 持续 / Tick / CD 走 ETTimerManager 的战斗世界钟，不乘实体 TimeScale。
 namespace EGamePlay.Combat
 {
     /// <summary>
     /// Buff 的时间生命周期组件：用 ETTimerManager 注册到点回调，替代每帧 OnUpdate。
     /// 对外接口（ExtendDuration/ResetDuration/GetTimeAttribute/GetIsCanTrigger/RefreshCDTime）保持不变。
+    /// 时钟为 <see cref="GameTimeManager.WorldDelta"/>：时空断裂会拉长，单体减速/冻结不会暂停点燃。
     /// </summary>
     public class BuffTimeComponent : Component, ILifecycleLogic
     {
@@ -23,7 +23,7 @@ namespace EGamePlay.Combat
         private long _endTimerId;
         private long _startTimeMs;
         private long _endTimeMs;
-        private long _lastTriggerTimeMs; // CD：上次触发时间，用于 GetIsCanTrigger
+        private long _lastTriggerTimeMs;
 
         public override void OnEnable()
         {
@@ -41,7 +41,7 @@ namespace EGamePlay.Combat
         {
             if (Config == null || ETTimerManager.Instance == null) return;
 
-            long now = TimeHelper.ClientNow();
+            long now = ETTimerManager.NowMs;
             float delaySec = Config.DelayTick != null ? Config.DelayTick.Value : 0f;
             float intervalSec = Config.TickInterval != null ? Config.TickInterval.Value : 0f;
             float durationSec = Config.Duration != null ? Config.Duration.Value : 0f;
@@ -63,7 +63,7 @@ namespace EGamePlay.Combat
 
             void ScheduleTickAndEnd()
             {
-                _startTimeMs = TimeHelper.ClientNow();
+                _startTimeMs = ETTimerManager.NowMs;
                 _endTimeMs = durationMs > 0 ? _startTimeMs + durationMs : 0;
 
                 if (intervalSec > 0)
@@ -71,7 +71,7 @@ namespace EGamePlay.Combat
                     _tickTimerId = ETTimerManager.Instance.NewRepeatedTimer(intervalMs, _ =>
                     {
                         FireOnTick();
-                        if (durationMs > 0 && TimeHelper.ClientNow() >= _endTimeMs)
+                        if (durationMs > 0 && ETTimerManager.NowMs >= _endTimeMs)
                         {
                             ETTimerManager.Instance.Remove(_tickTimerId);
                             _tickTimerId = 0;
@@ -124,6 +124,7 @@ namespace EGamePlay.Combat
             if (_endTimerId != 0) { ETTimerManager.Instance.Remove(_endTimerId); _endTimerId = 0; }
         }
 
+        /// <summary>初始化持续、间隔、延迟与 CD（秒）。</summary>
         public void Init(float duration, float interval = 0, float delay = 0, float cdTime = 0)
         {
             _lifecycle.Init(duration, interval, delay, cdTime);
@@ -148,7 +149,8 @@ namespace EGamePlay.Combat
         public void ResetDuration(float newDuration)
         {
             _lifecycle.ResetDuration(newDuration);
-            _endTimeMs = TimeHelper.ClientNow() + (long)(newDuration * 1000);
+            _startTimeMs = ETTimerManager.NowMs;
+            _endTimeMs = _startTimeMs + (long)(newDuration * 1000);
             RescheduleEndTimer();
         }
 
@@ -166,27 +168,27 @@ namespace EGamePlay.Combat
             return null;
         }
 
-        /// <summary>刷新 CD（记录当前时间为上次触发时间）。</summary>
+        /// <summary>刷新 CD（记录当前世界钟为上次触发时间）。</summary>
         public void RefreshCDTime()
         {
-            _lastTriggerTimeMs = TimeHelper.ClientNow();
+            _lastTriggerTimeMs = ETTimerManager.NowMs;
             _lifecycle.RefreshCD();
         }
 
-        /// <summary>是否已过 CD 可触发（按“距上次触发时间”计算，不依赖每帧累积）。</summary>
+        /// <summary>是否已过 CD 可触发（按世界钟距上次触发计算）。</summary>
         public bool GetIsCanTrigger()
         {
             if (Config == null || Config.CDTime.Value <= 0) return true;
             if (_lastTriggerTimeMs == 0) return true;
-            return (TimeHelper.ClientNow() - _lastTriggerTimeMs) >= (long)(Config.CDTime.Value * 1000);
+            return (ETTimerManager.NowMs - _lastTriggerTimeMs) >= (long)(Config.CDTime.Value * 1000);
         }
 
         /// <summary>对外暴露底层生命周期对象，供只读查询使用。</summary>
         public TimeLifecycle Lifecycle => _lifecycle;
 
         /// <summary>
-        /// 获取已过去的时间（秒）。基于 ETTimerManager 时间戳计算，不依赖每帧 OnUpdate。
-        /// 供 BuffIcon 等 UI 使用，替代已失效的 Lifecycle.State.TimeElapsed。
+        /// 获取已过去的世界时间（秒）。时空断裂下会变慢，不受实体 TimeScale 影响。
+        /// 供 BuffIcon 等 UI 使用。
         /// </summary>
         public float GetElapsedSeconds()
         {
@@ -196,7 +198,7 @@ namespace EGamePlay.Combat
                 float dur = Config?.Duration?.Value ?? 0f;
                 return dur > 0f ? dur : 0f;
             }
-            float elapsed = (TimeHelper.ClientNow() - _startTimeMs) / 1000f;
+            float elapsed = (ETTimerManager.NowMs - _startTimeMs) / 1000f;
             float maxDuration = Config?.Duration?.Value ?? 0f;
             if (maxDuration > 0f && elapsed > maxDuration) elapsed = maxDuration;
             return elapsed >= 0f ? elapsed : 0f;

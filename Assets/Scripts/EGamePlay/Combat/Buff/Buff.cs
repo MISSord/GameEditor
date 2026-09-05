@@ -131,7 +131,7 @@ namespace EGamePlay.Combat
             TickStackPolicy = ResolveTickStackPolicy(Setting);
             ExpirePolicy = ResolveExpirePolicy(Setting);
 
-            // 时间处理组件：由 ETTimerManager 集中调度，不再每帧 Update
+            // 时间处理组件：ETTimerManager 按世界钟调度，不乘实体 TimeScale
             if (Setting.BuffType.HasFlag(BuffType.TimeBuff) || Setting.BuffType.HasFlag(BuffType.CDBuff))
             {
                 _time = AddComponent<BuffTimeComponent>();

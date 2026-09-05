@@ -24,16 +24,20 @@ namespace ACTGameEditor.Locomotion
             PlayerMoveSettingSo playerSetting)
         {
             LocomotionTuning tuning = LocomotionTuningBuilder.FromPlayerMoveSetting(playerSetting);
+            bool localControl = entity != null && entity.isTruePlayer;
+            IMoveInputProvider input = localControl
+                ? ConfigurableInputMoveProvider.Instance
+                : IdleMoveInputProvider.Instance;
 
             motor.SetTuning(tuning);
             motor.Bind(
                 controller,
                 root,
                 animator,
-                new ConfigurableInputMoveProvider(),
+                input,
                 new TransformCameraProvider(null),
                 new CombatMoveGate(entity),
-                new GameTimeLocomotionTimeSource(),
+                new CombatUnitLocomotionTimeSource(entity),
                 new CombatLocomotionStateSink(entity));
 
             motor.SetJumpGate(new CombatJumpGate(entity));
@@ -45,11 +49,19 @@ namespace ACTGameEditor.Locomotion
 
             if (director != null)
             {
-                director.MoveIntentProvider = () =>
+                if (localControl)
                 {
-                    var mgr = ConfigurableInputManager.Instance;
-                    return mgr != null ? mgr.Snapshot.MoveAxis : Vector2.zero;
-                };
+                    director.MoveIntentProvider = () =>
+                    {
+                        var mgr = ConfigurableInputManager.Instance;
+                        return mgr != null ? mgr.Snapshot.MoveAxis : Vector2.zero;
+                    };
+                }
+                else
+                {
+                    director.MoveIntentProvider = static () => Vector2.zero;
+                }
+
                 director.MoveIntentDeadZone = tuning.InputDeadZone;
                 motor.SetAnimParamWriteGate(() => !director.HasSkillOwner);
             }

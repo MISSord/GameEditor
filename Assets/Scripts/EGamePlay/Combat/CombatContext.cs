@@ -100,8 +100,8 @@ namespace EGamePlay.Combat
                     continue;
                 }
                 float actionDelta = deltaTime;
-                if (action is ICombatSpellActionContext spellCtx && spellCtx.Caster != null)
-                    actionDelta *= spellCtx.Caster.GetTimeScale();
+                if (action is ICombatSpellActionContext spellCtx)
+                    actionDelta = CombatTimeClock.GetDelta(spellCtx.Caster);
                 action.Update(actionDelta);
             }
 
@@ -116,10 +116,7 @@ namespace EGamePlay.Combat
                     continue;
                 }
                 if (action.IsNeedUpdate == true && action is ICombatUnit unit)
-                {
-                    float entityDelta = deltaTime * unit.GetTimeScale();
-                    action.Update(entityDelta);
-                }
+                    action.Update(CombatTimeClock.GetDelta(unit));
             }
         }
 
@@ -137,10 +134,7 @@ namespace EGamePlay.Combat
                     continue;
                 }
                 if (entity.IsNeedFixUpdate == true && entity is ICombatUnit unit)
-                {
-                    float entityFixedDelta = fixDeltaTime * unit.GetTimeScale();
-                    entity.FixedUpdate(entityFixedDelta);
-                }
+                    entity.FixedUpdate(CombatTimeClock.GetFixedDelta(unit));
             }
         }
     }

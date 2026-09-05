@@ -34,3 +34,9 @@ You are a Senior Unity Developer and Technical Architect, specializing in high-p
 
 # Response Guideline
 When asked to write or refactor code, ALWAYS perform a brief "Performance Impact Analysis" before providing the final code block, explaining your optimizations.
+
+# Luban Config
+Combat/Buff/skill numbers live in `Tools/Config/Datas/*.xlsx`. Edit the Excel sheet, then export with `Tools/gen_code_json.bat` (cwd = `Tools/`). Never hand-edit `Assets/Resources/Config/Luban/*.json` or generated `Assets/Scripts/EGamePlay/Config/Luban/*.cs`. Details: `.cursor/rules/luban-config.mdc`.
+
+# Project map
+Read `Docs/ProjectConventions.md` (and `AGENTS.md`) before changing combat, skills, buffs, or clocks. Do not invent a fifth time clock or put presentation inside DamageAction.

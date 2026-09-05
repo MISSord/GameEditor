@@ -1,5 +1,10 @@
 ﻿namespace EGamePlay.Combat
 {
+    public abstract class Effect
+    {
+
+    }
+
     public class DamageEffect : Effect
     {
 
@@ -18,7 +23,6 @@
 
     public class CureEffect : Effect
     {
-        public override string Label => "治疗目标";
 
         /// <summary>
         /// 作用的资源类型（血量/能量等）。

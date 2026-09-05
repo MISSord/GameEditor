@@ -28,5 +28,9 @@ namespace ACTGameEditor.Combat
             | CombatFxTriggerFlags.SkipOnImmunity
             | CombatFxTriggerFlags.SkipOnInterrupt
             | CombatFxTriggerFlags.RequirePositiveDamage;
+        /// <summary>0 不限。技能段号下限（含）。段 ≥ 2 当重击。</summary>
+        public int MinDamageSegment;
+        /// <summary>0 不限。技能段号上限（含）。</summary>
+        public int MaxDamageSegment;
     }
 }

@@ -71,13 +71,13 @@ public class EGamePlayInit : MonoBehaviour
     {
         TimeScaleEffectManager.Tick();
         GameTimeManager.Tick();
-        ETTimerManager.Instance.Update(GameTimeManager.WorldDelta);
+        ETTimerManager.Instance.Update(GameTimeManager.WorldDelta); // 世界钟：暂停/断裂冻结或变慢，不含实体 TimeScale
         ConfigurableInputManager.Instance.Update();
         var combatContext = CombatContext.Instance;
         if (combatContext != null)
         {
             combatContext.UseAbilityGate = UseAbilityGate;
-            combatContext.Update(GameTimeManager.WorldDelta);
+            combatContext.Update(GameTimeManager.WorldDelta); // 单位内部按 CombatTimeClock 选玩家/世界层
         }
     }
 

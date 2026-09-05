@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using EGamePlay;
 
 namespace ACTGameEditor
 {
@@ -19,6 +20,7 @@ namespace ACTGameEditor
 
         readonly PostFxPulse _caPulse = new PostFxPulse();
         readonly PostFxPulse _radialPulse = new PostFxPulse();
+        readonly PostFxPulse _desatPulse = new PostFxPulse();
 
         Vector2 _radialCenter = new Vector2(0.5f, 0.5f);
         int _radialSampleCount = 10;
@@ -49,13 +51,14 @@ namespace ACTGameEditor
             {
                 _instance = null;
                 RadialBlurState.Clear();
+                ScreenTintState.ClearDesaturate();
                 ApplyChromaticAberration(_caRestIntensity);
             }
         }
 
         void Update()
         {
-            float dt = Time.unscaledDeltaTime;
+            float dt = TimeScaleEffectManager.IsGameplayPaused ? 0f : Time.unscaledDeltaTime;
 
             if (_caPulse.Tick(dt, out float caValue))
                 ApplyChromaticAberration(caValue);
@@ -70,6 +73,11 @@ namespace ACTGameEditor
             {
                 RadialBlurState.Clear();
             }
+
+            if (_desatPulse.Tick(dt, out float desatValue))
+                ScreenTintState.SetDesaturate(desatValue);
+            else if (_desatPulse.WasActive && ScreenTintState.Desaturate > 0.001f)
+                ScreenTintState.ClearDesaturate();
         }
 
         /// <summary>
@@ -101,6 +109,38 @@ namespace ACTGameEditor
 
             CombatImpactProfile p = (defaultProfile ?? new CombatImpactProfile()).ScaledByHitStop(hitStopDuration);
             PlayCombatImpact(p);
+        }
+
+        /// <summary>
+        /// Perfect Dodge 灰屏：峰值保持后衰减，计时走 unscaled（与 TimeFracture 同钟）。
+        /// </summary>
+        public void PlayDesaturate(float duration, float peak = 0.72f)
+        {
+            if (duration <= 0f)
+                return;
+            _desatPulse.Start(0f, Mathf.Clamp01(peak), duration);
+            ScreenTintState.SetDesaturate(peak);
+        }
+
+        /// <summary>立刻关掉灰屏。</summary>
+        public void StopDesaturate()
+        {
+            _desatPulse.Stop();
+            ScreenTintState.ClearDesaturate();
+        }
+
+        /// <summary>静态入口。</summary>
+        public static void TryPlayDesaturate(float duration, float peak = 0.72f)
+        {
+            if (_instance != null)
+                _instance.PlayDesaturate(duration, peak);
+        }
+
+        /// <summary>静态关闭。</summary>
+        public static void TryStopDesaturate()
+        {
+            if (_instance != null)
+                _instance.StopDesaturate();
         }
 
         /// <summary>
@@ -186,6 +226,13 @@ namespace ACTGameEditor
                 }
 
                 return true;
+            }
+
+            /// <summary>立刻结束脉冲。</summary>
+            public void Stop()
+            {
+                _active = false;
+                WasActive = false;
             }
         }
     }

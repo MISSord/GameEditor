@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -27,6 +28,10 @@ namespace EGamePlay
         public float Duration;
         public float Elapsed;
         public int Priority;
+        /// <summary>效果从列表移除时调用一次（SkillTimeStop 释放玩家钟 hold）。</summary>
+        public Action OnRemoved;
+
+        bool _removedNotified;
 
         public bool IsExpired => Duration > 0 && Elapsed >= Duration;
 
@@ -40,12 +45,23 @@ namespace EGamePlay
             Duration = duration;
             Priority = priority;
         }
+
+        /// <summary>从管理器移除时调用一次，幂等。</summary>
+        public void NotifyRemoved()
+        {
+            if (_removedNotified)
+                return;
+            _removedNotified = true;
+            OnRemoved?.Invoke();
+            OnRemoved = null;
+        }
     }
 
     /// <summary>
     /// 时间流速效果管理器。统一管理 Pause、时空断裂、HitStop、技能时停 等效果。
     /// 效果计时使用 unscaledDeltaTime，暂停（IsGameplayPaused）时 delta=0，计时冻结，符合崩坏3表现。
-    /// 合成规则：每层取当前生效效果的最小 scale（Pause 的 0 会覆盖一切）。
+    /// 同类型只保留一份（低 Priority 无法覆盖高 Priority）；不同类型按各层取 min。
+    /// HitStop 的全局 scale 应为 1，顿帧打在实体 TimeScale 上，避免连打把整场叠死。
     /// </summary>
     public static class TimeScaleEffectManager
     {
@@ -69,7 +85,10 @@ namespace EGamePlay
                 var e = _effects[i];
                 e.Elapsed += delta;
                 if (e.IsExpired)
+                {
+                    e.NotifyRemoved();
                     _effects.RemoveAt(i);
+                }
             }
 
             float world = 1f, player = 1f, camera = 1f;
@@ -85,30 +104,47 @@ namespace EGamePlay
             GameTimeManager.CameraScale = camera;
         }
 
-        /// <summary> 添加效果，返回实例便于移除。 </summary>
+        /// <summary>
+        /// 添加效果。同类型已有且新 Priority 更低则拒绝并返回 null；否则替换旧的。
+        /// </summary>
         public static TimeScaleEffect AddEffect(TimeScaleEffectType type, float worldScale, float playerScale,
             float cameraScale, float duration, int priority = 0)
         {
+            TimeScaleEffect existing = FindByType(type);
+            if (existing != null)
+            {
+                if (priority < existing.Priority)
+                    return null;
+                RemoveEffect(existing);
+            }
+
             var e = new TimeScaleEffect(type, worldScale, playerScale, cameraScale, duration, priority);
             _effects.Add(e);
             return e;
         }
 
-        /// <summary> 移除指定效果实例。 </summary>
-        public static bool RemoveEffect(TimeScaleEffect effect)
-        {
-            return _effects.Remove(effect);
-        }
-
-        /// <summary> 是否存在指定类型的效果。 </summary>
-        public static bool HasEffect(TimeScaleEffectType type)
+        /// <summary>取指定类型当前效果；没有则 null。</summary>
+        public static TimeScaleEffect FindByType(TimeScaleEffectType type)
         {
             for (int i = 0; i < _effects.Count; i++)
             {
-                if (_effects[i].Type == type) return true;
+                if (_effects[i].Type == type)
+                    return _effects[i];
             }
-            return false;
+            return null;
         }
+
+        /// <summary> 移除指定效果实例。 </summary>
+        public static bool RemoveEffect(TimeScaleEffect effect)
+        {
+            if (!_effects.Remove(effect))
+                return false;
+            effect.NotifyRemoved();
+            return true;
+        }
+
+        /// <summary> 是否存在指定类型的效果。 </summary>
+        public static bool HasEffect(TimeScaleEffectType type) => FindByType(type) != null;
 
         /// <summary> 移除指定类型的所有效果。 </summary>
         public static void RemoveByType(TimeScaleEffectType type)
@@ -116,7 +152,10 @@ namespace EGamePlay
             for (int i = _effects.Count - 1; i >= 0; i--)
             {
                 if (_effects[i].Type == type)
+                {
+                    _effects[i].NotifyRemoved();
                     _effects.RemoveAt(i);
+                }
             }
         }
 
@@ -142,17 +181,19 @@ namespace EGamePlay
             return AddEffect(TimeScaleEffectType.TimeFracture, worldScale, 1f, 1f, duration, 50);
         }
 
-        /// <summary> 触发 HitStop（命中顿帧）。 </summary>
+        /// <summary> 触发 HitStop 计时槽（全局 scale 保持 1；实体顿帧由表现层写入 TimeScale）。 </summary>
         /// <param name="duration">持续时间（ unscaled 秒）。</param>
-        /// <param name="worldScale">如 0.1。</param>
-        public static TimeScaleEffect AddHitStop(float duration, float worldScale = 0.1f)
+        /// <param name="priority">同类型刷新用；更高可覆盖较短的轻顿。</param>
+        public static TimeScaleEffect AddHitStop(float duration, int priority = 10)
         {
-            return AddEffect(TimeScaleEffectType.HitStop, worldScale, 1f, 1f, duration, 10);
+            return AddEffect(TimeScaleEffectType.HitStop, 1f, 1f, 1f, duration, priority);
         }
 
         /// <summary> 清空所有效果。 </summary>
         public static void ClearAll()
         {
+            for (int i = 0; i < _effects.Count; i++)
+                _effects[i].NotifyRemoved();
             _effects.Clear();
             IsGameplayPaused = false;
             GameTimeManager.ResetAllScales();

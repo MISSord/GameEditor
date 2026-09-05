@@ -62,8 +62,7 @@
 
 | 槽位 | 含义 | 说明 |
 |------|------|------|
-| ParamString1 | 标签列表 | 添加/移除的 Tag |
-| ParamInt/ParamFloat | 未用 | - |
+| ParamString1 | 标签列表 | 添加/移除的 Tag。冻结配 `Buff.MoveForbid` + `Buff.SkillForbid` + `Buff.Freeze`（`Buff.Freeze` 会把实体 TimeScale 打到 0 并出冰壳）。 |
 
 ### PreRemoveStatus（行动点 65536）— 卸 Buff 前开火
 

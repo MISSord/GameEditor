@@ -34,6 +34,8 @@ Shader "ACT/ScreenTint"
             float4 _TintColor;
             float _Intensity;
 
+            float _Desaturate;
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -58,6 +60,8 @@ Shader "ACT/ScreenTint"
             {
                 float2 uv = UnityStereoTransformScreenSpaceTex(input.uv);
                 half3 src = SAMPLE_TEXTURE2D_X(_SourceTex, sampler_SourceTex, uv).rgb;
+                half luma = dot(src, half3(0.22h, 0.67h, 0.11h));
+                src = lerp(src, luma.xxx, saturate(_Desaturate));
                 half3 tinted = lerp(src, _TintColor.rgb, saturate(_Intensity));
                 // 轻微提亮一点浅蓝感
                 tinted = lerp(tinted, tinted * _TintColor.rgb + _TintColor.rgb * 0.08h, saturate(_Intensity));

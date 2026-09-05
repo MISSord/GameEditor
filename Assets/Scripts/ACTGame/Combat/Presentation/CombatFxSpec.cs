@@ -14,36 +14,52 @@ namespace ACTGameEditor.Combat
         public float PlayerScale;
         public float CameraScale;
         public int TimePriority;
+        /// <summary>SkillTimeStop 期间把该单位改走玩家钟；效果移除时释放。</summary>
+        public ICombatUnit ClockHoldUnit;
+        /// <summary>HitStop 攻击者（与 <see cref="Target"/> 受击者一起吃实体顿帧）。</summary>
+        public ICombatUnit HitStopAttacker;
         /// <summary>HitStop 时是否联动镜头 CA/RadialBlur。</summary>
         public bool PlayCameraImpact;
         /// <summary>DeathDissolve 等异步效果完成回调。</summary>
         public Action OnComplete;
         public bool RespectGraphicsGate;
 
-        public static CombatFxSpec SkillTimeStop(CombatFxSource source, float durationSeconds)
+        public static CombatFxSpec SkillTimeStop(CombatFxSource source, float durationSeconds, ICombatUnit clockHoldUnit = null)
         {
             return new CombatFxSpec
             {
                 Kind = CombatFxKind.SkillTimeStop,
                 Source = source,
+                Target = clockHoldUnit,
                 Duration = durationSeconds,
                 PlayerScale = 1f,
                 CameraScale = 1f,
                 TimePriority = 20,
+                ClockHoldUnit = clockHoldUnit,
                 RespectGraphicsGate = true,
             };
         }
 
-        public static CombatFxSpec HitStop(CombatFxSource source, float durationSeconds, float worldScale = 0.1f, bool cameraImpact = true)
+        public static CombatFxSpec HitStop(
+            CombatFxSource source,
+            float durationSeconds,
+            float entityScale = 0.1f,
+            bool cameraImpact = true,
+            ICombatUnit attacker = null,
+            ICombatUnit defender = null,
+            int timePriority = 10)
         {
             return new CombatFxSpec
             {
                 Kind = CombatFxKind.HitStop,
                 Source = source,
+                Target = defender,
+                HitStopAttacker = attacker,
                 Duration = durationSeconds,
-                WorldScale = worldScale,
+                WorldScale = entityScale,
                 PlayerScale = 1f,
                 CameraScale = 1f,
+                TimePriority = timePriority,
                 PlayCameraImpact = cameraImpact,
                 RespectGraphicsGate = true,
             };
@@ -72,6 +88,30 @@ namespace ACTGameEditor.Combat
                 PlayerScale = 1f,
                 CameraScale = 1f,
                 TimePriority = 50,
+                RespectGraphicsGate = true,
+            };
+        }
+
+        /// <summary>闪避残影。</summary>
+        public static CombatFxSpec Afterimage(CombatFxSource source, ICombatUnit owner)
+        {
+            return new CombatFxSpec
+            {
+                Kind = CombatFxKind.Afterimage,
+                Source = source,
+                Target = owner,
+                RespectGraphicsGate = true,
+            };
+        }
+
+        /// <summary>Perfect Dodge 灰屏。</summary>
+        public static CombatFxSpec ScreenDesaturate(CombatFxSource source, float durationSeconds = 0.5f)
+        {
+            return new CombatFxSpec
+            {
+                Kind = CombatFxKind.ScreenDesaturate,
+                Source = source,
+                Duration = durationSeconds,
                 RespectGraphicsGate = true,
             };
         }

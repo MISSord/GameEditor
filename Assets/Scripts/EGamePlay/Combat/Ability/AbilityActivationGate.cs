@@ -1,20 +1,30 @@
-using EGamePlay;
-
-namespace EGamePlay.Combat
+﻿namespace EGamePlay.Combat
 {
     /// <summary>施法 Gate 失败原因。SortBlocked 表示本帧保留队列，其余为丢弃。</summary>
     public enum ActivateFail : byte
     {
         None = 0,
+        /// <summary>
+        /// 没有目标能力
+        /// </summary>
         NoAbility = 1,
+        /// <summary>
+        /// 冷却时间没到
+        /// </summary>
         Cooldown = 2,
+        /// <summary>
+        /// 资源不够
+        /// </summary>
         Resource = 3,
+        /// <summary>
+        /// 优先级不够
+        /// </summary>
         SortBlocked = 4,
         /// <summary>硬直 / 禁技能 / 受击 / 死亡。</summary>
         State = 5,
         /// <summary>技能表 RequiredTags / BlockedTags 不满足。</summary>
         Tag = 6,
-        /// <summary>TriggerFormula 不通过。</summary>
+        /// <summary>额外判断方法不通过。</summary>
         Formula = 7,
     }
 

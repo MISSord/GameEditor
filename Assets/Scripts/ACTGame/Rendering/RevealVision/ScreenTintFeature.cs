@@ -18,7 +18,14 @@ namespace ACTGameEditor
         /// <summary>混合强度 0~1。</summary>
         public static float Intensity = 0.28f;
 
-        /// <summary>写入状态。</summary>
+        /// <summary>去饱和 0~1（Perfect Dodge 灰屏，与染色可叠加）。</summary>
+        public static float Desaturate;
+
+        /// <summary>染色或灰屏任一开启则画 Pass。</summary>
+        public static bool ShouldRender =>
+            (IsActive && Intensity > 0.001f) || Desaturate > 0.001f;
+
+        /// <summary>写入染色。</summary>
         public static void Set(bool active, Color color, float intensity)
         {
             IsActive = active;
@@ -26,12 +33,19 @@ namespace ACTGameEditor
             Intensity = Mathf.Clamp01(intensity);
         }
 
-        /// <summary>关闭。</summary>
+        /// <summary>写入去饱和（不改染色）。</summary>
+        public static void SetDesaturate(float amount) =>
+            Desaturate = Mathf.Clamp01(amount);
+
+        /// <summary>关闭染色（保留灰屏）。</summary>
         public static void Clear()
         {
             IsActive = false;
             Intensity = 0f;
         }
+
+        /// <summary>关闭灰屏。</summary>
+        public static void ClearDesaturate() => Desaturate = 0f;
     }
 
     /// <summary>
@@ -50,6 +64,7 @@ namespace ACTGameEditor
         {
             static readonly int TintColorId = Shader.PropertyToID("_TintColor");
             static readonly int IntensityId = Shader.PropertyToID("_Intensity");
+            static readonly int DesaturateId = Shader.PropertyToID("_Desaturate");
             static readonly int TempId = Shader.PropertyToID("_ACT_ScreenTintTemp");
 
             readonly Material _material;
@@ -68,7 +83,7 @@ namespace ACTGameEditor
 
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                if (_material == null || !ScreenTintState.IsActive || ScreenTintState.Intensity <= 0.001f)
+                if (_material == null || !ScreenTintState.ShouldRender)
                     return;
 
                 Camera cam = renderingData.cameraData.camera;
@@ -76,7 +91,8 @@ namespace ACTGameEditor
                     return;
 
                 _material.SetColor(TintColorId, ScreenTintState.TintColor);
-                _material.SetFloat(IntensityId, ScreenTintState.Intensity);
+                _material.SetFloat(IntensityId, ScreenTintState.IsActive ? ScreenTintState.Intensity : 0f);
+                _material.SetFloat(DesaturateId, ScreenTintState.Desaturate);
 
                 CommandBuffer cmd = CommandBufferPool.Get("ACT Screen Tint");
                 using (new ProfilingScope(cmd, profilingSampler))
@@ -120,7 +136,7 @@ namespace ACTGameEditor
         /// <inheritdoc />
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (!ScreenTintState.IsActive || _material == null)
+            if (!ScreenTintState.ShouldRender || _material == null)
                 return;
 
             _pass.renderPassEvent = settings.injectionPoint;

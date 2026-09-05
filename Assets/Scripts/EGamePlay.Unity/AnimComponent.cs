@@ -30,15 +30,21 @@ namespace EGamePlay.Unity
     }
 
     /// <summary>
-    /// 动画系统使用的玩家层时间源（缩放、累计时间、变化通知）。
+    /// 动画系统使用的时间源（层缩放、累计时间、变化通知）。
     /// </summary>
     public interface IAnimTimeScaleSource
     {
         /// <summary>玩家层时间缩放。</summary>
         float PlayerScale { get; }
 
+        /// <summary>世界层时间缩放。</summary>
+        float WorldScale { get; }
+
         /// <summary>玩家层累计时间。</summary>
         float PlayerTime { get; }
+
+        /// <summary>世界层累计时间。</summary>
+        float WorldTime { get; }
 
         /// <summary>时间缩放变化时触发。</summary>
         event Action OnTimeScaleChanged;
@@ -54,7 +60,13 @@ namespace EGamePlay.Unity
         public float PlayerScale => GameTimeManager.PlayerScale;
 
         /// <inheritdoc />
+        public float WorldScale => GameTimeManager.WorldScale;
+
+        /// <inheritdoc />
         public float PlayerTime => GameTimeManager.PlayerTime;
+
+        /// <inheritdoc />
+        public float WorldTime => GameTimeManager.WorldTime;
 
         /// <inheritdoc />
         public event Action OnTimeScaleChanged
@@ -74,7 +86,13 @@ namespace EGamePlay.Unity
         public float PlayerScale => 1f;
 
         /// <inheritdoc />
+        public float WorldScale => 1f;
+
+        /// <inheritdoc />
         public float PlayerTime => Time.time;
+
+        /// <inheritdoc />
+        public float WorldTime => Time.time;
 
 #pragma warning disable 67
         /// <inheritdoc />
@@ -257,7 +275,7 @@ namespace EGamePlay.Unity
             int token = PlaySkill(stateHash, blendSeconds, 0f, speed, applyRootMotion, suppressGravity);
             float s = speed > 0f ? speed : 1f;
             _autoReleaseToken = token;
-            _autoReleaseAt = _timeScale.PlayerTime + len / s;
+            _autoReleaseAt = GetLayerTime() + len / s;
             return token;
         }
 
@@ -301,20 +319,18 @@ namespace EGamePlay.Unity
             return true;
         }
 
-        /// <summary>驱动反应动画自动交回；由玩家 Update 调用。</summary>
+        /// <summary>驱动反应动画自动交回；由 AnimComponent.Update 调用。</summary>
         public void Tick()
         {
-            if (_timeScale == null)
-                return;
-            Tick(_timeScale.PlayerTime);
+            Tick(GetLayerTime());
         }
 
-        /// <summary>驱动反应动画自动交回（显式传入玩家时间）。</summary>
-        public void Tick(float playerTime)
+        /// <summary>驱动反应动画自动交回（显式传入层累计时间）。</summary>
+        public void Tick(float layerTime)
         {
             if (_autoReleaseToken == 0)
                 return;
-            if (playerTime < _autoReleaseAt)
+            if (layerTime < _autoReleaseAt)
                 return;
 
             int token = _autoReleaseToken;
@@ -358,19 +374,18 @@ namespace EGamePlay.Unity
         public void RefreshSpeedFromOwner()
         {
             float entityScale = _owner != null ? _owner.GetTimeScale() : 1f;
-            float playerScale = _timeScale != null ? _timeScale.PlayerScale : 1f;
-            RefreshSpeed(playerScale, entityScale);
+            RefreshSpeed(GetLayerScale(), entityScale);
         }
 
-        /// <summary>写 animator.speed。</summary>
-        public void RefreshSpeed(float playerScale, float entityScale)
+        /// <summary>写 animator.speed = skill × 层 scale × 实体 scale。</summary>
+        public void RefreshSpeed(float layerScale, float entityScale)
         {
             Animator animator = _anim.animator;
             if (animator == null)
                 return;
 
             float skill = HasSkillOwner ? _skillSpeed : 1f;
-            animator.speed = skill * playerScale * entityScale;
+            animator.speed = skill * layerScale * entityScale;
         }
 
         /// <summary>
@@ -479,6 +494,24 @@ namespace EGamePlay.Unity
         /// <summary>当前绑定的玩家层时间。</summary>
         public float PlayerTime => _timeScale != null ? _timeScale.PlayerTime : 0f;
 
+        float GetLayerScale()
+        {
+            if (_timeScale == null)
+                return 1f;
+            if (_owner != null && _owner.UsesPlayerCombatClock)
+                return _timeScale.PlayerScale;
+            return _timeScale.WorldScale;
+        }
+
+        float GetLayerTime()
+        {
+            if (_timeScale == null)
+                return 0f;
+            if (_owner != null && _owner.UsesPlayerCombatClock)
+                return _timeScale.PlayerTime;
+            return _timeScale.WorldTime;
+        }
+
         void EnsureTimeScaleSubscription()
         {
             if (_subscribedTimeScale || _timeScale == null)
@@ -510,6 +543,14 @@ namespace EGamePlay.Unity
 
         /// <summary>位移裁决（Policy / 重力 / 唯一 cc.Move）。</summary>
         public MotionDirector Motion { get; private set; }
+
+        public override bool IsNeedUpdate { get; protected set; } = true;
+
+        /// <summary>推进反应动画自动交回。</summary>
+        public override void Update(float deltaTime)
+        {
+            Director?.Tick();
+        }
 
         public override void Awake(object initData)
         {

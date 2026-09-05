@@ -1,3 +1,6 @@
+using ACTGameEditor.Combat;
+using EGamePlay;
+using EGamePlay.Combat;
 using UnityEngine;
 
 namespace EGamePlay.Unity
@@ -77,13 +80,30 @@ namespace EGamePlay.Unity
         void SyncAirborneState(bool isGrounded, bool isFalling);
     }
 
-    /// <summary>桥接 <see cref="GameTimeManager"/>（战斗场景）。</summary>
+    /// <summary>桥接 <see cref="GameTimeManager"/> 玩家层（仅本地玩家默认）。</summary>
     public sealed class GameTimeLocomotionTimeSource : ILocomotionTimeSource
     {
         public float PlayerTime => GameTimeManager.PlayerTime;
         public float PlayerDelta => GameTimeManager.PlayerDelta;
         public float PlayerScale => GameTimeManager.PlayerScale;
         public float FixedPlayerDelta => Time.fixedDeltaTime * GameTimeManager.PlayerScale;
+    }
+
+    /// <summary>按战斗实体选层：本地玩家走玩家钟，其余走世界钟。</summary>
+    public sealed class CombatUnitLocomotionTimeSource : ILocomotionTimeSource
+    {
+        readonly CombatEntity _owner;
+
+        /// <summary>绑定宿主，电机每帧读当前层 × 实体钟。</summary>
+        public CombatUnitLocomotionTimeSource(CombatEntity owner)
+        {
+            _owner = owner;
+        }
+
+        public float PlayerTime => CombatTimeClock.GetLayerTime(_owner);
+        public float PlayerDelta => CombatTimeClock.GetDelta(_owner);
+        public float PlayerScale => CombatTimeClock.GetLayerScale(_owner) * Mathf.Max(0f, _owner != null ? _owner.GetTimeScale() : 1f);
+        public float FixedPlayerDelta => CombatTimeClock.GetFixedDelta(_owner);
     }
 
     /// <summary>

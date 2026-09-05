@@ -12,11 +12,11 @@ namespace ACTGameEditor.Combat
         [Tooltip("受击目标 MPB 闪白时长（秒）。")]
         public float HitFlashDuration = 0.12f;
 
-        [Header("命中顿帧（本地攻击者）")]
-        [Tooltip("HitStop 世界时间缩放持续时间（秒）。")]
+        [Header("命中顿帧（本地攻击者 + 受击者实体钟）")]
+        [Tooltip("HitStop 持续时间（unscaled 秒）。")]
         public float HitStopDuration = 0.08f;
 
-        [Tooltip("HitStop 期间世界 TimeScale。")]
+        [Tooltip("HitStop 期间攻受双方的实体 TimeScale。")]
         [Range(0f, 1f)]
         public float HitStopWorldScale = 0.08f;
 

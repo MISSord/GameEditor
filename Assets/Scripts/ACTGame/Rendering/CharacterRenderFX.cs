@@ -1,10 +1,13 @@
 using System;
 using UnityEngine;
+using EGamePlay;
+using EGamePlay.Combat;
+using ACTGameEditor.Combat;
 
 namespace ACTGameEditor
 {
     /// <summary>
-    /// 角色渲染表现驱动：受击闪白 / 噪声溶解 / 强制外轮廓 / 遮挡轮廓宽度门闩。
+    /// 角色渲染表现驱动：受击闪白 / 冰冻 / 噪声溶解 / 强制外轮廓 / 遮挡轮廓宽度门闩。
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class CharacterRenderFX : MonoBehaviour
@@ -16,6 +19,7 @@ namespace ACTGameEditor
         static readonly int IncludeInDepthVisionId = Shader.PropertyToID("_IncludeInDepthVision");
         static readonly int RevealId = Shader.PropertyToID("_Reveal");
         static readonly int ProximityDitherId = Shader.PropertyToID("_ProximityDither");
+        static readonly int FreezeAmountId = Shader.PropertyToID("_FreezeAmount");
 
         [SerializeField]
         Transform modelRoot;
@@ -31,11 +35,14 @@ namespace ACTGameEditor
         DepthVisionParticipant _depthParticipant;
         ScanRevealVisual _scanReveal;
         AfterimageController _afterimage;
+        CharacterIceShell _iceShell;
+        ActPlayer _actPlayer;
         float _hitFlash;
         float _dissolve;
         float _forceOutline;
         float _outlineWidth;
         float _proximityDither;
+        float _freeze;
         float _flashTimer;
         float _flashDuration;
         float _dissolveTimer;
@@ -56,6 +63,9 @@ namespace ACTGameEditor
         /// <summary>近距镂空强度 0~1。</summary>
         public float ProximityDither => _proximityDither;
 
+        /// <summary>冰冻强度 0~1（写入 MPB _FreezeAmount，ACT/Character 与 ACT/Ice 共用）。</summary>
+        public float Freeze => _freeze;
+
         void Awake()
         {
             _mpb = new MaterialPropertyBlock();
@@ -63,6 +73,7 @@ namespace ACTGameEditor
             _depthParticipant = GetComponent<DepthVisionParticipant>();
             _scanReveal = GetComponent<ScanRevealVisual>();
             _afterimage = GetComponent<AfterimageController>();
+            _iceShell = GetComponent<CharacterIceShell>();
             _outlineWidth = defaultOutlineWidth;
             EnsureRenderers();
             RefreshCapabilityGates();
@@ -92,7 +103,11 @@ namespace ACTGameEditor
             renderers = null;
             _afterimage ??= GetComponent<AfterimageController>();
             _afterimage?.RefreshSources(root);
+            _iceShell ??= GetComponent<CharacterIceShell>();
+            _iceShell?.BindModel(root);
             EnsureRenderers();
+            if (_freeze > 0.01f)
+                _iceShell?.SetVisible(true);
             RefreshCapabilityGates();
         }
 
@@ -214,6 +229,17 @@ namespace ACTGameEditor
         }
 
         /// <summary>
+        /// 设置冰冻强度（0 无，1 满冰）。同时驱动 ACT/Character 结霜与同 Renderer 上的 ACT/Ice 外壳。
+        /// </summary>
+        public void SetFreeze(float value)
+        {
+            _freeze = Mathf.Clamp01(value);
+            _iceShell ??= GetComponent<CharacterIceShell>();
+            _iceShell?.SetVisible(_freeze > 0.01f);
+            ApplyBlock();
+        }
+
+        /// <summary>
         /// 播放受击闪白。
         /// </summary>
         public void Flash(float duration = 0.12f)
@@ -269,7 +295,7 @@ namespace ACTGameEditor
         }
 
         /// <summary>
-        /// 重置闪白、溶解与强制外轮廓。
+        /// 重置闪白、溶解、冰冻与强制外轮廓。
         /// </summary>
         public void ResetFX()
         {
@@ -277,8 +303,11 @@ namespace ACTGameEditor
             _dissolving = false;
             _hitFlash = 0f;
             _dissolve = 0f;
+            _freeze = 0f;
             _forceOutline = 0f;
             _onDissolveComplete = null;
+            _iceShell ??= GetComponent<CharacterIceShell>();
+            _iceShell?.SetVisible(false);
             RefreshCapabilityGates();
         }
 
@@ -299,7 +328,7 @@ namespace ACTGameEditor
 
             if (_flashing)
             {
-                _flashTimer -= Time.deltaTime;
+                _flashTimer -= GetHitFlashDelta();
                 _hitFlash = Mathf.Clamp01(_flashTimer / _flashDuration);
                 dirty = true;
                 if (_flashTimer <= 0f)
@@ -355,6 +384,7 @@ namespace ACTGameEditor
             // 与 ScanRevealVisual 共用 MPB，避免扫描揭示 Clear 后丢失深度门闩
             _mpb.SetFloat(RevealId, _scanReveal != null ? _scanReveal.RevealValue : 0f);
             _mpb.SetFloat(ProximityDitherId, _proximityDither);
+            _mpb.SetFloat(FreezeAmountId, _freeze);
 
             for (int i = 0; i < renderers.Length; i++)
             {
@@ -374,5 +404,22 @@ namespace ACTGameEditor
         }
 
         void ApplyBlock() => ApplyPropertyBlock();
+
+        float GetHitFlashDelta()
+        {
+            _actPlayer ??= GetComponent<ActPlayer>();
+            CombatEntity combat = _actPlayer != null ? _actPlayer.Combat : null;
+            if (combat != null && !combat.IsDisposed)
+                return CombatTimeClock.GetLayerDelta(combat);
+            return GameTimeManager.WorldDelta;
+        }
+
+#if UNITY_EDITOR
+        [ContextMenu("Preview Freeze")]
+        void EditorPreviewFreeze() => SetFreeze(1f);
+
+        [ContextMenu("Clear Freeze")]
+        void EditorClearFreeze() => SetFreeze(0f);
+#endif
     }
 }
