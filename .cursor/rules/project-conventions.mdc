@@ -14,3 +14,4 @@ alwaysApply: true
 - 流程问 Buff 列表和 Tag，不要散落 `if (异常名)`。表现不要写进 `DamageAction`。
 - 主动技伤害只查段表，时间轴不填倍率。
 - 配表改 xlsx 再导出，禁止手改 json。
+- 技能轴改 Flux 预制体再导出，禁止手改 `SkillDataScriptable`。需要改盒/Msg/位移时，按 `.cursor/rules/skill-timeline.mdc` 写【技能编辑器待改】给人操作，不要自己开 Unity 点编辑器。

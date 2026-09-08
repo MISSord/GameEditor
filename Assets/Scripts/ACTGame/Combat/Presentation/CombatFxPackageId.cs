@@ -19,6 +19,8 @@ namespace ACTGameEditor.Combat
         HitCausedHeavy = 111,
         /// <summary>暴击命中（在 HitCaused 基础上加长）。</summary>
         HitCausedCrit = 112,
+        /// <summary>受击震屏（本地玩家被重击：镜头震动 + 向攻击来源 Kick）。</summary>
+        PlayerHitShake = 113,
 
         // ── 闪避 / 时间（多数走技能轴 Msg，也可 Package 引用）──
         /// <summary>纯闪避残影，无时空断裂。</summary>

@@ -113,6 +113,8 @@ namespace EGamePlay.Combat
             {
                 damageAction.TriggerContext = context;
                 damageAction.DamageSource = DamageSource.Skill;
+                damageAction.HitReaction = setting.HitReaction;
+                damageAction.InterruptLevel = setting.ResolveInterruptLevel();
                 damageAction.ApplyDamage();
             }
 

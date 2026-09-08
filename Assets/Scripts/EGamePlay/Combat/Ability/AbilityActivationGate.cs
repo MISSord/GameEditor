@@ -20,7 +20,7 @@
         /// 优先级不够
         /// </summary>
         SortBlocked = 4,
-        /// <summary>硬直 / 禁技能 / 受击 / 死亡。</summary>
+        /// <summary>硬直 / 禁技能 / 硬控 / 死亡。短受击仍可闪。</summary>
         State = 5,
         /// <summary>技能表 RequiredTags / BlockedTags 不满足。</summary>
         Tag = 6,

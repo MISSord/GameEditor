@@ -47,6 +47,10 @@ namespace EGamePlay.Combat
         public int HpDamageApplied { get; set; }
         /// <summary>本次结算是否暴击；供飘字放大，不参与扣血。</summary>
         public bool IsCritical { get; set; }
+        /// <summary>本刀受击反应；主动技由段表 <see cref="SkillDamageSetting.HitReaction"/> 写入，Buff/DoT 默认 Light。只管闪白/顿帧，不断招。</summary>
+        public HitReactionType HitReaction { get; set; }
+        /// <summary>出手打断等级；与目标抗打断比大小。0 不断招。Buff/DoT 保持 0。</summary>
+        public int InterruptLevel { get; set; }
         /// <summary>本次结算使用的属性类型；供飘字染色。</summary>
         public DamageType AppliedDamageType { get; set; }
         /// <summary>攻击盒与受击体接触点；无盒体采样（如 DoT）时为 false，飘字回退胸口。</summary>
@@ -217,6 +221,8 @@ namespace EGamePlay.Combat
             ShieldAbsorbed = 0;
             HpDamageApplied = 0;
             IsCritical = false;
+            HitReaction = HitReactionType.Light;
+            InterruptLevel = 0;
             AppliedDamageType = DamageType.Physic;
             HasHitWorldPosition = false;
             HitWorldPosition = default;

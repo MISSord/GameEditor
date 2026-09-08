@@ -1,3 +1,4 @@
+using ACTGameEditor.Combat.Ai;
 using EGamePlay;
 using EGamePlay.Combat;
 using UnityEngine;
@@ -123,7 +124,13 @@ namespace ACTGameEditor.Combat
             _caster.StateDirector?.EnterSkill(_runner.Id);
             _caster.BeginSkillMoveLock();
             if (SkillSortUtil.IsRoll(sort))
+            {
                 _caster.ArmSprintFromDodge();
+                // 轴上 EffectEvent 要等到第 0 帧才 Push Buff.Roll；出招当下先挂上，同一帧 Flush 才能判闪避。
+                TagSource src = TagSource.Skill(_runner.Id);
+                _caster.PushTag(src, CombatTags.BuffRoll);
+                _caster.PushTag(src, CombatTags.BuffUnStopped);
+            }
 
             if (CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate)
             {
@@ -155,6 +162,7 @@ namespace ACTGameEditor.Combat
             _postProcessed = true;
             using (CombatBuffPipeline.Lock(_caster))
                 CombatBuffPipeline.Notify(_caster, ActionPointType.PostSpell, this);
+            TryNotifyPlayerRolled();
         }
 
         void Finish()
@@ -185,7 +193,29 @@ namespace ACTGameEditor.Combat
             if (_caster != null && !_caster.IsDisposed && SkillSortUtil.IsRoll(_sort))
                 _caster.ChangeInputRotateState(true);
 
+            TryNotifyAttackWhiff();
             DestroySelf();
+        }
+
+        void TryNotifyPlayerRolled()
+        {
+            if (_caster == null || _caster.IsDisposed || !_caster.isTruePlayer)
+                return;
+            if (!SkillSortUtil.IsRoll(_sort))
+                return;
+            CombatEncounterDirector.Instance?.NotifyPlayerDodge(perfect: false);
+        }
+
+        void TryNotifyAttackWhiff()
+        {
+            if (_caster == null || _caster.IsDisposed || _caster.isTruePlayer)
+                return;
+            if (SkillSortUtil.IsRoll(_sort))
+                return;
+            // 无盒轴（假前摇）不算挥空；被打断不算挥空
+            if (_runner == null || _runner.WasBroken || !_runner.HasHitboxEvents || _runner.ConfirmedPlayerHits > 0)
+                return;
+            CombatEncounterDirector.Instance?.NotifyAttackWhiff(_caster);
         }
 
         public override void OnDestroy()

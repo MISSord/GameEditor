@@ -101,6 +101,7 @@ namespace ACTGameEditor
                     desc.depthBufferBits = 0;
                     desc.msaaSamples = 1;
                     cmd.GetTemporaryRT(TempId, desc, FilterMode.Bilinear);
+                    cmd.SetGlobalTexture("_SourceTex", _source);
                     Blit(cmd, _source, TempId, _material, 0);
                     Blit(cmd, TempId, _source);
                     cmd.ReleaseTemporaryRT(TempId);

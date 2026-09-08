@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using ACTGameEditor;
 using ACTGameEditor.Combat;
+using ACTGameEditor.Combat.Ai;
 
 #if UNITY
 /// <summary>
@@ -39,6 +40,7 @@ public class EGamePlayInit : MonoBehaviour
         var ecsNode = ECSNode.Create();
         ecsNode.AddChildNoPool<ETTimerManager>();
         ecsNode.AddChildNoPool<CombatContext>();
+        CombatContext.Instance.AddChildNoPool<CombatEncounterDirector>();
         ecsNode.AddChildNoPool<GameObjectPool>();
 
         CombatContext.Instance.UseAbilityGate = UseAbilityGate;
@@ -77,6 +79,7 @@ public class EGamePlayInit : MonoBehaviour
         if (combatContext != null)
         {
             combatContext.UseAbilityGate = UseAbilityGate;
+            CombatEncounterDirector.Instance?.Tick(GameTimeManager.WorldDelta);
             combatContext.Update(GameTimeManager.WorldDelta); // 单位内部按 CombatTimeClock 选玩家/世界层
         }
     }

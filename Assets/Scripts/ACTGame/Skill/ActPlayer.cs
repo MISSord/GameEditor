@@ -1,4 +1,5 @@
 ﻿using ACTGameEditor.Combat;
+using ACTGameEditor.Combat.Ai;
 using ACTGameEditor.Locomotion;
 using EGamePlay;
 using EGamePlay.Combat;
@@ -26,7 +27,7 @@ namespace ACTGameEditor
 
         /// <summary>
         /// 战斗 Tick 内、出手队列消费前：提交 Idle/硬打断槽位。
-        /// 必须在当帧 Sample 之后调用，保证和 ActSpell 同一帧。
+        /// 必须在当帧 Sample 之后、HitPipeline.Flush 之前调用，保证闪避 i-frame 与出招同一帧。
         /// </summary>
         void TickSkillInput();
     }
@@ -44,6 +45,9 @@ namespace ACTGameEditor
         const float DamageTextChestLerp = 0.42f;
         [HideInInspector]
         public AgentTag Agent;
+        /// <summary>模型位（生成时由 PlayerManager 写入）。敌人 AI 用 EnemyA=精英档、其余=杂兵档。</summary>
+        [HideInInspector]
+        public AgentModelType ModelType;
         public CombatEntity Combat { get; private set; }
 
         /// <summary>对象池资源键（bundle|asset）；空则死亡后不回池。</summary>
@@ -96,6 +100,9 @@ namespace ACTGameEditor
         /// </summary>
         public void RestoreForReuse()
         {
+            // 测试缩放（如精英放大）不随回池泄漏
+            transform.localScale = Vector3.one;
+
             CharacterController controller = GetComponent<CharacterController>();
             if (controller != null)
                 controller.enabled = true;
@@ -191,6 +198,19 @@ namespace ACTGameEditor
 
             EnsureCombatPresentation();
             StartCallBack();
+            TryStartEnemyBrain();
+        }
+
+        /// <summary>A～F 切片：敌人挂大脑、开电机、向导演登记。</summary>
+        void TryStartEnemyBrain()
+        {
+            if (Combat == null || Combat.isTruePlayer)
+                return;
+            if (Agent != AgentTag.enemy)
+                return;
+            if (Combat.GetComponent<EnemyBrainComponent>() == null)
+                Combat.AddComponent<EnemyBrainComponent>();
+            Combat.ChangeInputMoveState(true);
         }
 
         void EnsureCombatPresentation()

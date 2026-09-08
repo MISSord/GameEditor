@@ -19,7 +19,7 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 3. `CombatTimeClock` + `Docs/ActTimeEffectsBacklog.md`：四根钟。
 4. `ActSpellSession` → XC 时间轴 → `HitPipeline.Flush` → `DamageAction`。
 5. `StatusComponent` + `CombatBuffPipeline` + `Docs/ActBuffLearningBacklog.md`。
-6. 配表：`Docs/ActSkillConfigAndLeveling.md`，改数字见 `.cursor/rules/luban-config.mdc`。
+6. 配表：`Docs/ActSkillConfigAndLeveling.md`。数字见 `.cursor/rules/luban-config.mdc`；时间轴见 `.cursor/rules/skill-timeline.mdc`。
 
 ---
 
@@ -33,6 +33,8 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 | `Assets/Scripts/XCSkillEditor/` | XC 技能轴运行时 + 编辑器 UI（含 `BuffBarTester`） |
 | `Assets/Scripts/Flux/` | 时间轴编辑器运行时，少改 |
 | `Tools/Config/Datas/` | Luban **源表**（xlsx） |
+| `Assets/Editor/SkillSequences/` | 技能轴 **源**：Flux Sequence 预制体 |
+| `Assets/Game/Config/SkillDataScriptable/` | 技能轴导出产物（`SkillAllEventData`），禁止手改 |
 | `Assets/Resources/Config/Luban/` | 导出 JSON，禁止手改 |
 | `Assets/Scripts/EGamePlay/Config/Luban/` | 导出 C#，禁止手改（`Buff.cs` 里 BuffDemoSetting 的 partial 除外） |
 | `Docs/` | 专题约定与进度 |
@@ -77,7 +79,7 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 
 ### 状态
 
-`CombatStateDirector` 是行为态唯一写入口：Dead > Control > Hit > Skill > Locomotion。硬控认 `Buff.MoveForbid`；沉默只 `Buff.SkillForbid`（仍可闪避）；冻结另推 `Buff.Freeze`（实体钟=0 + 冰壳）。霸体是 Tag，跳过短硬直，不挡硬控 Buff。
+`CombatStateDirector` 是行为态唯一写入口：Dead > Control > Hit > Skill > Locomotion。硬控认 `Buff.MoveForbid`；沉默只 `Buff.SkillForbid`（仍可闪避）；冻结另推 `Buff.Freeze`（实体钟=0 + 冰壳）。**断招只比两个 int**：段表 `InterruptLevel` ≥ 目标抗打断。`Buff.UnStopped` 只给抗打断加值（默认 +3），不是布尔免疫；硬控 Buff 仍无视抗打断。闪白/顿帧继续读段表 `HitReaction`，与断招脱钩。
 
 ### Buff
 
@@ -89,7 +91,7 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 
 ### 主动技伤害
 
-只查段表 `(SkillId, SegmentIndex)` + 技能组等级。时间轴只填何时开盒、盒形状、**段号 ≥ 1**、HitGroup，不填倍率。不要回退全局 BuffModify 当主动技伤害。详见 `ActSkillConfigAndLeveling.md`。
+只查段表 `(SkillId, SegmentIndex)` + 技能组等级。时间轴只填何时开盒、盒形状、**段号 ≥ 1**、HitGroup，不填倍率。轻重表现读 `HitReaction`（`Light` / `Heavy`）。断招读 `InterruptLevel`（与目标抗打断比大小），不要用段号或 UnStopped 布尔当硬直档。不要回退全局 BuffModify 当主动技伤害。详见 `ActSkillConfigAndLeveling.md`。
 
 ---
 
@@ -107,6 +109,7 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 - 组合优于新继承层；数据在组件上，流程在 Action / Pipeline。
 - 异步优先 UniTask，不要在战斗 Tick 里开无界协程。
 - 调试 UI（如 `BuffBarTester`）可以 OnGUI，不要把 OnGUI 带进战斗热路径。
+- **调试快捷键 / 测试按钮统一挂 `SkillEditorScene`**（`#if UNITY_EDITOR`，场景 Scene.prefab 内）：刷怪（F2/F3/F4）、表现测试（F7~F10）、渲染开关（5~8）。正常系统（CameraManager、MainUIPanel、渲染控制器等）只暴露公开方法，不自带按键轮询。
 
 更细的 Unity 性能条目见仓库根目录 `.cursorrules`。
 
@@ -114,7 +117,11 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 
 ## 配置
 
-数字只改 `Tools/Config/Datas/*.xlsx`，然后在 `Tools/` 执行 `gen_code_json.bat`（或 Unity **Tools/配置/生成技能配置**）。完整步骤：`.cursor/rules/luban-config.mdc`。
+两套源、两套产物，不要混改。
+
+**数字**（伤害倍率、CD、Tag、`InterruptLevel`、Buff）：只改 `Tools/Config/Datas/*.xlsx`，然后在 `Tools/` 执行 `gen_code_json.bat`（或 Unity **Tools/配置/生成技能配置**）。完整步骤：`.cursor/rules/luban-config.mdc`。
+
+**时间轴**（盒、动画、位移、Msg、GrantTag、连招窗）：只改 `Assets/Editor/SkillSequences/{SkillId}.prefab`，用 Flux 保存导出覆盖 `Assets/Game/Config/SkillDataScriptable/`（敌人在 `SkillData_Enemy/`）。禁止手改 `.asset`。完整步骤与 AI 待办格式：`.cursor/rules/skill-timeline.mdc`。
 
 运行时读表：`SkillSettingMgr` → `Tables`。缺 Id 时部分 Get 会 **回退到表第一行**，测试代码必须校验 `setting.BuffId == 请求Id`。
 
@@ -123,11 +130,12 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 ## 明确不要做
 
 1. 手改导出 JSON / 生成的 Luban C#。
-2. 用全局 `timeScale` 做断裂、顿帧、冻结。
-3. 把点燃 / Buff 计时绑到实体 TimeScale。
-4. 在 Buff 回调里改 XC 技能轴；形态用 Form / 槽位表。
-5. 在 `DamageAction` / Resolver 里直接播镜头和粒子；走 `CombatPresentationDirector`。
-6. 为「一个新异常」新建平行的 Buff 运行时类型；先加 Tag + Modify + 表行。
+2. 手改 `SkillDataScriptable` 下的技能轴 ScriptableObject（下次 Flux 导出走丢）。
+3. 用全局 `timeScale` 做断裂、顿帧、冻结。
+4. 把点燃 / Buff 计时绑到实体 TimeScale。
+5. 在 Buff 回调里改 XC 技能轴；形态用 Form / 槽位表。
+6. 在 `DamageAction` / Resolver 里直接播镜头和粒子；走 `CombatPresentationDirector`。
+7. 为「一个新异常」新建平行的 Buff 运行时类型；先加 Tag + Modify + 表行。
 
 ---
 
@@ -138,4 +146,7 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 | `Docs/ActTimeEffectsBacklog.md` | 世界/玩家/相机/实体钟，断裂、HitStop、冻结 |
 | `Docs/ActBuffLearningBacklog.md` | Buff 管线、护盾、控制、未做项 |
 | `Docs/ActSkillConfigAndLeveling.md` | 主动技段表与技能组升级 |
+| `Docs/ActCameraStage2Design.md` | 相机意图 P2：混合构图设计备忘（未排期） |
+| `Docs/ActEnemyAiDesign.md` | 敌人 AI：导演 + HFSM + 效用选招 + XC 轴（后续只看文内 §十二） |
+| `Docs/ActCombatRoadmap.md` | 战斗缺口与改进方案（对照绝区零：失衡/异常/招架/连携，里程碑 M1–M5） |
 | `Assets/Scripts/EGamePlay/Combat/Buff/BuffModify/EffectModifyParamSlots.md` | Modify 各类型 Param 槽位 |

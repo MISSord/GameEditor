@@ -112,42 +112,9 @@ namespace XiaoCao
 
         private void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F2))
-            {
-                PlayerManager.Instance.AddEnemyFromUI();
-            }
-
-            if (Input.GetKeyDown(KeyCode.F9))
-                DebugToggleLocalSkillGroupLevel();
+            // 调试热键（F2 杂兵 / F3 精英 / F4 小队 / F9 断裂 / F10 等级等）已统一移到 SkillEditorScene
 
             RefreshSwitchViewCooldowns();
-        }
-
-        /// <summary>Debug：本地玩家普攻组在 1 与 MaxLevel 间切换，便于核对 RatioByLevel。</summary>
-        void DebugToggleLocalSkillGroupLevel()
-        {
-            var player = PlayerManager.Instance?.LocalPlayer;
-            if (player == null)
-                return;
-            var levels = player.Combat?.SkillLevels;
-            if (levels == null)
-                return;
-
-            const int debugSkillId = 11001;
-            int current = levels.GetLevel(debugSkillId);
-            int max = SkillSettingMgr.Instance != null
-                ? SkillSettingMgr.Instance.ResolveSkillMaxLevel(debugSkillId)
-                : 10;
-            int next = current >= max ? 1 : max;
-            int applied = levels.SetLevelBySkill(debugSkillId, next);
-
-            var mgr = SkillSettingMgr.Instance;
-            float r1 = mgr?.GetSkillDamageSetting(11001, 1)?.GetRatioAtLevel(applied) ?? 0f;
-            float r21 = mgr?.GetSkillDamageSetting(11002, 1)?.GetRatioAtLevel(applied) ?? 0f;
-            float r22 = mgr?.GetSkillDamageSetting(11002, 2)?.GetRatioAtLevel(applied) ?? 0f;
-            float r3 = mgr?.GetSkillDamageSetting(11003, 1)?.GetRatioAtLevel(applied) ?? 0f;
-            Debug.Log($"[SkillLevel] 普攻组 lv={applied} ratio 11001={r1} 11002={r21}/{r22} 11003={r3}");
-            ShowDamageText($"Lv{applied}", player.GetPlayerPos(), true);
         }
 
         /// <summary> 每帧刷新所有视角切换按钮的冷却显示（参考崩坏3）。 </summary>

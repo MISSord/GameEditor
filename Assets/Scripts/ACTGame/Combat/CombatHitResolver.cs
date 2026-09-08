@@ -1,3 +1,4 @@
+using ACTGameEditor.Combat.Ai;
 using EGamePlay;
 using EGamePlay.Combat;
 
@@ -42,6 +43,8 @@ namespace ACTGameEditor.Combat
                 return;
 
             damage.DamageActionEffect |= DamageActionEffect.Dodge;
+            if (_owner.isTruePlayer && damage.Creator != null && damage.Creator.Id != _owner.Id)
+                CombatEncounterDirector.Instance?.NotifyPlayerDodge(perfect: true);
         }
     }
 }

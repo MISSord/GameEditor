@@ -1,3 +1,4 @@
+using UnityEngine;
 using EGamePlay;
 using EGamePlay.Combat;
 
@@ -22,6 +23,19 @@ namespace ACTGameEditor.Combat
         /// <summary>播放目录中的 Package。</summary>
         public static void Play(CombatFxPackageId packageId, in CombatFxPlayContext context) =>
             TryPlay(packageId, in context);
+
+        /// <summary>
+        /// 调试：播极限闪避包（断裂 + 灰屏 + 残影）。
+        /// </summary>
+        /// <param name="owner">残影宿主；空则只播断裂和灰屏。</param>
+        /// <param name="durationSeconds">覆盖包内时长；≤0 用包默认 0.5s。</param>
+        public static bool PlayDebugTimeFracture(ICombatUnit owner = null, float durationSeconds = 2f)
+        {
+            var context = CombatFxPlayContext.ForOwner(owner, CombatFxSource.Manual(0));
+            if (durationSeconds > 0f)
+                context.DurationOverride = durationSeconds;
+            return TryPlay(CombatFxPackageId.DodgeTimeFracture, in context);
+        }
 
         /// <summary>展开 Package 内全部 Entry；至少一条成功返回 true。</summary>
         public static bool TryPlayDefinition(CombatFxPackageDefinition package, in CombatFxPlayContext context)
@@ -92,6 +106,13 @@ namespace ACTGameEditor.Combat
                 return false;
             if (flags.HasFlag(CombatFxTriggerFlags.RequireSkillDamage)
                 && damage.DamageSource != DamageSource.Skill)
+                return false;
+
+            if (rule.HitReactionFilter == CombatFxHitReactionFilter.Light
+                && damage.HitReaction != HitReactionType.Light)
+                return false;
+            if (rule.HitReactionFilter == CombatFxHitReactionFilter.Heavy
+                && damage.HitReaction != HitReactionType.Heavy)
                 return false;
 
             int segment = damage.TriggerContext.DamageSegmentIndex;
@@ -200,6 +221,14 @@ namespace ACTGameEditor.Combat
                     spec.RespectGraphicsGate = entry.RespectGraphicsGate;
                     return true;
 
+                case CombatFxKind.CameraShake:
+                    if (entry.Shake == null)
+                        return false;
+                    spec = CombatFxSpec.CameraShake(context.Source, entry.Shake);
+                    spec.RespectGraphicsGate = entry.RespectGraphicsGate;
+                    TryFillKick(ref spec, in context, entry.Shake);
+                    return true;
+
                 case CombatFxKind.HitParticle:
                 case CombatFxKind.HitAudio:
                 case CombatFxKind.RadialBlurImpact:
@@ -208,6 +237,26 @@ namespace ACTGameEditor.Combat
                 default:
                     return false;
             }
+        }
+
+        /// <summary>方向性 Kick 方向：攻击者→受击者水平投影（命中时镜头向目标带一下；被击时向攻击来源撞一下）。</summary>
+        static void TryFillKick(ref CombatFxSpec spec, in CombatFxPlayContext context, CameraShakeProfile profile)
+        {
+            if (profile == null || profile.KickAmplitude <= 0f)
+                return;
+            if (context.ActionCreator == null || context.ActionTarget == null)
+                return;
+
+            Vector3 from = context.ActionCreator.Position;
+            Vector3 to = context.ActionTarget.Position;
+            Vector3 dir = to - from;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f)
+                return;
+
+            spec.KickDirectionWorld = dir.normalized;
+            spec.KickAmplitude = profile.KickAmplitude;
+            spec.KickDuration = profile.KickDuration;
         }
 
         static ICombatUnit ResolveTarget(CombatFxTargetMode mode, in CombatFxPlayContext context)

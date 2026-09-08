@@ -1,5 +1,6 @@
 using ACTGameEditor.Combat;
 using DG.Tweening;
+using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
 using System.Collections.Generic;
@@ -523,6 +524,23 @@ namespace ACTGameEditor
                 HasHitWorldPosition = true,
                 HitWorldPosition = ResolveOverlapHitPoint(_collider, hitCollider),
             });
+
+            if (CountsAsFocusHit(target))
+                SelfRunner.GetParent<ActSkillRunner>()?.NotifyPlayerHitConnected();
+        }
+
+        /// <summary>挥空计数：本地玩家，以及同阵营假玩家/队友（预留）。</summary>
+        static bool CountsAsFocusHit(ICombatUnit target)
+        {
+            if (target == null)
+                return false;
+            if (target.isTruePlayer)
+                return true;
+            CombatEntity entity = target as CombatEntity;
+            if (entity == null)
+                return false;
+            AgentTag agent = entity.CurAgent;
+            return agent == AgentTag.PlayerA || agent == AgentTag.PlayerB;
         }
 
         /// <summary>

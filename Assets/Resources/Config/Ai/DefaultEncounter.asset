@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f7a9c1e5b2d48f0a6e1c3d5b7f90142, type: 3}
+  m_Name: DefaultEncounter
+  m_EditorClassIdentifier: 
+  MeleeBudget: 1
+  SpecialBudget: 1
+  GrantTimeout: 1.4
+  PerEnemyCooldown: 0.8
+  FailedLaunchTimeout: 0.35
+  GrantInterval: 0.25
+  RelaxPerfectDodge: 0.45
+  RelaxNormalDodge: 0.15
+  RelaxWhiff: 0.25
+  DesireBasePerSec: 0.45
+  DesireSlotBonusPerSec: 0.35
+  DesireCap: 1
+  SwapDesireMargin: 0.4
+  StealGrace: 0.35
+  StealHysteresis: 1.05
+  StealWindupProtect: 1.2
+  DistanceScoreSpan: 12
+  OffscreenScore: 0.15
+  WantTtl: 0.3

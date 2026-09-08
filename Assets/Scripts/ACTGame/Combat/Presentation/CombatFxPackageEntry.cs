@@ -30,6 +30,9 @@ namespace ACTGameEditor.Combat
         [Tooltip("是否尊重 GraphicsFx 总开关。")]
         public bool RespectGraphicsGate;
 
+        [Tooltip("镜头震动参数（Trauma 震屏 + FOV 冲击）；仅 CameraShake Kind 使用，null 不播。")]
+        public CameraShakeProfile Shake;
+
         public static CombatFxPackageEntry HitFlash(float duration = 0.12f) => new CombatFxPackageEntry
         {
             Kind = CombatFxKind.HitFlash,
@@ -82,6 +85,15 @@ namespace ACTGameEditor.Combat
             Kind = CombatFxKind.ScreenDesaturate,
             TargetMode = CombatFxTargetMode.None,
             Duration = duration,
+            RespectGraphicsGate = true,
+        };
+
+        /// <summary>镜头震动（Trauma 震屏 + FOV 冲击）。</summary>
+        public static CombatFxPackageEntry CameraShake(CameraShakeProfile profile) => new CombatFxPackageEntry
+        {
+            Kind = CombatFxKind.CameraShake,
+            TargetMode = CombatFxTargetMode.None,
+            Shake = profile,
             RespectGraphicsGate = true,
         };
     }

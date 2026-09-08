@@ -27,6 +27,7 @@ namespace Flux
                 { "TimeStop(F_time)",  PlayEventMsg.TimeStop },
                 { "TimeFracture(F_time)",  PlayEventMsg.TimeFracture },
                 { "PlayFxPackage(id)",  PlayEventMsg.PlayFxPackage },
+                { "AiTelegraph(str kind, F_time)",  PlayEventMsg.AiTelegraph },
                 { "SetNoGravityT(F_time)",  PlayEventMsg.SetNoGravityT },
                 { "SetNoBreakTime(F_time)",  PlayEventMsg.SetNoBreakTime },
                 { "PlayAudio(id,volume)",  PlayEventMsg.PlayAudio },

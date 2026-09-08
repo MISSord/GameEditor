@@ -77,14 +77,14 @@
 |---|---|---|
 | HitStop 作用域 | 攻受短脉冲，不要全局把无关单位拖死 | [x] |
 | 合成规则 | 同类型刷新；Priority 真正参与，避免连打 min 到接近 0 | [x] |
-| 轻重段 | `HitCausedHeavy` / Crit / Stagger 接到段，不要每下同一套 Light | [x] |
+| 轻重段 | `HitCausedHeavy` / Crit / Stagger 接到段表 `HitReaction`，不要每下同一套 Light | [x] |
 | 极限闪避 | 闪过攻击再播 `DodgeTimeFracture`，不要只靠轴上手工 Msg | [x] |
 
 实现要点：
 
 - HitStop 全局层保持 1，只给攻击者 + 受击者写实体 `TimeScale`（`CombatTimeClock.HitStopSourceId`）。周围单位不跟着爬。
 - 同类型只留一份：新 Priority 更低则拒绝；否则替换并刷新时长。连打不会 `min` 叠到接近 0。
-- 段号：未填或 1 → `HitCausedLight`（Priority 10）；≥ 2 → `HitCausedHeavy`（20）；暴击 → `HitCausedCrit`（30），受击闪白走 Heavy。
+- 段表 `HitReaction`：`Light` → `HitCausedLight`；`Heavy` → `HitCausedHeavy`；暴击另走 `HitCausedCrit`，受击闪白走 Heavy。不要用段号当轻重档。
 - 极限闪避：翻滚带 `Buff.Roll` 时 `CombatHitResolver` 把伤害标成 Dodge，本地玩家 `PostReceiveDamage` 自动播 `DodgeTimeFracture`（0.5s 世界 0.3）。轴上不必再摆 Msg。
 - **未做**：`StaggerBreak` 没有削韧条，不会自动播。
 - 若 `EGamePlayInit` 挂了自定义 Catalog 且 ActionPoint 规则超过 2 条，不会自动覆盖；需要的话在资源上 `Reset To Built-In Defaults`。

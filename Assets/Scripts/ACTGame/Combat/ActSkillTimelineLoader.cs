@@ -24,6 +24,12 @@ namespace ACTGameEditor.Combat
 
             var skillData = AssetBundleManager.Instance.LoadAssetSync<SkillAllEventData>(
                 PrefabPath.GetSkillDataScriObjPath(false), config.SkillId.ToString());
+            if (skillData == null)
+            {
+                // 敌人专用轴（12000 号段）在 SkillData_Enemy 目录，与玩家技能分离演进
+                skillData = AssetBundleManager.Instance.LoadAssetSync<SkillAllEventData>(
+                    PrefabPath.GetSkillDataScriObjPath(true), config.SkillId.ToString());
+            }
 
             if (skillData != null)
                 Cache[skillId] = skillData;

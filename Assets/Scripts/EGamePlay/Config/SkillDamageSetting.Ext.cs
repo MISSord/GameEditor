@@ -20,5 +20,11 @@ namespace EGamePlay.Combat
                 idx = list.Count - 1;
             return list[idx];
         }
+
+        /// <summary>本段出手打断等级。表填 0 时按 <see cref="HitReaction"/> 回退。</summary>
+        public int ResolveInterruptLevel()
+        {
+            return CombatInterrupt.ResolveFromSegment(InterruptLevel, HitReaction);
+        }
     }
 }

@@ -33,5 +33,13 @@ namespace ACTGameEditor.Combat
         HitParticle = 8,
         /// <summary>战斗命中音效。</summary>
         HitAudio = 9,
+
+        // ── 镜头域（CameraShakeBridge）──
+        /// <summary>Trauma 震屏 + FOV 冲击（命中镜头震动）。</summary>
+        CameraShake = 10,
+
+        // ── 敌人预警域（TelegraphFlashBridge）──
+        /// <summary>敌人出手预警闪光（头顶十字；玩法可读性，不走画质门控）。</summary>
+        TelegraphFlash = 11,
     }
 }

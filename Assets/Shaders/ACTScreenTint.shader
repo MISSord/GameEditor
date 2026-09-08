@@ -5,6 +5,7 @@ Shader "ACT/ScreenTint"
     {
         _TintColor ("Tint Color", Color) = (0.55, 0.78, 1, 1)
         _Intensity ("Intensity", Range(0, 1)) = 0.28
+        _Desaturate ("Desaturate", Range(0, 1)) = 0
     }
 
     SubShader

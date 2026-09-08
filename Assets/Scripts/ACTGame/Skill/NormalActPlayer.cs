@@ -183,6 +183,12 @@ namespace ACTGameEditor
             if (damageAction == null || Combat == null)
                 return;
 
+            // 闪避/免疫仍走后置点（极限闪避表现），但不飘字、不进受击硬直。
+            if (damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
+                || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Immunity)
+                || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt))
+                return;
+
             // 本地玩家作为攻击者时，飘字只走 OnCauseDamage
             if (damageAction.Creator?.Id == Combat.Id)
                 return;
@@ -199,12 +205,9 @@ namespace ACTGameEditor
                 damageAction.AppliedDamageType,
                 incoming: true));
 
-            // 致死伤已在 ApplyDeath 中处理；霸体不进 Hit
+            // 致死伤已在 ApplyDeath 中处理；断招由 CombatPoiseComponent 按打断/抗打断比大小落地
             if (Combat.IsDead)
                 return;
-
-            long hitSrc = damageAction.Id;
-            Combat.TryApplyHitReaction(hitSrc, 0.35f);
         }
 
         static Vector3 ResolveDamageTextWorldPosition(DamageAction damageAction, ICombatUnit fallbackTarget)

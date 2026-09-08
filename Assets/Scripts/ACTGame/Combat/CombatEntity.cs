@@ -153,12 +153,11 @@ namespace ACTGameEditor.Combat
 
         /// <summary>
         /// 闪避：禁移（眩晕）不可；仅禁技能（沉默）可以。
-        /// 不认 UnStopped / SkillForbid，避免霸体和沉默误伤闪避。
+        /// 短受击仍可闪；不认 UnStopped / SkillForbid，避免霸体和沉默误伤闪避。
         /// </summary>
         public bool IsCanRollSkill => !IsDead
             && TagHost != null
             && !TagHost.HasIndex(TagHost.MoveForbidIndex)
-            && CurState != PlayerStateEnum.Hit
             && CurState != PlayerStateEnum.Control;
 
         public bool IsUnstopped => TagHost != null && TagHost.HasIndex(TagHost.UnStoppedIndex);
@@ -228,11 +227,15 @@ namespace ACTGameEditor.Combat
 
             _stateDirector?.Tick(CombatTimeClock.GetLayerTime(this));
 
-            if (AttackPlayer is IAttackPlayer attack)
-                attack.TickSkillInput();
-
             for (int i = 0; i < UpdateComponents.Count; i++)
                 UpdateComponents[i].Update(deltaTime);
+        }
+
+        /// <inheritdoc />
+        public void TickPendingSkillInput()
+        {
+            if (AttackPlayer is IAttackPlayer attack)
+                attack.TickSkillInput();
         }
 
         public override void FixedUpdate(float fixDeltaTime)
@@ -266,6 +269,7 @@ namespace ACTGameEditor.Combat
 
             CurrentVital = AddComponent<VitalComponent>();
             CurrentVital.InitVital();
+            AddComponent<CombatPoiseComponent>();
         }
 
         void AddPresentationComponents()
@@ -512,10 +516,10 @@ namespace ACTGameEditor.Combat
             GetComponent<PassiveSkillBuffComponent>()?.NotifyOwnerDeath();
         }
 
-        /// <summary>受击硬直 + 打断技能 + 受击动画。霸体/已死亡/硬控中返回 false。</summary>
+        /// <summary>重受击硬直 + 打断技能 + 受击动画。轻段不要调；已死亡/硬控中返回 false。霸体走抗打断比大小，这里不再问 UnStopped。</summary>
         public bool TryApplyHitReaction(long sourceId, float durationSeconds = 0.35f)
         {
-            if (_curState == PlayerStateEnum.Dead || _curState == PlayerStateEnum.Control || IsUnstopped)
+            if (_curState == PlayerStateEnum.Dead || _curState == PlayerStateEnum.Control)
                 return false;
             if (TagHost != null && TagHost.HasIndex(TagHost.MoveForbidIndex))
                 return false;
@@ -617,8 +621,8 @@ namespace ACTGameEditor.Combat
                 return;
 
             _stateDirector?.ExitControl();
-            // 人机不要跟主控共用键盘；电机仍由本地玩家 ChangeCurPlayer 打开。
-            ChangeInputMoveState(isTruePlayer);
+            // 人机不要跟主控共用键盘；有 EnemyBrain 时仍开电机，停步靠 MoveWeight。
+            ChangeInputMoveState(isTruePlayer || GetComponent<Ai.EnemyBrainComponent>() != null);
 
 #if UNITY
             AnimComponent anim = GetComponent<AnimComponent>();

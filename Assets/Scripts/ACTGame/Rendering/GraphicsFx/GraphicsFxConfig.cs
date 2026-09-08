@@ -32,6 +32,8 @@ namespace ACTGameEditor
         public bool Afterimage = true;
         public bool ChromaticAberration = true;
         public bool RadialBlur = true;
+        public bool ScreenShake = true;
+        public bool FovPunch = true;
 
         /// <summary>
         /// 按 ID 读取默认值。
@@ -59,6 +61,8 @@ namespace ACTGameEditor
                 GraphicsFxId.Afterimage => Afterimage,
                 GraphicsFxId.ChromaticAberration => ChromaticAberration,
                 GraphicsFxId.RadialBlur => RadialBlur,
+                GraphicsFxId.ScreenShake => ScreenShake,
+                GraphicsFxId.FovPunch => FovPunch,
                 _ => true,
             };
         }

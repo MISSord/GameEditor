@@ -47,6 +47,10 @@ namespace ACTGameEditor
         ChromaticAberration = 27,
         /// <summary>径向模糊（RadialBlur Feature，HitStop 冲击 pulse）</summary>
         RadialBlur = 28,
+        /// <summary>镜头震动（Trauma 位移/旋转，CameraShakeController）</summary>
+        ScreenShake = 29,
+        /// <summary>镜头 FOV 冲击（命中拉宽，CameraShakeController）</summary>
+        FovPunch = 30,
     }
 
     /// <summary>

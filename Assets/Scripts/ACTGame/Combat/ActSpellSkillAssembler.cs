@@ -32,14 +32,19 @@ namespace ACTGameEditor.Combat
             runner.AbilityEntity = ability;
             runner.Sort = sort;
 
+            bool hasHitboxEvents = false;
             for (int i = 0; i < skillData.skillAllEventDatas.Count; i++)
             {
                 SkillNewEventData subSkill = skillData.skillAllEventDatas[i];
+                if (subSkill.TriggerEvents?.Events != null && subSkill.TriggerEvents.Events.Count > 0)
+                    hasHitboxEvents = true;
                 XCNewEventsRunner subRunner = runner.AddChild<XCNewEventsRunner>();
                 StartRunner(subRunner, caster, subSkill, inputDirection, caster.Position);
                 runner.SubRuners.Add(subRunner);
             }
 
+            // 无盒轴（假前摇等）不参与落空判定
+            runner.HasHitboxEvents = hasHitboxEvents;
             runner.StartUpdate();
             return runner;
         }

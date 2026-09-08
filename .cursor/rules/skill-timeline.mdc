@@ -1,0 +1,38 @@
+---
+description: 技能时间轴只改 Flux 预制体再导出，禁止手改 SkillData Scriptable；AI 写待办给人在编辑器操作
+alwaysApply: true
+---
+
+# 技能时间轴改法
+
+盒、动画、位移、Msg、Tag、连招窗等 **只改 Flux Sequence 预制体**，再导出覆盖运行时 SO。禁止手改 `Assets/Game/Config/SkillDataScriptable/**/*.asset`（含 `SkillData_Enemy/`）。下次从编辑器保存会整份覆盖。
+
+数字（倍率、CD、`InterruptLevel`、Buff）仍走 Excel，见 `luban-config.mdc`。
+
+## 源与产物
+
+| | 路径 |
+|---|---|
+| 源（改这里） | `Assets/Editor/SkillSequences/{SkillId}.prefab` |
+| 产物（导出覆盖，勿手改） | 玩家 `Assets/Game/Config/SkillDataScriptable/{id}.asset`；敌人 `.../SkillData_Enemy/{id}.asset` |
+| 导出 | Flux 窗口保存按钮，或 **GameObject/Flux/保存选中Seq技能** |
+
+`GameObject/Flux/从 Asset 同步 Input/Trigger/Effect` 是 SO→预制体的反向同步，不是日常改轴入口。
+
+## AI 怎么做
+
+不要打开 Unity 编辑器去点 Flux（费 token）。不要手改 `.asset` YAML，也不要直接改巨大的 Sequence 预制体 YAML。
+
+在回复里用下面格式写清 **给人操作的待办**，改完等用户导出后再继续：
+
+```
+【技能编辑器待改】
+- SkillId:
+- 预制体: Assets/Editor/SkillSequences/{id}.prefab
+- 导出后产物: Assets/Game/Config/SkillDataScriptable/...
+- 改动（逐条：轨/事件、帧范围、字段名、目标值、为什么）:
+  1.
+- 不要改: SkillData Scriptable
+```
+
+帧按 30fps。Msg 举例：`MsgName=AiTelegraph`，`StrMsg=Dodge|Unblockable`，`FloatdMsg`=时长秒。
