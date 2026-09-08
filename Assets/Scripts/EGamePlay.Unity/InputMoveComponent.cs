@@ -83,6 +83,14 @@ namespace EGamePlay.Unity
         /// <summary>鸣潮：闪避锁存快跑（走路模式除外）。</summary>
         public void ArmSprintFromDodge() => _motor.ArmSprintFromDodge();
 
+        /// <summary>人机注入移动/平面基/朝向；接口由 ACT AI 层提供实现。</summary>
+        public void InstallAiDrivers(IMoveInputProvider input, IMoveCameraProvider camera, IMoveFacingProvider facing)
+        {
+            _motor.SetInputProvider(input);
+            _motor.SetCameraProvider(camera);
+            _motor.SetFacingProvider(facing);
+        }
+
         /// <summary>当前水平移动方向（世界空间）；无迈步意图时返回 false。</summary>
         public bool TryGetPlanarMoveDir(out Vector3 worldDir)
         {

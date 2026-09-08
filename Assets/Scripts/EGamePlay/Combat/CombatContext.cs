@@ -73,6 +73,18 @@ namespace EGamePlay.Combat
             return combat;
         }
 
+        void TickPendingSkillInputs()
+        {
+            for (int i = 0; i < _combatEntities.Count; i++)
+            {
+                Entity entity = _combatEntities[i];
+                if (entity == null || entity.IsDisposed)
+                    continue;
+                if (entity is ICombatUnit unit)
+                    unit.TickPendingSkillInput();
+            }
+        }
+
         /// <summary>卸所有单位上绑在该技能轴的 Buff（含打到敌人身上的）。</summary>
         public void RemoveBuffsBoundToRunner(long runnerId)
         {
@@ -90,6 +102,9 @@ namespace EGamePlay.Combat
 
         public override void Update(float deltaTime)
         {
+            // 先出招（闪避 Tag）再扫盒 Flush，避免当帧按闪避仍先挨打。
+            TickPendingSkillInputs();
+
             Entity action;
             for (int i = _spellActions.Count - 1; i >= 0; i--)
             {

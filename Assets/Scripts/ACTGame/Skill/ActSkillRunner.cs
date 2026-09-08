@@ -36,6 +36,18 @@ namespace ACTGameEditor
         /// <summary>最近一次动画事件的结束策略。</summary>
         public AnimExitPolicy AnimExitPolicy { get; private set; }
 
+        /// <summary>本轴 Hurtbox 是否碰到过焦点侧（本地玩家或 PlayerA/B 假玩家）。E 落空用。</summary>
+        public int ConfirmedPlayerHits { get; private set; }
+
+        /// <summary>本轴是否带攻击盒（装配时写入）。无盒轴（假前摇等）不参与落空判定。</summary>
+        public bool HasHitboxEvents { get; set; }
+
+        /// <summary>是否被 BreakSkill 打断。打断不当作挥空。</summary>
+        public bool WasBroken { get; private set; }
+
+        /// <summary>盒申报碰到焦点侧单位时由 Trigger 调用。</summary>
+        public void NotifyPlayerHitConnected() => ConfirmedPlayerHits++;
+
         /// <summary>XCAnimEvent 播放成功后登记 Token 与 ExitPolicy。</summary>
         public void NotifyAnimPlayed(int token, AnimExitPolicy exitPolicy)
         {
@@ -52,6 +64,8 @@ namespace ACTGameEditor
             IsMainFinish = false;
             AnimToken = 0;
             AnimExitPolicy = AnimExitPolicy.Locomotion;
+            ConfirmedPlayerHits = 0;
+            WasBroken = false;
         }
 
         public override void Update(float deltaTime)
@@ -91,6 +105,7 @@ namespace ACTGameEditor
         //接收到Break, 技能会在下一帧结束，不会触发后面的事件
         public void BreakSkill()
         {
+            WasBroken = true;
             _state = RunnerState.Break;
             foreach (var item in SubRuners)
             {
@@ -149,6 +164,9 @@ namespace ACTGameEditor
             IsMainFinish = false;
             AnimToken = 0;
             AnimExitPolicy = AnimExitPolicy.Locomotion;
+            ConfirmedPlayerHits = 0;
+            WasBroken = false;
+            HasHitboxEvents = false;
             Count = 0;
             AbilityEntity = null;
             OwnerEntity = null;

@@ -68,10 +68,26 @@ namespace ACTGameEditor
 
         public override void OnEnter(CameraState oldCameraState)
         {
-            if(oldCameraState == null)
+            if (oldCameraState == null)
             {
-                machine.MainCamera.localRotation = Quaternion.Euler(new Vector2(45f, 0f));
+                orbitAngles = new Vector2(45f, 0f);
+                lookRotation = Quaternion.Euler(orbitAngles);
             }
+            else
+            {
+                // 从干净朝向同步 orbit 角（无缝接管），绝不读带震屏的相机 transform
+                SyncOrbitAngles(machine.CleanLookRotation);
+                lookRotation = machine.CleanLookRotation;
+            }
+        }
+
+        /// <summary>把干净朝向转回 orbitAngles（pitch 归一到 [-180,180)，yaw 由 ConstrainAngles 归一到 [0,360)）。</summary>
+        void SyncOrbitAngles(Quaternion rotation)
+        {
+            Vector3 euler = rotation.eulerAngles;
+            orbitAngles.x = euler.x > 180f ? euler.x - 360f : euler.x;
+            orbitAngles.y = euler.y;
+            ConstrainAngles();
         }
 
         public override void OnUpdate(){}
@@ -91,7 +107,7 @@ namespace ACTGameEditor
             }
             else
             {
-                this.lookRotation = machine.MainCamera.localRotation;
+                this.lookRotation = machine.CleanLookRotation;
             }
 
             Vector3 lookDirection = this.lookRotation * Vector3.forward;
@@ -241,7 +257,7 @@ namespace ACTGameEditor
 
             lookPosition = -dirToTarget * machine.Distance + playerPos;
             Quaternion targetLook = Quaternion.LookRotation(dirToTarget);
-            lookRotation = Quaternion.Slerp(machine.MainCamera.rotation, targetLook, GameTimeManager.CameraDelta * (1f / lockSmoothTime));
+            lookRotation = Quaternion.Slerp(machine.CleanLookRotation, targetLook, GameTimeManager.CameraDelta * (1f / lockSmoothTime));
         }
 
         public override CameraEnumState GetCameraState() => CameraEnumState.LockLook;

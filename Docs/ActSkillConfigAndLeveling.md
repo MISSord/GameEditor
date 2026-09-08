@@ -13,8 +13,11 @@
 - **角色等级**（已有 `RoleAttri`）管攻击 / 生命 / 暴击白字。
 - **技能等级**只改命中段上的 `%攻击`，不换动画、不换盒、不换连招 SkillId。
 - 主动技伤害 **只查段表** `(SkillId, SegmentIndex)` + 技能等级。禁止回退全局 `BuffModify` Effect 8。
-- 时间轴只填：何时开盒、盒形状、**段号 ≥ 1**、HitGroup。不填倍率。
+- 时间轴只填：何时开盒、盒形状、**段号 ≥ 1**、HitGroup。不填倍率，也不填轻重受击。
+- 轻重表现读段表 `HitReaction`（`Light` / `Heavy`），与段号无关。
+- 断招读段表 `InterruptLevel`：出手打断 ≥ 受击抗打断才进 Hit 并 BreakSkill。
 - 连招多 SkillId（如 11001/02/03）共用一个 **升级组**；养成页升的是组，不是三个技能各升一次。
+- **敌人主动技用 12000 号段**（12001~12003 = 敌普攻 1/2/3）：同样配 `主动技能` + `主动技能伤害倍率` 两张表，`SkillGroupId=0`（敌人无连招不升级组）；时间轴 **源** 在 `Assets/Editor/SkillSequences/`，导出到 `SkillDataScriptable/SkillData_Enemy/`，剔除 SkillInputEvents。改敌人招只动 12000 号段。不要手改导出 SO。
 
 最终伤害仍是：
 
@@ -138,6 +141,8 @@ SkillDemo（身份，几乎不随等级）
 | 字段 | 随等级？ | 说明 |
 |---|---|---|
 | DamageType / FormulaType / CanCrit | 否 | 这一刀的属性与公式 |
+| `HitReaction` | 否 | `Light` / `Heavy`：闪白、顿帧、表现包过滤。**不断招**。空单元格导出为 Light |
+| `InterruptLevel` | 否 | 出手打断等级。0 = 按 HitReaction 回退（Light→0 不断招，Heavy→3）。判定：`InterruptLevel >= 抗打断` 才断招。玩家 11003 填 5（破杂兵 UnStopped）；12004 红闪填 5 |
 | `RatioByLevel` | **是** | `1.0\|1.08\|1.16\|...`，下标 = 等级-1；短了用最后一档 |
 | OnHitEffectIds（可选） | 否 | 仅这一段要上的额外效果；比盒上填更稳 |
 
@@ -147,12 +152,13 @@ SkillDemo（身份，几乎不随等级）
 
 当前 demo 建议：
 
-| SkillId | 段 | RatioByLevel（可先只填 1 级） | 说明 |
-|---|---|---|---|
-| 11001 | 1 | `1` 起每级 +0.1，满级 `1.9` | 普攻 1 |
-| 11002 | 1 | `1.5` 起每级 +0.15，满级 `2.85` | 普攻 2 第一窗 |
-| 11002 | 2 | 同第一窗 | 普攻 2 第二窗（两刀） |
-| 11003 | 1 | `3` 起每级 +0.3，满级 `5.7` | 普攻 3 |
+| SkillId | 段 | HitReaction | InterruptLevel | 说明 |
+|---|---|---|---|---|
+| 11001 | 1 | Light | 0 | 普攻 1，不断招 |
+| 11002 | 1 | Light | 0 | 普攻 2 第一窗 |
+| 11002 | 2 | Heavy | 3 | 普攻 2 第二窗 |
+| 11003 | 1 | Heavy | 5 | 普攻 3，能破杂兵 UnStopped |
+| 12004 | 1 | Heavy | 5 | 红闪，可破杂兵 UnStopped |
 
 ### `BuffModify` Effect 8（SkillHpDamage）
 
@@ -171,6 +177,10 @@ SkillDemo（身份，几乎不随等级）
 导出校验：段号 > 0，且段表有 `(本技能 SkillId, 段号)`。
 
 11002 两窗：按两段、HitGroup 各 0（两刀）。若改成「一刀两盒」，则同段号 + 同一 HitGroup，段表只留一行。
+
+### 改时间轴（源是预制体）
+
+盒 / 动画 / 位移 / Msg / Tag / 连招窗的 **源** 是 `Assets/Editor/SkillSequences/{SkillId}.prefab`。Flux 保存后覆盖 `Assets/Game/Config/SkillDataScriptable/`（敌人在 `SkillData_Enemy/`）。**不要手改 `.asset`**，下次导出走丢。数字仍走 xlsx。细则与 AI 待办格式：`.cursor/rules/skill-timeline.mdc`。
 
 ---
 
@@ -198,7 +208,7 @@ SkillDemo（身份，几乎不随等级）
 
 **随技能等级变：** 段倍率。以后可加治疗系数、护盾量、被动 Buff 系数。
 
-**不随技能等级变：** 盒、动画、Root Motion、连招窗、HitGroup、技能 CD、消耗、角色攻击白字。
+**不随技能等级变：** 盒、动画、Root Motion、连招窗、HitGroup、`HitReaction`、`InterruptLevel`、技能 CD、消耗、角色攻击白字。
 
 **高命 / 形态多一段：** 不是技能等级。第一期不做 `MinSkillLevel` 列。
 

@@ -118,8 +118,10 @@ namespace ACTGameEditor
         {
             if (duration <= 0f)
                 return;
-            _desatPulse.Start(0f, Mathf.Clamp01(peak), duration);
-            ScreenTintState.SetDesaturate(peak);
+            float clampedPeak = Mathf.Clamp01(peak);
+            // 前半段钉在峰值，后半段二次衰减，断裂窗口里灰屏才看得清。
+            _desatPulse.Start(0f, clampedPeak, duration, holdRatio: 0.55f);
+            ScreenTintState.SetDesaturate(clampedPeak);
         }
 
         /// <summary>立刻关掉灰屏。</summary>
@@ -129,18 +131,30 @@ namespace ACTGameEditor
             ScreenTintState.ClearDesaturate();
         }
 
-        /// <summary>静态入口。</summary>
+        /// <summary>静态入口。无实例时先确保 GraphicsFxService 挂上本组件，避免灰屏静默跳过。</summary>
         public static void TryPlayDesaturate(float duration, float peak = 0.72f)
         {
-            if (_instance != null)
-                _instance.PlayDesaturate(duration, peak);
+            EnsureInstance();
+            _instance?.PlayDesaturate(duration, peak);
         }
 
         /// <summary>静态关闭。</summary>
         public static void TryStopDesaturate()
         {
+            _instance?.StopDesaturate();
+        }
+
+        static void EnsureInstance()
+        {
             if (_instance != null)
-                _instance.StopDesaturate();
+                return;
+
+            GraphicsFxService service = GraphicsFxService.Instance;
+            if (_instance != null || service == null)
+                return;
+
+            if (service.GetComponent<CameraPostFxController>() == null)
+                service.gameObject.AddComponent<CameraPostFxController>();
         }
 
         /// <summary>
@@ -190,17 +204,19 @@ namespace ACTGameEditor
             float _rest;
             float _age;
             float _duration;
+            float _holdRatio;
             bool _active;
 
             public bool Active => _active;
             public bool WasActive { get; private set; }
 
-            public void Start(float rest, float peak, float duration)
+            public void Start(float rest, float peak, float duration, float holdRatio = 0f)
             {
                 _rest = rest;
                 _peak = peak;
                 _age = 0f;
                 _duration = Mathf.Max(0.02f, duration);
+                _holdRatio = Mathf.Clamp01(holdRatio);
                 _active = true;
                 WasActive = true;
             }
@@ -215,8 +231,18 @@ namespace ACTGameEditor
 
                 _age += unscaledDelta;
                 float t = Mathf.Clamp01(_age / _duration);
-                float envelope = 1f - t;
-                envelope *= envelope;
+                float envelope;
+                if (t <= _holdRatio)
+                {
+                    envelope = 1f;
+                }
+                else
+                {
+                    float fadeT = (t - _holdRatio) / Mathf.Max(0.0001f, 1f - _holdRatio);
+                    envelope = 1f - fadeT;
+                    envelope *= envelope;
+                }
+
                 value = Mathf.Lerp(_rest, _peak, envelope);
 
                 if (_age >= _duration)

@@ -155,6 +155,12 @@ namespace EGamePlay.Unity
             _lastGaitAnimHash = 0;
         }
 
+        /// <summary>运行时替换输入源（人机从 Idle 切到 AI 轴）。</summary>
+        public void SetInputProvider(IMoveInputProvider input) => _input = input;
+
+        /// <summary>运行时替换平面基（人机禁止跟玩家镜头拆轴）。</summary>
+        public void SetCameraProvider(IMoveCameraProvider camera) => _camera = camera;
+
         /// <summary>应用调参。</summary>
         public void SetTuning(in LocomotionTuning tuning) => _tuning = tuning;
 

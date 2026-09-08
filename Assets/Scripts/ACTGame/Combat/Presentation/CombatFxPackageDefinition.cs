@@ -28,9 +28,11 @@ namespace ACTGameEditor.Combat
             | CombatFxTriggerFlags.SkipOnImmunity
             | CombatFxTriggerFlags.SkipOnInterrupt
             | CombatFxTriggerFlags.RequirePositiveDamage;
-        /// <summary>0 不限。技能段号下限（含）。段 ≥ 2 当重击。</summary>
+        /// <summary>0 不限。按盒段号过滤时才填，不要用来代替 <see cref="HitReactionFilter"/>。</summary>
         public int MinDamageSegment;
         /// <summary>0 不限。技能段号上限（含）。</summary>
         public int MaxDamageSegment;
+        /// <summary>Any 不限。轻重受击与段表 HitReaction 对齐。</summary>
+        public CombatFxHitReactionFilter HitReactionFilter;
     }
 }

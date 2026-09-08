@@ -39,4 +39,12 @@ namespace ACTGameEditor.Combat
         /// <summary>仅技能直伤，跳过 Buff / DoT。</summary>
         RequireSkillDamage = 1 << 8,
     }
+
+    /// <summary>ActionPoint 规则按段表受击反应过滤。Any 不限。</summary>
+    public enum CombatFxHitReactionFilter : byte
+    {
+        Any = 0,
+        Light = 1,
+        Heavy = 2,
+    }
 }

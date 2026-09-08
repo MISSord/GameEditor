@@ -18,6 +18,8 @@
     "DamageType": 0,
     "FormulaType": 0,
     "CanCrit": 1,
+    "HitReaction": 0,
+    "InterruptLevel": 0,
     "OnHitEffectIds": []
   },
   {
@@ -39,6 +41,8 @@
     "DamageType": 0,
     "FormulaType": 0,
     "CanCrit": 1,
+    "HitReaction": 0,
+    "InterruptLevel": 0,
     "OnHitEffectIds": []
   },
   {
@@ -60,6 +64,8 @@
     "DamageType": 0,
     "FormulaType": 0,
     "CanCrit": 1,
+    "HitReaction": 1,
+    "InterruptLevel": 3,
     "OnHitEffectIds": []
   },
   {
@@ -81,6 +87,123 @@
     "DamageType": 0,
     "FormulaType": 0,
     "CanCrit": 1,
+    "HitReaction": 1,
+    "InterruptLevel": 5,
+    "OnHitEffectIds": []
+  },
+  {
+    "SkillId": 12001,
+    "SkillName": "敌普攻1",
+    "SegmentIndex": 1,
+    "RatioByLevel": [
+      1,
+      1.1,
+      1.2,
+      1.3,
+      1.4,
+      1.5,
+      1.6,
+      1.7,
+      1.8,
+      1.9
+    ],
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1,
+    "HitReaction": 0,
+    "InterruptLevel": 0,
+    "OnHitEffectIds": []
+  },
+  {
+    "SkillId": 12002,
+    "SkillName": "敌普攻2-1",
+    "SegmentIndex": 1,
+    "RatioByLevel": [
+      1.5,
+      1.65,
+      1.8,
+      1.95,
+      2.1,
+      2.25,
+      2.4,
+      2.55,
+      2.7,
+      2.85
+    ],
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1,
+    "HitReaction": 0,
+    "InterruptLevel": 0,
+    "OnHitEffectIds": []
+  },
+  {
+    "SkillId": 12002,
+    "SkillName": "敌普攻2-2",
+    "SegmentIndex": 2,
+    "RatioByLevel": [
+      1.5,
+      1.65,
+      1.8,
+      1.95,
+      2.1,
+      2.25,
+      2.4,
+      2.55,
+      2.7,
+      2.85
+    ],
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1,
+    "HitReaction": 1,
+    "InterruptLevel": 3,
+    "OnHitEffectIds": []
+  },
+  {
+    "SkillId": 12003,
+    "SkillName": "敌普攻3",
+    "SegmentIndex": 1,
+    "RatioByLevel": [
+      3,
+      3.3,
+      3.6,
+      3.9,
+      4.2,
+      4.5,
+      4.8,
+      5.1,
+      5.4,
+      5.7
+    ],
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1,
+    "HitReaction": 1,
+    "InterruptLevel": 3,
+    "OnHitEffectIds": []
+  },
+  {
+    "SkillId": 12004,
+    "SkillName": "敌红光重击",
+    "SegmentIndex": 1,
+    "RatioByLevel": [
+      4,
+      4.4,
+      4.8,
+      5.2,
+      5.6,
+      6,
+      6.4,
+      6.8,
+      7.2,
+      7.6
+    ],
+    "DamageType": 0,
+    "FormulaType": 0,
+    "CanCrit": 1,
+    "HitReaction": 1,
+    "InterruptLevel": 5,
     "OnHitEffectIds": []
   }
 ]

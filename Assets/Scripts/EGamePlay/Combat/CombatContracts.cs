@@ -20,7 +20,7 @@ namespace EGamePlay.Combat
         bool IsCanSpellSkill { get; }
         /// <summary>高优先级自身取消（大招顶普攻等）。闪避另走 <see cref="IsCanRollSkill"/>。</summary>
         bool IsCanSelfCancelSkill { get; }
-        /// <summary>闪避槽：死亡/受击/禁移不可；沉默（仅 SkillForbid）仍可。</summary>
+        /// <summary>闪避槽：死亡/硬控/禁移不可；沉默（仅 SkillForbid）和短受击仍可。</summary>
         bool IsCanRollSkill { get; }
         bool IsDead { get; }
         bool isTruePlayer { get; }
@@ -52,6 +52,12 @@ namespace EGamePlay.Combat
         SkillLevelComponent SkillLevels { get; }
         void PopTagsFrom(TagSource source);
         bool CanSpellSkillWithTagLists(List<string> required, List<string> blocked);
+
+        /// <summary>
+        /// 提交预输入出招。必须在当帧 HitPipeline.Flush 之前调用，
+        /// 否则闪避 i-frame 会晚一拍，出现「断裂已出仍扣血」。
+        /// </summary>
+        void TickPendingSkillInput();
 
         /// <summary>HP 归零后的统一死亡落地。</summary>
         void ApplyDeath();

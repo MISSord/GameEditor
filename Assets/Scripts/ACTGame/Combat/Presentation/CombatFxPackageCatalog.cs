@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using EGamePlay.Combat;
 using UnityEngine;
 
@@ -93,24 +93,44 @@ namespace ACTGameEditor.Combat
             {
                 Id = CombatFxPackageId.HitCausedLight,
                 DisplayName = "轻命中",
-                ReferenceNote = "鸣潮偏轻：短 HitStop + 镜头冲击。",
-                Entries = { CombatFxPackageEntry.HitStop(0.08f, 0.08f, camera: true, timePriority: 10) },
+                ReferenceNote = "鸣潮偏轻：短 HitStop + 镜头冲击 + 轻震屏。",
+                Entries =
+                {
+                    CombatFxPackageEntry.HitStop(0.08f, 0.08f, camera: true, timePriority: 10),
+                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.Light()),
+                },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.HitCausedHeavy,
                 DisplayName = "重命中",
-                ReferenceNote = "ZZZ 风格：更长 HitStop + 强镜头。",
-                Entries = { CombatFxPackageEntry.HitStop(0.14f, 0.05f, camera: true, timePriority: 20) },
+                ReferenceNote = "ZZZ 风格：更长 HitStop + 强镜头 + 重震屏。",
+                Entries =
+                {
+                    CombatFxPackageEntry.HitStop(0.14f, 0.05f, camera: true, timePriority: 20),
+                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.Heavy()),
+                },
             });
 
             Packages.Add(new CombatFxPackageDefinition
             {
                 Id = CombatFxPackageId.HitCausedCrit,
                 DisplayName = "暴击命中",
-                ReferenceNote = "暴击：在重命中基础上略延长顿帧。",
-                Entries = { CombatFxPackageEntry.HitStop(0.16f, 0.04f, camera: true, timePriority: 30) },
+                ReferenceNote = "暴击：在重命中基础上略延长顿帧 + 强震屏。",
+                Entries =
+                {
+                    CombatFxPackageEntry.HitStop(0.16f, 0.04f, camera: true, timePriority: 30),
+                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.Crit()),
+                },
+            });
+
+            Packages.Add(new CombatFxPackageDefinition
+            {
+                Id = CombatFxPackageId.PlayerHitShake,
+                DisplayName = "受击震屏（本地玩家）",
+                ReferenceNote = "ZZZ：本地玩家被重击时镜头震动 + 向攻击来源 Kick；仅本地玩家受击触发。",
+                Entries = { CombatFxPackageEntry.CameraShake(CameraShakeProfile.HitTaken()) },
             });
 
             Packages.Add(new CombatFxPackageDefinition
@@ -128,8 +148,8 @@ namespace ACTGameEditor.Combat
                 ReferenceNote = "鸣潮极限闪避：世界减速 + 残影 + 灰屏。",
                 Entries =
                 {
-                    CombatFxPackageEntry.TimeFracture(0.5f, 0.3f),
-                    CombatFxPackageEntry.ScreenDesaturate(0.5f),
+                    CombatFxPackageEntry.TimeFracture(2f, 0.3f),
+                    CombatFxPackageEntry.ScreenDesaturate(2f),
                     CombatFxPackageEntry.Afterimage(),
                 },
             });
@@ -151,11 +171,12 @@ namespace ACTGameEditor.Combat
             {
                 Id = CombatFxPackageId.StaggerBreak,
                 DisplayName = "破韧",
-                ReferenceNote = "强 HitStop + 闪白。",
+                ReferenceNote = "强 HitStop + 闪白 + 最重震屏。",
                 Entries =
                 {
                     CombatFxPackageEntry.HitStop(0.2f, 0.05f, camera: true, timePriority: 40),
                     CombatFxPackageEntry.HitFlash(0.25f),
+                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.StaggerBreak()),
                 },
             });
 
@@ -231,7 +252,7 @@ namespace ACTGameEditor.Combat
                 ActionPoint = ActionPointType.PostReceiveDamage,
                 PackageId = CombatFxPackageId.HitTakenLight,
                 Flags = takenBase | CombatFxTriggerFlags.SkipOnCritical,
-                MaxDamageSegment = 1,
+                HitReactionFilter = CombatFxHitReactionFilter.Light,
             });
 
             ActionPointRules.Add(new CombatFxTriggerRuleDefinition
@@ -240,7 +261,7 @@ namespace ACTGameEditor.Combat
                 ActionPoint = ActionPointType.PostReceiveDamage,
                 PackageId = CombatFxPackageId.HitTakenHeavy,
                 Flags = takenBase | CombatFxTriggerFlags.SkipOnCritical,
-                MinDamageSegment = 2,
+                HitReactionFilter = CombatFxHitReactionFilter.Heavy,
             });
 
             ActionPointRules.Add(new CombatFxTriggerRuleDefinition
@@ -249,6 +270,15 @@ namespace ACTGameEditor.Combat
                 ActionPoint = ActionPointType.PostReceiveDamage,
                 PackageId = CombatFxPackageId.HitTakenHeavy,
                 Flags = takenBase | CombatFxTriggerFlags.RequireCritical,
+            });
+
+            ActionPointRules.Add(new CombatFxTriggerRuleDefinition
+            {
+                TriggerKind = CombatFxTriggerKind.ActionPoint,
+                ActionPoint = ActionPointType.PostReceiveDamage,
+                PackageId = CombatFxPackageId.PlayerHitShake,
+                Flags = takenBase | CombatFxTriggerFlags.LocalTruePlayerOnly,
+                HitReactionFilter = CombatFxHitReactionFilter.Heavy,
             });
 
             ActionPointRules.Add(new CombatFxTriggerRuleDefinition
@@ -265,7 +295,7 @@ namespace ACTGameEditor.Combat
                 ActionPoint = ActionPointType.PostCauseDamage,
                 PackageId = CombatFxPackageId.HitCausedHeavy,
                 Flags = causeBase | CombatFxTriggerFlags.SkipOnCritical,
-                MinDamageSegment = 2,
+                HitReactionFilter = CombatFxHitReactionFilter.Heavy,
             });
 
             ActionPointRules.Add(new CombatFxTriggerRuleDefinition
@@ -274,7 +304,7 @@ namespace ACTGameEditor.Combat
                 ActionPoint = ActionPointType.PostCauseDamage,
                 PackageId = CombatFxPackageId.HitCausedLight,
                 Flags = causeBase | CombatFxTriggerFlags.SkipOnCritical,
-                MaxDamageSegment = 1,
+                HitReactionFilter = CombatFxHitReactionFilter.Light,
             });
 
             ActionPointRules.Add(new CombatFxTriggerRuleDefinition

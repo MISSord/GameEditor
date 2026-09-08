@@ -24,6 +24,8 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
         { if(!_buf["DamageType"].IsNumber) { throw new SerializationException(); }  DamageType = (DamageType)_buf["DamageType"].AsInt; }
         { if(!_buf["FormulaType"].IsNumber) { throw new SerializationException(); }  FormulaType = _buf["FormulaType"]; }
         { if(!_buf["CanCrit"].IsNumber) { throw new SerializationException(); }  CanCrit = _buf["CanCrit"]; }
+        { if(!_buf["HitReaction"].IsNumber) { throw new SerializationException(); }  HitReaction = (HitReactionType)_buf["HitReaction"].AsInt; }
+        { if(!_buf["InterruptLevel"].IsNumber) { throw new SerializationException(); }  InterruptLevel = _buf["InterruptLevel"]; }
         { var __json0 = _buf["OnHitEffectIds"]; if(!__json0.IsArray) { throw new SerializationException(); } OnHitEffectIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  OnHitEffectIds.Add(__v0); }   }
     }
 
@@ -61,6 +63,14 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
     /// </summary>
     public readonly int CanCrit;
     /// <summary>
+    /// 受击反应
+    /// </summary>
+    public readonly HitReactionType HitReaction;
+    /// <summary>
+    /// 出手打断等级
+    /// </summary>
+    public readonly int InterruptLevel;
+    /// <summary>
     /// 本段额外效果
     /// </summary>
     public readonly System.Collections.Generic.List<int> OnHitEffectIds;
@@ -82,6 +92,8 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
         + "DamageType:" + DamageType + ","
         + "FormulaType:" + FormulaType + ","
         + "CanCrit:" + CanCrit + ","
+        + "HitReaction:" + HitReaction + ","
+        + "InterruptLevel:" + InterruptLevel + ","
         + "OnHitEffectIds:" + Luban.StringUtil.CollectionToString(OnHitEffectIds) + ","
         + "}";
     }

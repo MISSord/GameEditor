@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a1c8e2d4b3f4709a5c1e8d7f0b2a394, type: 3}
+  m_Name: DefaultGruntMoveSet
+  m_EditorClassIdentifier: 
+  Moves:
+  - SkillId: 12001
+    Sort: 100
+    TokenKind: 0
+    RequiresToken: 1
+    MinRange: 0.8
+    MaxRange: 2.8
+    PreferredRange: 2
+    BaseWeight: 1
+    RecoverSeconds: 0.65
+    TelegraphKind: 1
+    TelegraphSeconds: 0.45
+    PhaseMask: 1
+    RepeatPenalty: 0.35
+    IsFeint: 0
+    FollowUpSkillId: 12003
+  - SkillId: 12002
+    Sort: 100
+    TokenKind: 0
+    RequiresToken: 1
+    MinRange: 2.5
+    MaxRange: 5.5
+    PreferredRange: 4.2
+    BaseWeight: 1.15
+    RecoverSeconds: 0.8
+    TelegraphKind: 1
+    TelegraphSeconds: -1
+    PhaseMask: 1
+    RepeatPenalty: 0.45
+    IsFeint: 0
+    FollowUpSkillId: 0
+  - SkillId: 12003
+    Sort: 100
+    TokenKind: 0
+    RequiresToken: 1
+    MinRange: 0.8
+    MaxRange: 2.4
+    PreferredRange: 1.6
+    BaseWeight: 0.9
+    RecoverSeconds: 0.7
+    TelegraphKind: 1
+    TelegraphSeconds: 0.45
+    PhaseMask: 1
+    RepeatPenalty: 0.5
+    IsFeint: 0
+    FollowUpSkillId: 0

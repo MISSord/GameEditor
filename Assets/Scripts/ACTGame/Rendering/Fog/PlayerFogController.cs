@@ -9,10 +9,6 @@ namespace ACTGameEditor
     [DisallowMultipleComponent]
     public sealed class PlayerFogController : MonoBehaviour
     {
-        [Header("输入")]
-        [SerializeField]
-        KeyCode toggleKey = KeyCode.Alpha8;
-
         [Header("锚点")]
         [Tooltip("迷雾中心；为空则用本对象（角色）")]
         [SerializeField]
@@ -149,9 +145,7 @@ namespace ACTGameEditor
 
         void Update()
         {
-            if (Input.GetKeyDown(toggleKey))
-                Toggle();
-
+            // 调试切换键已统一移到 SkillEditorScene（数字键 8），本组件只跑雾逻辑
             if (_active)
                 PushState();
         }

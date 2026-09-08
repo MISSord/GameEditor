@@ -108,19 +108,19 @@ namespace ACTGameEditor
                 Destroy(_wireGo);
         }
 
+        /// <summary>按住开启模式（该模式下按键由本组件自理；调试热键已统一移到 SkillEditorScene）。</summary>
+        public bool HoldToReveal => holdToReveal;
+
         void Update()
         {
             ResolveOrigin();
 
+            // 调试切换键已统一移到 SkillEditorScene（数字键 7）；按住开启模式仍由本组件自理
             if (holdToReveal)
             {
                 bool want = Input.GetKey(toggleKey);
                 if (want != _active)
                     SetActive(want);
-            }
-            else if (Input.GetKeyDown(toggleKey))
-            {
-                Toggle();
             }
 
             if (_active)

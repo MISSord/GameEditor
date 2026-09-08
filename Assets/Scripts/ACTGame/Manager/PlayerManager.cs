@@ -166,21 +166,23 @@ namespace ACTGameEditor
             RegisterPlayer(player);
         }
 
-        public void AddFakePlayer(Vector3 startPos, bool isAi, AgentTag agentTag, AgentModelType agentName = AgentModelType.Player)
+        public ActPlayer AddFakePlayer(Vector3 startPos, bool isAi, AgentTag agentTag, AgentModelType agentName = AgentModelType.Player)
         {
             string prefabPath = agentName == AgentModelType.Player ? PrefabPath.Player : PrefabPath.EnemyB;
             string assetPath = agentName == AgentModelType.Player ? "ActPlayer" : "EnemyB";
 
-            ActPlayer player = SpawnActPlayer(prefabPath, assetPath, startPos, agentTag, isTruePlayer: false);
+            ActPlayer player = SpawnActPlayer(prefabPath, assetPath, startPos, agentTag, isTruePlayer: false, agentName);
 
             PlayerNetIdList.Add(player.Combat.NetId);
             RegisterPlayer(player);
+            return player;
         }
 
         /// <summary>
         /// 从运行时对象池取出角色；池未就绪时回退 Instantiate。
         /// </summary>
-        ActPlayer SpawnActPlayer(string bundle, string asset, Vector3 position, AgentTag agent, bool isTruePlayer)
+        ActPlayer SpawnActPlayer(string bundle, string asset, Vector3 position, AgentTag agent, bool isTruePlayer,
+            AgentModelType modelType = AgentModelType.Player)
         {
             GameObject obj = RunTimePoolManager.Instance != null
                 ? RunTimePoolManager.Instance.LoadResPoolObj(bundle, asset)
@@ -200,6 +202,7 @@ namespace ACTGameEditor
             player.SetPoolResPath(bundle, asset);
             player.RestoreForReuse();
             player.Agent = agent;
+            player.ModelType = modelType;
             player.Init(isTruePlayer);
             return player;
         }
@@ -215,21 +218,30 @@ namespace ACTGameEditor
         }
 
         /// <summary> UI 功能，在本地玩家右侧生成假玩家，AgentTag 为 PlayerB </summary>
-        public void AddFakePlayerFromUI()
+        public ActPlayer AddFakePlayerFromUI()
         {
             Vector3 pos = LocalPlayer != null
                 ? LocalPlayer.transform.position + LocalPlayer.transform.TransformDirection(Vector3.right) * 3f
                 : Vector3.zero;
-            AddFakePlayer(pos, false, AgentTag.PlayerB, AgentModelType.Player);
+            return AddFakePlayer(pos, false, AgentTag.PlayerB, AgentModelType.Player);
         }
 
         /// <summary> UI 功能，在本地玩家前方生成敌人，AgentTag 为 enemy </summary>
-        public void AddEnemyFromUI()
+        public ActPlayer AddEnemyFromUI()
         {
             Vector3 pos = LocalPlayer != null
                 ? LocalPlayer.transform.position + LocalPlayer.transform.TransformDirection(Vector3.forward) * 5f
                 : Vector3.forward * 5f;
-            AddFakePlayer(pos, false, AgentTag.enemy, AgentModelType.EnemyB);
+            return AddFakePlayer(pos, true, AgentTag.enemy, AgentModelType.EnemyB);
+        }
+
+        /// <summary> UI 功能，在本地玩家前方生成精英敌人（EnemyA 模型位 → 精英大脑档） </summary>
+        public ActPlayer AddEliteEnemyFromUI()
+        {
+            Vector3 pos = LocalPlayer != null
+                ? LocalPlayer.transform.position + LocalPlayer.transform.TransformDirection(Vector3.forward) * 5f
+                : Vector3.forward * 5f;
+            return AddFakePlayer(pos, true, AgentTag.enemy, AgentModelType.EnemyA);
         }
 
         /// <summary> 切换摄像机跟随玩家；冷却中时不会切换。 </summary>

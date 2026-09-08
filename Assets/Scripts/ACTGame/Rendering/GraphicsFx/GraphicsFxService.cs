@@ -66,12 +66,19 @@ namespace ACTGameEditor
                 GraphicsFxApplier.ApplyAll(this);
 
             EnsureCameraPostFx();
+            EnsureCameraShake();
         }
 
         void EnsureCameraPostFx()
         {
             if (GetComponent<CameraPostFxController>() == null)
                 gameObject.AddComponent<CameraPostFxController>();
+        }
+
+        void EnsureCameraShake()
+        {
+            if (GetComponent<CameraShakeController>() == null)
+                gameObject.AddComponent<CameraShakeController>();
         }
 
         void OnEnable()

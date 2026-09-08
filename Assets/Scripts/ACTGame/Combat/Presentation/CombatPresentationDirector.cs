@@ -25,6 +25,8 @@ namespace ACTGameEditor.Combat
         static readonly TimeScaleFxBridge TimeScaleBridge = new TimeScaleFxBridge();
         static readonly CameraPostFxBridge CameraBridge = new CameraPostFxBridge();
         static readonly CharacterRenderFxBridge CharacterBridge = new CharacterRenderFxBridge();
+        static readonly CameraShakeBridge ShakeBridge = new CameraShakeBridge();
+        static readonly TelegraphFlashBridge TelegraphBridge = new TelegraphFlashBridge();
 #endif
 
         /// <summary>播放表现；失败返回 <see cref="CombatFxHandle.Invalid"/>。</summary>
@@ -207,6 +209,8 @@ namespace ACTGameEditor.Combat
             {
                 CombatFxKind.SkillTimeStop or CombatFxKind.TimeFracture or CombatFxKind.HitStop => TimeScaleBridge,
                 CombatFxKind.RadialBlurImpact or CombatFxKind.ScreenDesaturate => CameraBridge,
+                CombatFxKind.CameraShake => ShakeBridge,
+                CombatFxKind.TelegraphFlash => TelegraphBridge,
                 CombatFxKind.HitFlash or CombatFxKind.DeathDissolve or CombatFxKind.Afterimage => CharacterBridge,
                 _ => null,
             };

@@ -9,10 +9,6 @@ namespace ACTGameEditor
     [DisallowMultipleComponent]
     public sealed class RevealVisionController : MonoBehaviour
     {
-        [Header("Input")]
-        [SerializeField]
-        KeyCode triggerKey = KeyCode.Alpha5;
-
         [Header("Source")]
         [SerializeField]
         Transform revealOrigin;
@@ -82,9 +78,7 @@ namespace ACTGameEditor
 
         void Update()
         {
-            if (Input.GetKeyDown(triggerKey))
-                TriggerReveal();
-
+            // 调试触发键已统一移到 SkillEditorScene（数字键 5），本组件只跑显现逻辑
             if (!_pulsing)
                 return;
 

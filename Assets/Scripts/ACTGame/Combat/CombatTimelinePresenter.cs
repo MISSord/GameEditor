@@ -83,6 +83,10 @@ namespace ACTGameEditor.Combat
                     ApplyPlayFxPackage(floatMsg, timelineSource);
                     break;
 
+                case var _ when msgName == PlayEventMsg.AiTelegraph:
+                    CombatTelegraph.PlayFromTimeline(_owner, strMsg, floatMsg, timelineSource);
+                    break;
+
                 case var _ when msgName == PlayEventMsg.PlayAudio:
                     PlayTimelineAudio(strMsg, floatMsg);
                     break;

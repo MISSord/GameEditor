@@ -9,9 +9,6 @@ namespace ACTGameEditor
     public sealed class DepthVisionController : MonoBehaviour
     {
         [SerializeField]
-        KeyCode toggleKey = KeyCode.Alpha6;
-
-        [SerializeField]
         Color nearColor = Color.white;
 
         [SerializeField]
@@ -51,9 +48,7 @@ namespace ACTGameEditor
         void Update()
         {
             PushSettings();
-
-            if (Input.GetKeyDown(toggleKey))
-                Toggle();
+            // 调试切换键已统一移到 SkillEditorScene（数字键 6）
         }
 
         /// <summary>切换深度视界。</summary>
