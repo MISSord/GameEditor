@@ -50,11 +50,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17d701ce2f36b1c469ddb97f9141f234, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  joystickType: 1
+  joystickType: 0
   background: {fileID: 5608271134221257346}
   handle: {fileID: 4082769320311126057}
   canvas: {fileID: 0}
-  camera: {fileID: 0}
+  UICamera: {fileID: 0}
   MoveThreshold: 0
   input: {x: 0, y: 0}
 --- !u!1 &5608271134221257347

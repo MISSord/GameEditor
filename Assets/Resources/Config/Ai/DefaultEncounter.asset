@@ -21,6 +21,7 @@ MonoBehaviour:
   RelaxPerfectDodge: 0.45
   RelaxNormalDodge: 0.15
   RelaxWhiff: 0.25
+  RelaxParry: 0.85
   DesireBasePerSec: 0.45
   DesireSlotBonusPerSec: 0.35
   DesireCap: 1

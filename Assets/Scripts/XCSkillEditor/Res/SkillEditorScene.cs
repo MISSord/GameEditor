@@ -12,6 +12,8 @@ using ACTGameEditor.Combat;
 ///
 /// 热键一览：
 ///   F2 刷杂兵 / F3 刷精英 / F4 生成测试小队（4 杂兵 + 2 精英）
+///   F6 最近敌人打满失衡 / Shift+F6 清空
+///   失衡窗内 K（ButtonA）连携 13001
 ///   F7 技能镜头测试 / F8 震屏测试 / F9 时空断裂 / F10 普攻组等级切换
 ///   数字键 5 显现球 / 6 深度视界 / 7 显现锥 / 8 玩家雾
 /// </summary>
@@ -96,6 +98,54 @@ public class SkillEditorScene : MonoBehaviour
         Debug.Log($"[SkillLevel] 普攻组 lv={applied} ratio 11001={r1} 11002={r21}/{r22} 11003={r3}");
     }
 
+    [Button("最近敌人打满失衡")]
+    public void DebugFillNearestEnemyDaze()
+    {
+        CombatMeterComponent meter = FindNearestEnemyMeter();
+        if (meter == null)
+        {
+            Debug.Log("[Daze] 场上没有可失衡的敌人");
+            return;
+        }
+        meter.DebugFill();
+        Debug.Log($"[Daze] 打满 {meter.Phase} ratio={meter.CurrentRatio:0.00}");
+    }
+
+    [Button("最近敌人清空失衡")]
+    public void DebugClearNearestEnemyDaze()
+    {
+        CombatMeterComponent meter = FindNearestEnemyMeter();
+        if (meter == null)
+            return;
+        meter.DebugClear();
+        Debug.Log("[Daze] 已清空");
+    }
+
+    static CombatMeterComponent FindNearestEnemyMeter()
+    {
+        PlayerManager pm = PlayerManager.Instance;
+        if (pm == null || pm.LocalPlayer == null)
+            return null;
+        Vector3 origin = pm.LocalPlayer.transform.position;
+        CombatMeterComponent best = null;
+        float bestSq = float.MaxValue;
+        foreach (var kv in pm.MonoAttackerDic)
+        {
+            ActPlayer p = kv.Value;
+            if (p == null || p.Agent != AgentTag.enemy || p.Combat == null)
+                continue;
+            CombatMeterComponent meter = p.Combat.DazeMeter;
+            if (meter == null || !meter.IsConfigured)
+                continue;
+            float sq = (p.transform.position - origin).sqrMagnitude;
+            if (sq >= bestSq)
+                continue;
+            bestSq = sq;
+            best = meter;
+        }
+        return best;
+    }
+
     void Update()
     {
         TickDebugHotkeys();
@@ -114,6 +164,14 @@ public class SkillEditorScene : MonoBehaviour
             pm.AddEliteEnemyFromUI();
         else if (Input.GetKeyDown(KeyCode.F4))
             SpawnTestSquad();
+
+        if (Input.GetKeyDown(KeyCode.F6))
+        {
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                DebugClearNearestEnemyDaze();
+            else
+                DebugFillNearestEnemyDaze();
+        }
 
         // ── 战斗表现调试 ──
         if (Input.GetKeyDown(KeyCode.F7))
@@ -141,6 +199,16 @@ public class SkillEditorScene : MonoBehaviour
         }
         else if (Input.GetKeyDown(KeyCode.Alpha8))
             FindObjectOfType<PlayerFogController>()?.Toggle();
+    }
+
+    void OnGUI()
+    {
+        CombatMeterComponent meter = FindNearestEnemyMeter();
+        if (meter == null || !meter.IsConfigured)
+            return;
+        GUI.Label(
+            new Rect(12f, 12f, 520f, 24f),
+            $"[Daze] {meter.Phase}  {meter.CurrentRatio * 100f:0}%  chain={(meter.IsChainWindow ? "K连携" : "no")}");
     }
 }
 #endif

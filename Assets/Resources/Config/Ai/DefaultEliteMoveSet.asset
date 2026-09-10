@@ -58,6 +58,21 @@ MonoBehaviour:
     RepeatPenalty: 0.5
     IsFeint: 0
     FollowUpSkillId: 0
+  - SkillId: 12006
+    Sort: 100
+    TokenKind: 0
+    RequiresToken: 1
+    MinRange: 0.8
+    MaxRange: 5.5
+    PreferredRange: 2.4
+    BaseWeight: 2.2
+    RecoverSeconds: 0.7
+    TelegraphKind: 2
+    TelegraphSeconds: 0.5
+    PhaseMask: 1
+    RepeatPenalty: 0.4
+    IsFeint: 0
+    FollowUpSkillId: 0
   - SkillId: 12004
     Sort: 100
     TokenKind: 2

@@ -22,6 +22,8 @@ namespace EGamePlay.Combat
         bool IsCanSelfCancelSkill { get; }
         /// <summary>闪避槽：死亡/硬控/禁移不可；沉默（仅 SkillForbid）和短受击仍可。</summary>
         bool IsCanRollSkill { get; }
+        /// <summary>招架槽：条件与闪避相同。受击中可出，硬控/失衡不可。</summary>
+        bool IsCanParrySkill { get; }
         bool IsDead { get; }
         bool isTruePlayer { get; }
         /// <summary>技能轴、CD、动画走玩家钟（本地玩家，或 SkillTimeStop 发起者 hold）。</summary>

@@ -20,6 +20,7 @@ public partial class Tables
     public BuffModifyReader BuffModifyReader {get; }
     public FormulaTypeReader FormulaTypeReader {get; }
     public RoleAttriReader RoleAttriReader {get; }
+    public DazeSettingReader DazeSettingReader {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -29,6 +30,7 @@ public partial class Tables
         BuffModifyReader = new BuffModifyReader(loader("buffmodifyreader"));
         FormulaTypeReader = new FormulaTypeReader(loader("formulatypereader"));
         RoleAttriReader = new RoleAttriReader(loader("roleattrireader"));
+        DazeSettingReader = new DazeSettingReader(loader("dazesettingreader"));
         ResolveRef();
     }
     
@@ -40,6 +42,7 @@ public partial class Tables
         BuffModifyReader.ResolveRef(this);
         FormulaTypeReader.ResolveRef(this);
         RoleAttriReader.ResolveRef(this);
+        DazeSettingReader.ResolveRef(this);
     }
 }
 

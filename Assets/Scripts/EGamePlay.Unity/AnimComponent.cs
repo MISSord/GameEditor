@@ -286,9 +286,11 @@ namespace EGamePlay.Unity
         }
 
         /// <summary>
-        /// 硬控姿态：优先 Stun，否则 Damage。不自动交回 Locomotion，由 ExitControl 再 ForceLocomotion。
+        /// 硬控/招架硬直姿态：优先 Stun，否则 Damage。
+        /// <paramref name="holdSeconds"/> ≤0 时一直拿到 ExitControl / ForceLocomotion；
+        /// &gt;0 时到点交回 Locomotion（招架硬直与 Hit 槽对齐）。
         /// </summary>
-        public int PlayHeldControlReaction(float blendSeconds = 0.05f)
+        public int PlayHeldControlReaction(float blendSeconds = 0.05f, float holdSeconds = 0f)
         {
             Animator animator = _anim.animator;
             if (animator == null)
@@ -298,7 +300,14 @@ namespace EGamePlay.Unity
             if (!HasAnimatorState(animator, hash))
                 return 0;
 
-            return PlaySkill(hash, blendSeconds, 0f, 1f, applyRootMotion: false, suppressGravity: true);
+            int token = PlaySkill(hash, blendSeconds, 0f, 1f, applyRootMotion: false, suppressGravity: true);
+            if (holdSeconds > 0.01f && token != 0)
+            {
+                _autoReleaseToken = token;
+                _autoReleaseAt = GetLayerTime() + holdSeconds;
+            }
+
+            return token;
         }
 
         /// <summary>

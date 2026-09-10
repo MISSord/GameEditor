@@ -126,6 +126,16 @@ namespace XiaoCao
                 barImg.fillAmount = p;
         }
 
+        /// <summary>血条下失衡条。show=false 时关掉 Image，避免玩家空条。</summary>
+        public void SetDazeFill(float ratio, bool show)
+        {
+            if (barImg_noBreak == null)
+                return;
+            barImg_noBreak.enabled = show;
+            if (show)
+                barImg_noBreak.fillAmount = Mathf.Clamp01(ratio);
+        }
+
         public void SetFillValueNoBreak(int value, int count)
         {
             if(count == 0)

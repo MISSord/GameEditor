@@ -27,6 +27,7 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
         { if(!_buf["HitReaction"].IsNumber) { throw new SerializationException(); }  HitReaction = (HitReactionType)_buf["HitReaction"].AsInt; }
         { if(!_buf["InterruptLevel"].IsNumber) { throw new SerializationException(); }  InterruptLevel = _buf["InterruptLevel"]; }
         { var __json0 = _buf["OnHitEffectIds"]; if(!__json0.IsArray) { throw new SerializationException(); } OnHitEffectIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  OnHitEffectIds.Add(__v0); }   }
+        { if(!_buf["DazeRatio"].IsNumber) { throw new SerializationException(); }  DazeRatio = _buf["DazeRatio"]; }
     }
 
     public static SkillDamageSetting DeserializeSkillDamageSetting(JSONNode _buf)
@@ -74,6 +75,10 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
     /// 本段额外效果
     /// </summary>
     public readonly System.Collections.Generic.List<int> OnHitEffectIds;
+    /// <summary>
+    /// 失衡倍率
+    /// </summary>
+    public readonly float DazeRatio;
    
     public const int __ID__ = -527803088;
     public override int GetTypeId() => __ID__;
@@ -95,6 +100,7 @@ public sealed partial class SkillDamageSetting : Luban.BeanBase
         + "HitReaction:" + HitReaction + ","
         + "InterruptLevel:" + InterruptLevel + ","
         + "OnHitEffectIds:" + Luban.StringUtil.CollectionToString(OnHitEffectIds) + ","
+        + "DazeRatio:" + DazeRatio + ","
         + "}";
     }
 }

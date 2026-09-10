@@ -83,7 +83,7 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 
 ### Buff
 
-- 同一 BuffId 默认一条，重复走 `RepeatedAddition`（叠时 / 刷新 / 叠层 / 互斥）。
+- 同一 BuffId 默认一条，重复走 `RepeatedAddition`（叠时 / 刷新 / 叠层 / 互斥）。硬控（`Buff.MoveForbid`）跨 Id 再走 `HardControlMutex`：高 Priority 覆盖，同等则新替旧。
 - 上 Buff 走 `AddStatusAction` + `PreGive/PreReceive` + `StatusApplyResolver`（免疫 / 抵抗）。测试面板 `AttachStatus` 是直挂，**绕过**免疫。
 - 卸走统一 `RemoveStatus(id, BuffRemoveReason)`。效果锁中的添加要入队。
 - Modify 槽位：`Assets/Scripts/EGamePlay/Combat/Buff/BuffModify/EffectModifyParamSlots.md`。

@@ -46,6 +46,8 @@ namespace ACTGameEditor.Combat
         public SkillLevelComponent SkillLevels { get; private set; }
         public EntityTimeScaleComponent TimeScale { get; private set; }
         public CombatFormComponent FormComponent => _formComponent;
+        /// <summary>失衡计量。玩家未 Configure，<see cref="CombatMeterComponent.IsConfigured"/> 为 false。</summary>
+        public CombatMeterComponent DazeMeter { get; private set; }
 
         public DamageActionAbility DamageAbility { get; private set; }
         public ResourceActionAbility ResourceAbility { get; private set; }
@@ -93,7 +95,8 @@ namespace ACTGameEditor.Combat
             {
                 if (IsDead || _timedMoveLock)
                     return 0f;
-                if (CurState == PlayerStateEnum.Hit || CurState == PlayerStateEnum.Control)
+                if (CurState == PlayerStateEnum.Hit || CurState == PlayerStateEnum.Control
+                    || CurState == PlayerStateEnum.Stagger)
                     return 0f;
                 if (TagHost == null || TagHost.HasIndex(TagHost.MoveForbidIndex))
                     return 0f;
@@ -108,7 +111,8 @@ namespace ACTGameEditor.Combat
         {
             get
             {
-                if (IsDead || ActiveExecution != null || CurState == PlayerStateEnum.Hit || CurState == PlayerStateEnum.Control)
+                if (IsDead || ActiveExecution != null || CurState == PlayerStateEnum.Hit
+                    || CurState == PlayerStateEnum.Control || CurState == PlayerStateEnum.Stagger)
                     return false;
                 if (_timedMoveLock)
                     return false;
@@ -142,14 +146,16 @@ namespace ACTGameEditor.Combat
             && !TagHost.HasIndex(TagHost.UnStoppedIndex)
             && !TagHost.HasIndex(TagHost.SkillForbidIndex)
             && CurState != PlayerStateEnum.Hit
-            && CurState != PlayerStateEnum.Control;
+            && CurState != PlayerStateEnum.Control
+            && CurState != PlayerStateEnum.Stagger;
 
         /// <summary>高优先级自身取消（大招顶普攻）。沉默/眩晕的 SkillForbid 会挡住；闪避不走这里。</summary>
         public bool IsCanSelfCancelSkill => !IsDead
             && TagHost != null
             && !TagHost.HasIndex(TagHost.SkillForbidIndex)
             && CurState != PlayerStateEnum.Hit
-            && CurState != PlayerStateEnum.Control;
+            && CurState != PlayerStateEnum.Control
+            && CurState != PlayerStateEnum.Stagger;
 
         /// <summary>
         /// 闪避：禁移（眩晕）不可；仅禁技能（沉默）可以。
@@ -158,7 +164,11 @@ namespace ACTGameEditor.Combat
         public bool IsCanRollSkill => !IsDead
             && TagHost != null
             && !TagHost.HasIndex(TagHost.MoveForbidIndex)
-            && CurState != PlayerStateEnum.Control;
+            && CurState != PlayerStateEnum.Control
+            && CurState != PlayerStateEnum.Stagger;
+
+        /// <summary>招架：与闪避同一道门，受击中可出。</summary>
+        public bool IsCanParrySkill => IsCanRollSkill;
 
         public bool IsUnstopped => TagHost != null && TagHost.HasIndex(TagHost.UnStoppedIndex);
 
@@ -270,6 +280,7 @@ namespace ACTGameEditor.Combat
             CurrentVital = AddComponent<VitalComponent>();
             CurrentVital.InitVital();
             AddComponent<CombatPoiseComponent>();
+            DazeMeter = AddComponent<CombatMeterComponent>();
         }
 
         void AddPresentationComponents()
@@ -306,6 +317,7 @@ namespace ACTGameEditor.Combat
             ActionPoints = null;
             TimeScale = null;
             CurrentVital = null;
+            DazeMeter = null;
             _formComponent = null;
             _timelinePresenter = null;
             _abilityComponent = null;
@@ -497,6 +509,7 @@ namespace ACTGameEditor.Combat
             if (_curState == PlayerStateEnum.Dead)
                 return;
 
+            DazeMeter?.OnOwnerDeath();
             _stateDirector?.EnterDead();
 
             var runner = ActiveExecution;
@@ -519,24 +532,52 @@ namespace ACTGameEditor.Combat
         /// <summary>重受击硬直 + 打断技能 + 受击动画。轻段不要调；已死亡/硬控中返回 false。霸体走抗打断比大小，这里不再问 UnStopped。</summary>
         public bool TryApplyHitReaction(long sourceId, float durationSeconds = 0.35f)
         {
-            if (_curState == PlayerStateEnum.Dead || _curState == PlayerStateEnum.Control)
-                return false;
-            if (TagHost != null && TagHost.HasIndex(TagHost.MoveForbidIndex))
+            if (!CanEnterHitReaction())
                 return false;
 
+            BreakActiveSkill();
             _stateDirector?.EnterHit(sourceId, durationSeconds);
-
-            var runner = ActiveExecution;
-            if (runner != null)
-            {
-                ActiveExecution = null;
-                runner.BreakSkill();
-            }
 
 #if UNITY
             GetComponent<AnimComponent>()?.Director?.PlayDamageReaction();
 #endif
             return true;
+        }
+
+        /// <summary>
+        /// 招架硬直：断轴后播 Stun 并按时长交回，避免短 Damage 自动回 Idle。
+        /// 计时走宿主层钟（敌人=世界钟）。
+        /// </summary>
+        public bool TryApplyParryStun(long sourceId, float durationSeconds)
+        {
+            if (!CanEnterHitReaction())
+                return false;
+
+            float stun = durationSeconds > 0.01f ? durationSeconds : 0.55f;
+            BreakActiveSkill();
+            _stateDirector?.EnterHit(sourceId, stun);
+
+#if UNITY
+            GetComponent<AnimComponent>()?.Director?.PlayHeldControlReaction(0.05f, stun);
+#endif
+            return true;
+        }
+
+        bool CanEnterHitReaction()
+        {
+            if (_curState == PlayerStateEnum.Dead || _curState == PlayerStateEnum.Control
+                || _curState == PlayerStateEnum.Stagger)
+                return false;
+            return TagHost == null || !TagHost.HasIndex(TagHost.MoveForbidIndex);
+        }
+
+        void BreakActiveSkill()
+        {
+            var runner = ActiveExecution;
+            if (runner == null)
+                return;
+            ActiveExecution = null;
+            runner.BreakSkill();
         }
 
         /// <summary>MoveForbid 0→1 断招进控制槽；1→0 退出。多层眩晕靠 Tag 计数。冻结仍在时不退出。</summary>
@@ -622,6 +663,66 @@ namespace ACTGameEditor.Combat
 
             _stateDirector?.ExitControl();
             // 人机不要跟主控共用键盘；有 EnemyBrain 时仍开电机，停步靠 MoveWeight。
+            ChangeInputMoveState(isTruePlayer || GetComponent<Ai.EnemyBrainComponent>() != null);
+
+            if (_stateDirector != null && _stateDirector.IsStagger)
+            {
+#if UNITY
+                GetComponent<AnimComponent>()?.Director?.PlayHeldControlReaction();
+#endif
+                return;
+            }
+
+#if UNITY
+            AnimComponent anim = GetComponent<AnimComponent>();
+            anim?.Director?.ForceLocomotion();
+            anim?.Motion?.SetPolicy(MotionPolicy.Locomotion);
+            anim?.Motion?.SetSkillSuppressGravity(false);
+#endif
+        }
+
+        /// <summary>失衡条满：无条件断招进 Stagger，导演 Punish，播破衡包。表现不进 DamageAction。</summary>
+        public void BeginDazeStagger()
+        {
+            if (IsDead)
+                return;
+
+            var runner = ActiveExecution;
+            if (runner != null)
+            {
+                ActiveExecution = null;
+                runner.BreakSkill();
+            }
+
+            _stateDirector?.EnterStagger();
+            EndSkillMoveLock();
+            ChangeInputMoveState(false);
+            Ai.CombatEncounterDirector.Instance?.NotifyBreakMeterOpened(this);
+
+#if UNITY
+            AnimComponent anim = GetComponent<AnimComponent>();
+            anim?.Director?.PlayHeldControlReaction();
+            var fx = CombatFxPlayContext.ForOwner(this, CombatFxSource.Entity(Id));
+            fx.ActionTarget = this;
+            fx.ActionCreator = Ai.CombatEncounterDirector.Instance != null
+                ? Ai.CombatEncounterDirector.Instance.FocusTarget
+                : null;
+            CombatFxPackagePlayer.Play(CombatFxPackageId.StaggerBreak, in fx);
+#endif
+        }
+
+        /// <summary>失衡条掉光：退 Stagger，导演结束 Punish（场上无人 Opened 时）。冻结仍在则保持控制姿态。</summary>
+        public void EndDazeStagger()
+        {
+            if (IsDead)
+                return;
+
+            _stateDirector?.ExitStagger();
+            Ai.CombatEncounterDirector.Instance?.NotifyBreakMeterClosed(this);
+
+            if (_stateDirector != null && _stateDirector.IsControl)
+                return;
+
             ChangeInputMoveState(isTruePlayer || GetComponent<Ai.EnemyBrainComponent>() != null);
 
 #if UNITY

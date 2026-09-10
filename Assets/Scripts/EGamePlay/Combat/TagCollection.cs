@@ -91,6 +91,10 @@ namespace EGamePlay.Combat
             "Buff.Fire.Ignite",
             "Stance.Form",
             "Locomotion.Airborne",
+            "Combat.DazeRecover",
+            "Ai.Parryable",
+            "Ai.ParryBreak",
+            "Combat.ParryWindow",
         };
     }
 
@@ -123,5 +127,13 @@ namespace EGamePlay.Combat
         public const string StanceForm = "Stance.Form";
         /// <summary>空中；Resolver 主要用 IsAirborne，此标签供技能边条件。</summary>
         public const string LocomotionAirborne = "Locomotion.Airborne";
+        /// <summary>失衡起身无敌。HitResolver 标 Immunity，不是翻滚闪避。</summary>
+        public const string CombatDazeRecover = "Combat.DazeRecover";
+        /// <summary>敌人黄闪判定段：本段可被招架消伤。</summary>
+        public const string AiParryable = "Ai.Parryable";
+        /// <summary>招架成功时断轴。没有此 Tag 则只消本段伤害、轴继续。</summary>
+        public const string AiParryBreak = "Ai.ParryBreak";
+        /// <summary>招架演出 i-frame。成功已在按键成交时结算；有此 Tag 时后续伤害标免疫。</summary>
+        public const string CombatParryWindow = "Combat.ParryWindow";
     }
 }

@@ -3,7 +3,7 @@ using EGamePlay.Combat;
 
 namespace ACTGameEditor.Combat.Ai
 {
-    /// <summary>战术层状态。Dead/Control/Hit/Skill 由战斗态强制同步，禁止 Brain 自行写入 CurState。</summary>
+    /// <summary>战术层状态。Dead/Control/Stagger/Hit/Skill 由战斗态强制同步，禁止 Brain 自行写入 CurState。</summary>
     public enum EnemyTacticalState : byte
     {
         Idle = 0,
@@ -16,6 +16,7 @@ namespace ACTGameEditor.Combat.Ai
         Hit = 7,
         Control = 8,
         Dead = 9,
+        Stagger = 10,
     }
 
     /// <summary>强制态判定（受击/硬控/占轴/死亡盖住战术循环）。</summary>
@@ -25,11 +26,12 @@ namespace ACTGameEditor.Combat.Ai
         public static bool IsForced(EnemyTacticalState state) =>
             state == EnemyTacticalState.Dead
             || state == EnemyTacticalState.Control
+            || state == EnemyTacticalState.Stagger
             || state == EnemyTacticalState.Hit
             || state == EnemyTacticalState.Skill;
 
         /// <summary>
-        /// 按战斗态解析本帧强制战术态。优先级 Dead &gt; Control &gt; Hit &gt; Skill（占轴）。
+        /// 按战斗态解析本帧强制战术态。优先级 Dead &gt; Control &gt; Stagger &gt; Hit &gt; Skill（占轴）。
         /// 未命中返回 false，Brain 才跑 Alert/Approach/Orbit。
         /// </summary>
         public static bool TryResolveForced(CombatEntity owner, bool occupyingAxis, out EnemyTacticalState state)
@@ -43,6 +45,12 @@ namespace ACTGameEditor.Combat.Ai
             if (owner.StateDirector != null && owner.StateDirector.IsControl)
             {
                 state = EnemyTacticalState.Control;
+                return true;
+            }
+
+            if (owner.StateDirector != null && owner.StateDirector.IsStagger)
+            {
+                state = EnemyTacticalState.Stagger;
                 return true;
             }
 

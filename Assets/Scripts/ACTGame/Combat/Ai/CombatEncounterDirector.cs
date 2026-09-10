@@ -58,6 +58,7 @@ namespace ACTGameEditor.Combat.Ai
         MeleeSlot _special;
         Camera _frameCamera;
         float _relaxUntil;
+        int _punishOpenedCount;
         float _nextSlotAssign;
         float _nextGrantAt;
         bool _slotsDirty;
@@ -127,10 +128,12 @@ namespace ACTGameEditor.Combat.Ai
             _frameCamera = null;
             Tempo = EncounterTempo.Build;
             _relaxUntil = 0f;
+            _punishOpenedCount = 0;
             _nextSlotAssign = 0f;
             _nextGrantAt = 0f;
             _slotsDirty = false;
             _slots.Clear();
+            CombatParry.ClearAll();
         }
 
         /// <inheritdoc />
@@ -324,6 +327,15 @@ namespace ACTGameEditor.Combat.Ai
             BeginRelax(perfect ? P.RelaxPerfectDodge : P.RelaxNormalDodge);
         }
 
+        /// <summary>玩家招架成功且本段断轴。时长盖住玩家振刀 + 敌人多停一拍；不盖 Punish。</summary>
+        public void NotifyPlayerParry(float seconds)
+        {
+            if (Tempo == EncounterTempo.Punish)
+                return;
+            float relax = seconds > 0.01f ? seconds : P.RelaxParry;
+            BeginRelax(relax);
+        }
+
         /// <summary>敌人攻击轴结束且盒从未碰到玩家。不打断已出手轴。</summary>
         public void NotifyAttackWhiff(CombatEntity enemy)
         {
@@ -332,6 +344,60 @@ namespace ACTGameEditor.Combat.Ai
             if (Tempo == EncounterTempo.Punish)
                 return;
             BeginRelax(P.RelaxWhiff);
+        }
+
+        /// <summary>失衡条满。进入 Punish：停发牌、收回未承诺的牌。已挥出的轴不收回。</summary>
+        public void NotifyBreakMeterOpened(CombatEntity enemy)
+        {
+            if (enemy == null || enemy.IsDisposed)
+                return;
+            _punishOpenedCount++;
+            if (Tempo == EncounterTempo.Punish)
+                return;
+            Tempo = EncounterTempo.Punish;
+            _relaxUntil = 0f;
+            RecallUncommittedMelee();
+            GameLog.CombatDebug("[Encounter] Punish (daze opened)");
+        }
+
+        /// <summary>该敌人失衡硬直结束。场上无人 Opened 时回 Build。</summary>
+        public void NotifyBreakMeterClosed(CombatEntity enemy)
+        {
+            if (_punishOpenedCount > 0)
+                _punishOpenedCount--;
+            if (_punishOpenedCount > 0 || Tempo != EncounterTempo.Punish)
+                return;
+            _punishOpenedCount = 0;
+            Tempo = EncounterTempo.Build;
+            GameLog.CombatDebug("[Encounter] Punish -> Build");
+        }
+
+        /// <summary>登记敌人里最近的可连携目标。maxRangeSq 为水平距离平方。</summary>
+        public bool TryFindNearestChainWindow(CombatEntity from, float maxRangeSq, out CombatEntity target)
+        {
+            target = null;
+            if (from == null || from.IsDisposed)
+                return false;
+
+            float bestSq = maxRangeSq;
+            for (int i = 0; i < _count; i++)
+            {
+                CombatEntity enemy = _enemies[i].Entity;
+                if (enemy == null || enemy.IsDisposed || enemy.IsDead)
+                    continue;
+                CombatMeterComponent meter = enemy.DazeMeter;
+                if (meter == null || !meter.IsChainWindow)
+                    continue;
+                Vector3 d = enemy.Position - from.Position;
+                d.y = 0f;
+                float sq = d.sqrMagnitude;
+                if (sq > bestSq)
+                    continue;
+                bestSq = sq;
+                target = enemy;
+            }
+
+            return target != null;
         }
 
         /// <summary>世界钟 Tick：Tempo、焦点、欲望、竞拍发放、回收、槽位。应在 CombatContext.Update 之前。</summary>
@@ -365,7 +431,7 @@ namespace ACTGameEditor.Combat.Ai
 
         void BeginRelax(float seconds)
         {
-            if (seconds <= 0f)
+            if (seconds <= 0f || Tempo == EncounterTempo.Punish)
                 return;
             float until = GameTimeManager.WorldTime + seconds;
             if (Tempo == EncounterTempo.Relax && until <= _relaxUntil)
@@ -721,7 +787,7 @@ namespace ACTGameEditor.Combat.Ai
 
         static bool IsInterrupted(CombatEntity enemy)
         {
-            if (enemy.StateDirector != null && enemy.StateDirector.IsControl)
+            if (enemy.StateDirector != null && (enemy.StateDirector.IsControl || enemy.StateDirector.IsStagger))
                 return true;
             return enemy.CurState == PlayerStateEnum.Hit;
         }
@@ -775,6 +841,8 @@ namespace ACTGameEditor.Combat.Ai
             {
                 if (Tempo == EncounterTempo.Relax)
                     Debug.DrawRay(focus.Position + Vector3.up * 2.4f, Vector3.up * 0.7f, Color.green);
+                else if (Tempo == EncounterTempo.Punish)
+                    Debug.DrawRay(focus.Position + Vector3.up * 2.4f, Vector3.up * 0.7f, new Color(1f, 0.4f, 0f));
 
                 float slotRadius = SlotKeepDistance();
                 for (int s = 0; s < EncounterSlotAssigner.MeleeSlotCount; s++)

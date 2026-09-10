@@ -30,6 +30,8 @@ namespace EGamePlay.Combat
         Immunity = 2,
         /// <summary>目标闪避本次伤害（如 Buff.Roll 无敌帧）；不扣血，仍触发后置行动点，不播受击表现。</summary>
         Dodge = 4,
+        /// <summary>目标招架本次伤害；不扣血，仍触发后置行动点，不播受击表现。不断招与否由招架结算另判。</summary>
+        Parry = 8,
     }
 
     /// <summary>
@@ -210,7 +212,8 @@ namespace EGamePlay.Combat
         {
             return !DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
                 && !DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
-                && !DamageActionEffect.HasFlag(DamageActionEffect.Immunity);
+                && !DamageActionEffect.HasFlag(DamageActionEffect.Immunity)
+                && !DamageActionEffect.HasFlag(DamageActionEffect.Parry);
         }
 
         public override void OnReset()

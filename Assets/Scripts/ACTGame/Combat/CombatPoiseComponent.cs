@@ -64,9 +64,12 @@ namespace ACTGameEditor.Combat
                 return;
             if (damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
                 || damage.DamageActionEffect.HasFlag(DamageActionEffect.Immunity)
-                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt))
+                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
+                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Parry))
                 return;
             if (_owner.IsDead)
+                return;
+            if (_owner.StateDirector != null && _owner.StateDirector.IsStagger)
                 return;
             if (!CombatInterrupt.ShouldBreakSkill(damage, GetAntiInterruptLevel()))
                 return;

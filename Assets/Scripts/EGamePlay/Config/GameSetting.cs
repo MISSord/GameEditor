@@ -56,5 +56,7 @@ namespace EGamePlay
         Dead,
         /// <summary>硬控（眩晕等），时长跟 MoveForbid Tag，不是短硬直。</summary>
         Control,
+        /// <summary>失衡硬直。计量条满后进入，优先级低于 Control，高于 Hit。</summary>
+        Stagger,
     }
 }

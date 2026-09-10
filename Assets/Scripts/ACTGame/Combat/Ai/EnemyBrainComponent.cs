@@ -90,6 +90,7 @@ namespace ACTGameEditor.Combat.Ai
             EnemySkillSelector.AttachAbilities(_abilities, MoveSet);
             TryRegisterEncounter();
             ApplyPoiseFromProfile();
+            ApplyDazeFromProfile();
             _state = EnemyTacticalState.Idle;
         }
 
@@ -125,6 +126,14 @@ namespace ACTGameEditor.Combat.Ai
             int anti = _profile != null ? _profile.AntiInterruptBase : 0;
             int armor = _profile != null ? _profile.SuperArmorBonus : CombatInterrupt.DefaultSuperArmorBonus;
             poise.Configure(anti, armor, _isElite);
+        }
+
+        void ApplyDazeFromProfile()
+        {
+            CombatMeterComponent meter = _owner.DazeMeter;
+            if (meter == null)
+                return;
+            meter.Configure(_isElite ? DazeTierId.Elite : DazeTierId.Grunt);
         }
 
         void InstallLocomotion()
@@ -166,12 +175,22 @@ namespace ACTGameEditor.Combat.Ai
                     return;
                 }
 
-                if (forced == EnemyTacticalState.Hit || forced == EnemyTacticalState.Control)
+                if (forced == EnemyTacticalState.Hit
+                    || forced == EnemyTacticalState.Control
+                    || forced == EnemyTacticalState.Stagger)
                 {
-                    if (_state != EnemyTacticalState.Hit && _state != EnemyTacticalState.Control)
+                    if (_state != EnemyTacticalState.Hit
+                        && _state != EnemyTacticalState.Control
+                        && _state != EnemyTacticalState.Stagger)
                         EnterInterrupted();
                     else
                         StopMove();
+                    if (forced == EnemyTacticalState.Stagger)
+                    {
+                        CombatEntity staggerTarget = ResolveTarget();
+                        if (staggerTarget != null)
+                            AimAt(staggerTarget);
+                    }
                     return;
                 }
 
@@ -185,7 +204,9 @@ namespace ACTGameEditor.Combat.Ai
                 return;
             }
 
-            if (_state == EnemyTacticalState.Hit || _state == EnemyTacticalState.Control)
+            if (_state == EnemyTacticalState.Hit
+                || _state == EnemyTacticalState.Control
+                || _state == EnemyTacticalState.Stagger)
                 _state = _inCombat ? EnemyTacticalState.Approach : EnemyTacticalState.Idle;
 
             CombatEntity target = ResolveTarget();
@@ -397,6 +418,7 @@ namespace ACTGameEditor.Combat.Ai
             _selected = picked;
             _hasMove = true;
             _selectAtWorld = now + SelectInterval;
+            GameLog.CombatError($"[Parry] pick skill={picked.SkillId} telegraph={picked.TelegraphKind} dist={dist:0.00} last={_lastSkillId}");
             return true;
         }
 
@@ -573,9 +595,12 @@ namespace ACTGameEditor.Combat.Ai
         void EnterInterrupted()
         {
             ReleaseToken(TokenReleaseReason.Interrupted);
-            _state = _owner.StateDirector != null && _owner.StateDirector.IsControl
-                ? EnemyTacticalState.Control
-                : EnemyTacticalState.Hit;
+            if (_owner.StateDirector != null && _owner.StateDirector.IsControl)
+                _state = EnemyTacticalState.Control;
+            else if (_owner.StateDirector != null && _owner.StateDirector.IsStagger)
+                _state = EnemyTacticalState.Stagger;
+            else
+                _state = EnemyTacticalState.Hit;
             _castPending = false;
             ClearSelection();
             StopMove();
@@ -706,6 +731,10 @@ namespace ACTGameEditor.Combat.Ai
             // 新的一手清连段标记；TelegraphSeconds<0 的招走轴上 AiTelegraph
             _followUpUsed = false;
             CombatTelegraph.PlayFromBrain(_owner, _selected.TelegraphKind, _selected.TelegraphSeconds);
+            CombatParry.ArmIncoming(_owner, target, _selected.SkillId, _selected.TelegraphSeconds, _selected.TelegraphKind);
+            Vector3 toTargetLog = target.Position - _owner.Position;
+            toTargetLog.y = 0f;
+            GameLog.CombatError($"[Parry] enemy enqueue skill={_selected.SkillId} telegraph={_selected.TelegraphKind} sec={_selected.TelegraphSeconds} dist={Mathf.Sqrt(toTargetLog.sqrMagnitude):0.00} target={target.Id}");
         }
 
         /// <summary>
@@ -908,6 +937,7 @@ namespace ACTGameEditor.Combat.Ai
                 EnemyTacticalState.Approach => Color.white,
                 EnemyTacticalState.Alert => Color.gray,
                 EnemyTacticalState.Skill => Color.red,
+                EnemyTacticalState.Stagger => new Color(1f, 0.55f, 0.1f),
                 _ => Color.clear,
             };
             if (_state == EnemyTacticalState.Windup && _hasMove && _selected.SkillId == 12002)

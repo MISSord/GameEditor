@@ -27,6 +27,8 @@ namespace ACTGameEditor.Combat.Ai
         public float RelaxPerfectDodge = 0.45f;
         public float RelaxNormalDodge = 0.15f;
         public float RelaxWhiff = 0.25f;
+        [Tooltip("招架成功空窗；运行时优先用 11005 时长+余量")]
+        public float RelaxParry = 0.85f;
 
         [Header("动态进攻欲望（雷火文：车轮战）")]
         public float DesireBasePerSec = 0.45f;

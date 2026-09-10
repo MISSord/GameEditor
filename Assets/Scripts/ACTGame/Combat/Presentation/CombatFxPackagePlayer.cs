@@ -89,7 +89,8 @@ namespace ACTGameEditor.Combat
             if (flags.HasFlag(CombatFxTriggerFlags.RequirePositiveDamage) && damage.DamageValue <= 0)
                 return false;
             if (flags.HasFlag(CombatFxTriggerFlags.SkipOnDodge)
-                && damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge))
+                && (damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
+                    || damage.DamageActionEffect.HasFlag(DamageActionEffect.Parry)))
                 return false;
             if (flags.HasFlag(CombatFxTriggerFlags.RequireDodge)
                 && !damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge))

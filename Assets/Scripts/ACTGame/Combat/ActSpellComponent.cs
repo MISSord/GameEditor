@@ -96,6 +96,14 @@ namespace ACTGameEditor.Combat
             PoolManager.Instance.Return(winner);
         }
 
+        /// <summary>丢弃尚未启动的入队技能。招架成交时取消黄闪入轴，避免闪完还劈一刀。</summary>
+        public void ClearQueue()
+        {
+            for (int i = _queue.Count - 1; i >= 0; i--)
+                PoolManager.Instance.Return(_queue[i]);
+            _queue.Clear();
+        }
+
         /// <summary>入队一次出手意图。</summary>
         public void Enqueue(in SkillSpellInfo skillSpell)
         {

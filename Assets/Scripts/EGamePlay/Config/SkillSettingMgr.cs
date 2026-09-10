@@ -137,6 +137,17 @@ namespace EGamePlay
             return max > 0 ? max : 10;
         }
 
+        /// <summary>失衡档位表。缺 Id 返回 null，不回退第一行。</summary>
+        public DazeSetting GetDazeSetting(int id)
+        {
+            if (id <= 0)
+                return null;
+            DazeSetting row = CurrentTable.DazeSettingReader.GetOrDefault(id);
+            if (row == null || row.Id != id)
+                return null;
+            return row;
+        }
+
         /// <summary>获取技能某一段伤害配置；未找到则返回 null。</summary>
         public SkillDamageSetting GetSkillDamageSetting(int skillId, int segmentIndex)
         {
