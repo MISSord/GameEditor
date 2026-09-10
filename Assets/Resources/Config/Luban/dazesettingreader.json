@@ -1,0 +1,44 @@
+[
+  {
+    "Id": 1,
+    "Name": "杂兵",
+    "MaxDaze": 100,
+    "HoldSeconds": 1,
+    "DurationSeconds": 3,
+    "VulnBonus": 0.5,
+    "ChainCount": 1,
+    "RecoverIFrame": 0.4,
+    "DazeResist": 0,
+    "IdleRegenPerSec": 0,
+    "CanDaze": 1,
+    "ParryDazeRatio": 0.35
+  },
+  {
+    "Id": 2,
+    "Name": "精英",
+    "MaxDaze": 280,
+    "HoldSeconds": 1,
+    "DurationSeconds": 5.5,
+    "VulnBonus": 0.5,
+    "ChainCount": 1,
+    "RecoverIFrame": 0.5,
+    "DazeResist": 0,
+    "IdleRegenPerSec": 0,
+    "CanDaze": 1,
+    "ParryDazeRatio": 0.55
+  },
+  {
+    "Id": 3,
+    "Name": "首领",
+    "MaxDaze": 420,
+    "HoldSeconds": 1,
+    "DurationSeconds": 7,
+    "VulnBonus": 0.5,
+    "ChainCount": 1,
+    "RecoverIFrame": 0.6,
+    "DazeResist": 0,
+    "IdleRegenPerSec": 0,
+    "CanDaze": 1,
+    "ParryDazeRatio": 0.5
+  }
+]

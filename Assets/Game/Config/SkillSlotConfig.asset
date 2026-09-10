@@ -13,6 +13,15 @@ MonoBehaviour:
   m_Name: SkillSlotConfig
   m_EditorClassIdentifier: 
   Slots:
+  - SlotId: 6
+    DefaultSkillId: 13001
+    SortBase: 1000
+    SortOffset: 0
+    InputType: 3
+    PressType: 0
+    InputCallBackType: 1
+    InputTimeout: 0
+    ComboSkillIds: c9320000
   - SlotId: 0
     DefaultSkillId: 11001
     SortBase: 100
@@ -31,3 +40,12 @@ MonoBehaviour:
     InputCallBackType: 1
     InputTimeout: 0
     ComboSkillIds: f82a0000
+  - SlotId: 7
+    DefaultSkillId: 11005
+    SortBase: 2800
+    SortOffset: 0
+    InputType: 4
+    PressType: 0
+    InputCallBackType: 1
+    InputTimeout: 0.5
+    ComboSkillIds: fd2a0000

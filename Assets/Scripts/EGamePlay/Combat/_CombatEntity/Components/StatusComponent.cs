@@ -110,6 +110,9 @@ namespace EGamePlay.Combat
                 return BuffAddRequestResult.Reapplied;
             }
 
+            if (!HardControlMutex.Admit(this, buffId))
+                return BuffAddRequestResult.Blocked;
+
             if (_effectLock > 0)
             {
                 EnqueueAdd(buffId, caster, paramString1);
@@ -466,7 +469,7 @@ namespace EGamePlay.Combat
             {
                 PendingAddStatus pending = _flushAdds[i];
                 BuffAddRequestResult result = RequestAddStatus(pending.BuffId, pending.Caster, pending.ParamString1);
-                if (result == BuffAddRequestResult.Queued)
+                if (result == BuffAddRequestResult.Queued || result == BuffAddRequestResult.Blocked)
                     continue;
                 CombatBuffPipeline.Notify(pending.Caster, ActionPointType.PostGiveStatus, Entity);
                 CombatBuffPipeline.Notify(owner, ActionPointType.PostReceiveStatus, Entity);

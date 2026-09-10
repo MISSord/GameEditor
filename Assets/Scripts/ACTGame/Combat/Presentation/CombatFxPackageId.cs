@@ -29,6 +29,8 @@ namespace ACTGameEditor.Combat
         DodgeTimeFracture = 201,
         /// <summary>Perfect Dodge 套：断裂 + 残影 + 灰屏（ZZZ 向，部分待 Bridge）。</summary>
         DodgePerfect = 202,
+        /// <summary>招架成功：短断裂 + 顿帧 + 闪白 + 重震屏（撞刃，不是闪避灰屏）。</summary>
+        ParrySuccess = 203,
 
         // ── 状态 / 异常（Buff、破韧演出）──
         /// <summary>破韧/瘫痪入场（敌人 Stun）。</summary>

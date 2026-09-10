@@ -8,7 +8,7 @@ namespace ACTGameEditor.Combat
     public enum TelegraphKind : byte
     {
         None = 0,
-        /// <summary>该闪避：暖白闪光。</summary>
+        /// <summary>该闪避：冷白闪光（和黄闪分开）。</summary>
         Dodge = 1,
         /// <summary>可招架：黄光（绝区零黄闪 / 支援招架）。不是鸣潮金圈弹刀。</summary>
         Parry = 2,

@@ -1,4 +1,4 @@
-using ACTGameEditor.Combat.Ai;
+﻿using ACTGameEditor.Combat.Ai;
 using EGamePlay;
 using EGamePlay.Combat;
 using UnityEngine;
@@ -19,6 +19,7 @@ namespace ACTGameEditor.Combat
         int _skillId;
         int _sort;
         bool _postProcessed;
+        bool _chainHolding;
 
         public ICombatUnit Caster => _caster;
         public ICombatUnit InputTarget => _inputTarget;
@@ -50,6 +51,23 @@ namespace ACTGameEditor.Combat
             session._inputPoint = intent.Point;
             session._inputDirection = intent.Direction;
 
+            if (CombatChainSkill.IsChainSkill(session._skillId))
+            {
+                CombatEntity chainTarget = session._inputTarget;
+                if (!CombatChainSkill.IsValidWindow(chainTarget)
+                    && !CombatChainSkill.TryResolveTarget(caster, out chainTarget))
+                {
+                    session.DestroySelf();
+                    return null;
+                }
+
+                session._inputTarget = chainTarget;
+                Vector3 to = chainTarget.Position - caster.Position;
+                if (to.sqrMagnitude > 0.0001f)
+                    session._inputDirection = to.normalized;
+                session._inputPoint = chainTarget.Position;
+            }
+
             session.PreProcess();
             if (!session.TryConsumeResource())
             {
@@ -57,7 +75,21 @@ namespace ACTGameEditor.Combat
                 return null;
             }
 
-            session.LaunchRunner(intent.Sort);
+            if (!session.LaunchRunner(intent.Sort))
+                return null;
+
+            if (CombatChainSkill.IsChainSkill(session._skillId))
+            {
+                if (!CombatChainSkill.OnSessionStarted(session._caster, session._inputTarget))
+                {
+                    session._runner.BreakSkill();
+                    session.DestroySelf();
+                    return null;
+                }
+
+                session._chainHolding = true;
+            }
+
             return session;
         }
 
@@ -103,14 +135,14 @@ namespace ACTGameEditor.Combat
             return true;
         }
 
-        void LaunchRunner(int sort)
+        bool LaunchRunner(int sort)
         {
             ISkillExecutionHandle previous = _caster.ActiveExecution;
             _runner = ActSpellSkillAssembler.Launch(this, _caster, _ability, _inputTarget, _inputDirection, sort);
             if (_runner == null)
             {
                 DestroySelf();
-                return;
+                return false;
             }
 
             if (previous != null && previous != _runner && !previous.IsDisposed)
@@ -123,20 +155,29 @@ namespace ACTGameEditor.Combat
             _caster.ActiveExecution = _runner;
             _caster.StateDirector?.EnterSkill(_runner.Id);
             _caster.BeginSkillMoveLock();
-            if (SkillSortUtil.IsRoll(sort))
+            TagSource src = TagSource.Skill(_runner.Id);
+            if (SkillSortUtil.IsParry(sort))
+            {
+                // 演出轴 i-frame；成功已在 TryCommit 结算，不靠盒体重判。
+                _caster.PushTag(src, CombatTags.CombatParryWindow);
+            }
+            else if (SkillSortUtil.IsRoll(sort))
             {
                 _caster.ArmSprintFromDodge();
                 // 轴上 EffectEvent 要等到第 0 帧才 Push Buff.Roll；出招当下先挂上，同一帧 Flush 才能判闪避。
-                TagSource src = TagSource.Skill(_runner.Id);
                 _caster.PushTag(src, CombatTags.BuffRoll);
                 _caster.PushTag(src, CombatTags.BuffUnStopped);
             }
+
+            CombatParry.TryBindAttackerTags(_caster, _inputTarget, _skillId, _runner.Id);
 
             if (CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate)
             {
                 var spellComp = _caster.GetComponent<ActSpellComponent>();
                 spellComp?.CDTimer?.StartCooldown(_ability.SkillID);
             }
+
+            return true;
         }
 
         public override void Update(float deltaTime)
@@ -168,7 +209,7 @@ namespace ACTGameEditor.Combat
         void Finish()
         {
 #if UNITY_EDITOR
-            GameLog.CombatError($"FinishAction {_runner?.Id} {_ability?.SkillID}");
+            //GameLog.CombatError($"FinishAction {_runner?.Id} {_ability?.SkillID}");
 #endif
             bool releasedAxis = false;
             if (_caster != null && !_caster.IsDisposed && _runner != null
@@ -180,6 +221,7 @@ namespace ACTGameEditor.Combat
 
             if (_caster != null && !_caster.IsDisposed && _runner != null)
             {
+                CombatParry.NotifyRunnerFinished(_runner.Id);
                 _caster.TagHost.PopTagsFrom(TagSource.Skill(_runner.Id));
                 UnbindSkillBuffs(_runner.Id);
                 _caster.StateDirector?.ExitSkill(_runner.Id);
@@ -195,6 +237,14 @@ namespace ACTGameEditor.Combat
 
             TryNotifyAttackWhiff();
             DestroySelf();
+        }
+
+        void ReleaseChainHold()
+        {
+            if (!_chainHolding)
+                return;
+            _chainHolding = false;
+            CombatChainSkill.OnSessionEnded(_inputTarget);
         }
 
         void TryNotifyPlayerRolled()
@@ -220,6 +270,11 @@ namespace ACTGameEditor.Combat
 
         public override void OnDestroy()
         {
+            ReleaseChainHold();
+
+            if (_runner != null)
+                CombatParry.NotifyRunnerFinished(_runner.Id);
+
             if (_caster != null && !_caster.IsDisposed && _runner != null)
                 UnbindSkillBuffs(_runner.Id);
 
@@ -236,6 +291,7 @@ namespace ACTGameEditor.Combat
             _skillId = 0;
             _sort = 0;
             _postProcessed = false;
+            _chainHolding = false;
         }
 
         public override void OnReset()
@@ -249,6 +305,7 @@ namespace ACTGameEditor.Combat
             _skillId = 0;
             _sort = 0;
             _postProcessed = false;
+            _chainHolding = false;
         }
 
         void DestroySelf()

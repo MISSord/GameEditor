@@ -11,6 +11,8 @@ namespace EGamePlay.Combat
         Reapplied = 1,
         /// <summary>处于效果锁中，已入队，待解锁后落地。</summary>
         Queued = 2,
+        /// <summary>硬控互斥：已有更高 Priority 硬控，本次不落地。</summary>
+        Blocked = 3,
     }
 
     /// <summary>卸 Buff 原因。OnRemoved 开火时可读；调用方按语义填写。</summary>
@@ -22,7 +24,7 @@ namespace EGamePlay.Combat
         Dispelled = 1,
         /// <summary>护盾破了、引爆吃层。护盾段吃到 0 由 Vital 调用；引爆见第 3 条。</summary>
         Consumed = 2,
-        /// <summary>互斥覆盖。调用方见硬控互斥，本切片只占位。</summary>
+        /// <summary>互斥覆盖：硬控被更高或同等 Priority 的新硬控顶掉。</summary>
         Replaced = 3,
         /// <summary>持有者死亡，<see cref="ICombatUnit.ApplyDeath"/> 清列表。</summary>
         Death = 4,

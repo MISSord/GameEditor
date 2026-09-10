@@ -49,15 +49,15 @@ namespace ACTGameEditor.Combat
             return Play(owner, kind, seconds, source);
         }
 
-        /// <summary>类型配色：Parry=黄（绝区零可招架）、Unblockable=红、Jump=青、Dodge=暖白。</summary>
+        /// <summary>类型配色：Parry=饱和黄、Unblockable=红、Jump=青、Dodge=冷白（避免和黄闪糊在一起）。</summary>
         public static Color KindColor(TelegraphKind kind)
         {
             switch (kind)
             {
-                case TelegraphKind.Parry: return new Color(1f, 0.85f, 0.2f);
+                case TelegraphKind.Parry: return new Color(1f, 0.72f, 0.05f);
                 case TelegraphKind.Unblockable: return new Color(1f, 0.16f, 0.12f);
                 case TelegraphKind.Jump: return new Color(0.35f, 0.9f, 1f);
-                default: return new Color(1f, 0.95f, 0.55f);
+                default: return new Color(0.88f, 0.92f, 1f);
             }
         }
 

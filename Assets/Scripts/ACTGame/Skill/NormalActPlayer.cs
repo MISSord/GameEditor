@@ -158,6 +158,11 @@ namespace ACTGameEditor
                 return;
             if (damageAction.Creator?.Id != Combat.Id)
                 return;
+            if (damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
+                || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Immunity)
+                || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
+                || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Parry))
+                return;
 
             var kind = damageAction.DamageSource == DamageSource.Buff
                 ? DamageTextKind.Buff
@@ -186,7 +191,8 @@ namespace ACTGameEditor
             // 闪避/免疫仍走后置点（极限闪避表现），但不飘字、不进受击硬直。
             if (damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
                 || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Immunity)
-                || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt))
+                || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
+                || damageAction.DamageActionEffect.HasFlag(DamageActionEffect.Parry))
                 return;
 
             // 本地玩家作为攻击者时，飘字只走 OnCauseDamage
@@ -262,6 +268,7 @@ namespace ACTGameEditor
         /// <summary>战斗 Tick 内提交 Idle/硬打断槽位，并推进受击动画自动交回。</summary>
         public void TickSkillInput()
         {
+            CombatParry.ExpireFinishedStrikes();
             CheckInitialInput();
             _animComponent?.Director?.Tick();
         }
@@ -279,11 +286,17 @@ namespace ACTGameEditor
             if (occupying)
             {
                 // 占轴：大招仍看 SkillForbid；闪避只看禁移，由 Gate 按 Sort 再判
-                if (!Combat.IsCanSelfCancelSkill && !Combat.IsCanRollSkill)
+                if (!Combat.IsCanSelfCancelSkill && !Combat.IsCanRollSkill && !Combat.IsCanParrySkill)
+                {
+                    if (InputBuffer.HasSlot(SkillSlotId.Parry))
+                        GameLog.CombatError($"[Parry] drop occupying canSelf={Combat.IsCanSelfCancelSkill} canRoll={Combat.IsCanRollSkill} canParry={Combat.IsCanParrySkill} state={Combat.CurState}");
                     return;
+                }
             }
-            else if (!Combat.IsCanSpellSkill && !Combat.IsCanRollSkill)
+            else if (!Combat.IsCanSpellSkill && !Combat.IsCanRollSkill && !Combat.IsCanParrySkill)
             {
+                if (InputBuffer.HasSlot(SkillSlotId.Parry))
+                    GameLog.CombatError($"[Parry] drop idle canSpell={Combat.IsCanSpellSkill} canRoll={Combat.IsCanRollSkill} canParry={Combat.IsCanParrySkill} state={Combat.CurState}");
                 return;
             }
 
@@ -302,20 +315,56 @@ namespace ACTGameEditor
                 SkillSlotConfig.SlotEntry entry = SlotConfig.Slots[i];
                 if (entry == null) continue;
                 if (interruptOnly && !SkillCancelService.IsHardInterrupt(currentSort, entry.Sort))
+                {
+                    if (entry.SlotId == SkillSlotId.Parry)
+                        GameLog.CombatError($"[Parry] skip sort current={currentSort} incoming={entry.Sort}");
                     continue;
+                }
                 if (!InputBuffer.HasSlot(entry.SlotId)) continue;
                 if (!InputBuffer.MatchesSlot(entry.SlotId, entry.InputType, entry.PressType, entry.InputCallBackType))
+                {
+                    if (entry.SlotId == SkillSlotId.Parry)
+                        GameLog.CombatError($"[Parry] skip bind InputType={entry.InputType} Press={entry.PressType} Cb={entry.InputCallBackType}");
                     continue;
+                }
 
                 int skillId = SkillResolver.ResolveIdle(Combat, SlotRuntime, entry.SlotId);
+                CombatEntity targetOverride = null;
+                if (entry.SlotId == SkillSlotId.Chain)
+                {
+                    skillId = CombatChainSkill.SkillId;
+                    if (!CombatChainSkill.TryResolveTarget(Combat, out targetOverride))
+                        continue;
+                }
+                else if (entry.SlotId == SkillSlotId.Parry)
+                {
+                    skillId = CombatParry.PlayerSkillId;
+                    if (!CombatParry.HasIncomingStrike(Combat))
+                    {
+                        GameLog.CombatError($"[Parry] press no-window player={Combat.Id} {CombatParry.FormatWindows(Combat)}");
+                        continue;
+                    }
+                }
+
                 if (skillId <= 0) continue;
 
                 ActivateFail fail = AbilityActivationGate.Evaluate(Combat, skillId, entry.Sort, CDTimer, true);
                 if (fail != ActivateFail.None)
+                {
+                    if (entry.SlotId == SkillSlotId.Parry)
+                        GameLog.CombatError($"[Parry] gate={fail} skill={skillId} sort={entry.Sort}");
                     continue;
+                }
+
+                if (entry.SlotId == SkillSlotId.Parry
+                    && !CombatParry.TryCommit(Combat, out targetOverride))
+                {
+                    GameLog.CombatError($"[Parry] TryCommit failed {CombatParry.FormatWindows(Combat)}");
+                    continue;
+                }
 
                 InputBuffer.Consume(entry.SlotId);
-                AddSpellInfo(skillId, entry.Sort);
+                AddSpellInfo(skillId, entry.Sort, targetOverride);
                 break;
             }
         }
@@ -411,7 +460,7 @@ namespace ACTGameEditor
             PoolManager.Instance.Return(tmp);
         }
 
-        private void AddSpellInfo(int skillId, int sort)
+        private void AddSpellInfo(int skillId, int sort, CombatEntity targetOverride = null)
         {
             bool useGate = CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate;
             if (!useGate)
@@ -434,8 +483,10 @@ namespace ACTGameEditor
             }
             else
             {
-                info.Target = LockSystem.Instance?.LockedCombatEntity ?? Target;
-                info.Point = MathHelper.GetPositionInFront(Combat.Position, Combat.Rotation, 3f);
+                info.Target = targetOverride ?? LockSystem.Instance?.LockedCombatEntity ?? Target;
+                info.Point = info.Target != null
+                    ? info.Target.Position
+                    : MathHelper.GetPositionInFront(Combat.Position, Combat.Rotation, 3f);
             }
 
             Combat.GetComponent<ActSpellComponent>().Enqueue(info);
@@ -453,10 +504,16 @@ namespace ACTGameEditor
                 ? SlotConfig.FindByInput(cmd, type, inputCallBackType)
                 : null;
             if (entry == null)
+            {
+                if (cmd == InputListernType.ButtonB)
+                    GameLog.CombatError($"[Parry] input {cmd} 没有槽位 SlotConfig={(SlotConfig != null)} slots={SlotConfig?.Slots?.Count ?? 0}");
                 return;
+            }
 
             float timeout = entry.InputTimeout > 0 ? entry.InputTimeout : InputTimeout;
             InputBuffer.Set(entry.SlotId, cmd, type, inputCallBackType, now, now + timeout);
+            if (entry.SlotId == SkillSlotId.Parry)
+                GameLog.CombatError($"[Parry] input slot={entry.SlotId} timeout={timeout:0.00} canParry={Combat.IsCanParrySkill} occupying={Combat.SpellingExecution != null && !Combat.SpellingExecution.IsMainFinish} windows={CombatParry.FormatWindows(Combat)}");
         }
 
         public void ChangeInputMoveState(bool state)

@@ -188,7 +188,8 @@ namespace EGamePlay.Combat
                 return false;
             if (damage.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
                 || damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
-                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Immunity))
+                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Immunity)
+                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Parry))
                 return false;
             if (damage.Target == null || damage.Target.IsDisposed || damage.Target.IsDead)
                 return false;

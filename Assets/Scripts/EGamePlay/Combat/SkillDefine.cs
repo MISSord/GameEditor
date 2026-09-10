@@ -233,6 +233,8 @@ namespace EGamePlay.Combat
         Weapon = 2000,
         //特殊武器技能
         SpeicalWeapon = 2500,
+        /// <summary>招架。顶普攻/连携，被闪避顶。</summary>
+        Parry = 2800,
         //闪避
         Roll = 3000,
         //大招
@@ -252,6 +254,12 @@ namespace EGamePlay.Combat
             if (sort >= (int)SkillSort.Normal && sort < (int)SkillSort.Speical)
                 return true;
             return sort >= (int)SkillSort.Ultimate;
+        }
+
+        /// <summary>是否为招架槽（含同档偏移）。与闪避区间互斥。</summary>
+        public static bool IsParry(int sort)
+        {
+            return sort >= (int)SkillSort.Parry && sort < (int)SkillSort.Roll;
         }
 
         /// <summary>是否为闪避槽（含同档偏移）。</summary>

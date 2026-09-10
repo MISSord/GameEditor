@@ -101,6 +101,22 @@ namespace ACTGameEditor.Combat.Ai
                     PhaseMask = 1,
                     RepeatPenalty = 0.5f,
                 },
+                new EnemyMoveEntry
+                {
+                    SkillId = 12006,
+                    Sort = SkillSort.Normal,
+                    TokenKind = EncounterTokenKind.Melee,
+                    RequiresToken = true,
+                    MinRange = 0.8f,
+                    MaxRange = 5.5f,
+                    PreferredRange = 2.4f,
+                    BaseWeight = 2.2f,
+                    RecoverSeconds = 0.7f,
+                    TelegraphKind = TelegraphKind.Parry,
+                    TelegraphSeconds = 0.5f,
+                    PhaseMask = 1,
+                    RepeatPenalty = 0.4f,
+                },
             };
         }
     }

@@ -169,6 +169,21 @@ namespace ACTGameEditor.Combat
 
             Packages.Add(new CombatFxPackageDefinition
             {
+                Id = CombatFxPackageId.ParrySuccess,
+                DisplayName = "招架成功",
+                ReferenceNote = "撞刃：短世界断裂 + 攻受 HitStop + 闪白 + 重震。灰屏留给闪避。",
+                Entries =
+                {
+                    CombatFxPackageEntry.TimeFracture(0.32f, 0.18f),
+                    CombatFxPackageEntry.HitStop(0.16f, 0.06f, camera: true, timePriority: 26),
+                    CombatFxPackageEntry.HitFlash(0.18f),
+                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.Heavy()),
+                    CombatFxPackageEntry.Afterimage(),
+                },
+            });
+
+            Packages.Add(new CombatFxPackageDefinition
+            {
                 Id = CombatFxPackageId.StaggerBreak,
                 DisplayName = "破韧",
                 ReferenceNote = "强 HitStop + 闪白 + 最重震屏。",
@@ -203,6 +218,18 @@ namespace ACTGameEditor.Combat
                 DisplayName = "切人入场",
                 ReferenceNote = "短 HitStop。",
                 Entries = { CombatFxPackageEntry.HitStop(0.06f, 0.2f, camera: false, timePriority: 5) },
+            });
+
+            Packages.Add(new CombatFxPackageDefinition
+            {
+                Id = CombatFxPackageId.ChainAttack,
+                DisplayName = "连携",
+                ReferenceNote = "失衡窗连携入场：短 HitStop + 重震屏。",
+                Entries =
+                {
+                    CombatFxPackageEntry.HitStop(0.12f, 0.12f, camera: true, timePriority: 28),
+                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.Heavy()),
+                },
             });
 
             Packages.Add(new CombatFxPackageDefinition

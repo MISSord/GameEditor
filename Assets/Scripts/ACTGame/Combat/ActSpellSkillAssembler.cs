@@ -1,4 +1,4 @@
-using EGamePlay.Combat;
+﻿using EGamePlay.Combat;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -25,7 +25,7 @@ namespace ACTGameEditor.Combat
 
             var runner = parent.AddChild<ActSkillRunner>();
 #if UNITY_EDITOR
-            GameLog.CombatError($"ActSkillRunner {runner.Id} {ability.SkillID}");
+            //GameLog.CombatError($"ActSkillRunner {runner.Id} {ability.SkillID}");
 #endif
             runner.OwnerEntity = caster;
             runner.InputTarget = inputTarget;

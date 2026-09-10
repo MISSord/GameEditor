@@ -25,7 +25,7 @@
     "IntervalTime": 0,
     "TriggerFormula": "",
     "RemoveActionPointType": 0,
-    "Priority": 0
+    "Priority": 10
   },
   {
     "BuffId": 20101,
@@ -403,7 +403,7 @@
     "IntervalTime": 0,
     "TriggerFormula": "",
     "RemoveActionPointType": 0,
-    "Priority": 0
+    "Priority": 20
   },
   {
     "BuffId": 20602,
@@ -432,7 +432,7 @@
     "IntervalTime": 0,
     "TriggerFormula": "",
     "RemoveActionPointType": 0,
-    "Priority": 0
+    "Priority": 20
   },
   {
     "BuffId": 20701,

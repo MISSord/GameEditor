@@ -57,7 +57,12 @@
             bool hardInterrupt = current != null
                 && SkillCancelService.IsHardInterrupt(current.Sort, incomingSort);
 
-            if (SkillSortUtil.IsRoll(incomingSort))
+            if (SkillSortUtil.IsParry(incomingSort))
+            {
+                if (!actor.IsCanParrySkill)
+                    return ActivateFail.State;
+            }
+            else if (SkillSortUtil.IsRoll(incomingSort))
             {
                 if (!actor.IsCanRollSkill)
                     return ActivateFail.State;

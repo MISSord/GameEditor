@@ -88,7 +88,7 @@ namespace EGamePlay.Combat
         /// 2. 施加者 PreGiveStatus，承受者 PreReceiveStatus（TriggerBuff 可改 BuffId / Effect）；
         /// 3. <see cref="StatusApplyResolver"/>：死亡 Interrupt；新建扫描免疫，再按抵抗%掷骰；
         /// 4. Interrupt 不落地不后置；Immunity / Resisted 不落地仍后置；
-        /// 5. RequestAddStatus：锁内新建入队（带已裁决 BuffId），已有则立即刷新。
+        /// 5. RequestAddStatus：硬控互斥后再入队/落地（带已裁决 BuffId），已有则立即刷新。
         /// 非 Combat 源跳过 2–3，直接落地。
         /// </summary>
         public void ApplyAddStatusBySetting(int statusId, List<string> paramString1)
@@ -132,6 +132,13 @@ namespace EGamePlay.Combat
                 }
 
                 BuffAddRequestResult result = Target.Status.RequestAddStatus(BuffId, Creator, ParamString1);
+                if (result == BuffAddRequestResult.Blocked)
+                {
+                    Effect |= AddStatusActionEffect.Interrupt;
+                    FinishAction();
+                    return;
+                }
+
                 if (result != BuffAddRequestResult.Queued)
                     PostProcess();
 
@@ -142,6 +149,12 @@ namespace EGamePlay.Combat
         void CommitWithoutPipeline()
         {
             BuffAddRequestResult result = Target.Status.RequestAddStatus(BuffId, Creator, ParamString1);
+            if (result == BuffAddRequestResult.Blocked)
+            {
+                FinishAction();
+                return;
+            }
+
             if (result != BuffAddRequestResult.Queued)
                 PostProcess();
             FinishAction();

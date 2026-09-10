@@ -2,7 +2,7 @@ namespace EGamePlay.Combat
 {
     /// <summary>
     /// 战斗行为态唯一写入口：按优先级槽位合成 CurState。
-    /// Dead &gt; Control &gt; Hit &gt; Skill &gt; Locomotion(Idle/Moving)。
+    /// Dead &gt; Control &gt; Stagger &gt; Hit &gt; Skill &gt; Locomotion(Idle/Moving)。
     /// </summary>
     public sealed class CombatStateDirector
     {
@@ -21,6 +21,7 @@ namespace EGamePlay.Combat
         float _hitEndTime;
 
         bool _controlActive;
+        bool _staggerActive;
 
         bool _dead;
 
@@ -40,6 +41,9 @@ namespace EGamePlay.Combat
         /// <summary>是否处于硬控槽（眩晕等，跟 MoveForbid 时长）。</summary>
         public bool IsControl => _controlActive;
 
+        /// <summary>是否处于失衡硬直槽。冻结盖住外观时此标志仍为 true。</summary>
+        public bool IsStagger => _staggerActive;
+
         /// <summary>绑定实体并同步初始 Idle。</summary>
         public void Bind(ICombatUnit owner)
         {
@@ -55,6 +59,7 @@ namespace EGamePlay.Combat
             _skillActive = false;
             _hitActive = false;
             _controlActive = false;
+            _staggerActive = false;
             _dead = false;
             _skillSourceId = 0;
             _hitSourceId = 0;
@@ -67,10 +72,10 @@ namespace EGamePlay.Combat
             _wantWalk = false;
         }
 
-        /// <summary>技能开轴。同槽后写覆盖（连招顶替）。硬控/死亡中忽略。</summary>
+        /// <summary>技能开轴。同槽后写覆盖（连招顶替）。硬控/失衡/死亡中忽略。</summary>
         public void EnterSkill(long sourceId)
         {
-            if (_dead || _controlActive)
+            if (_dead || _controlActive || _staggerActive)
                 return;
             _skillActive = true;
             _skillSourceId = sourceId;
@@ -94,10 +99,10 @@ namespace EGamePlay.Combat
             Recompute();
         }
 
-        /// <summary>受击硬直。duration≤0 需手动 ExitHit。硬控中忽略，避免短硬直冲掉控制槽。</summary>
+        /// <summary>受击硬直。duration≤0 需手动 ExitHit。硬控/失衡中忽略，避免短硬直冲掉长硬直。</summary>
         public void EnterHit(long sourceId, float durationSeconds = 0.35f)
         {
-            if (_dead || _controlActive)
+            if (_dead || _controlActive || _staggerActive)
                 return;
             _hitActive = true;
             _hitSourceId = sourceId;
@@ -128,6 +133,31 @@ namespace EGamePlay.Combat
             _hitSourceId = 0;
             _hitEndTime = 0f;
             _controlActive = false;
+            _staggerActive = false;
+            Recompute();
+        }
+
+        /// <summary>进入失衡硬直。清短硬直；冻结等 Control 仍可盖住外观，本标志保持。</summary>
+        public void EnterStagger()
+        {
+            if (_dead)
+                return;
+            _staggerActive = true;
+            if (_hitActive)
+            {
+                _hitActive = false;
+                _hitSourceId = 0;
+                _hitEndTime = 0f;
+            }
+            Recompute();
+        }
+
+        /// <summary>退出失衡硬直（条掉光或调试清空）。</summary>
+        public void ExitStagger()
+        {
+            if (!_staggerActive)
+                return;
+            _staggerActive = false;
             Recompute();
         }
 
@@ -171,7 +201,7 @@ namespace EGamePlay.Combat
                 ApplyGroundMoveState();
 
             // 仅当行为层落在 Locomotion 时刷新 Idle/Moving
-            if (!_dead && !_controlActive && !_hitActive && !_skillActive)
+            if (!_dead && !_controlActive && !_staggerActive && !_hitActive && !_skillActive)
                 Recompute();
         }
 
@@ -240,6 +270,8 @@ namespace EGamePlay.Combat
                 next = PlayerStateEnum.Dead;
             else if (_controlActive)
                 next = PlayerStateEnum.Control;
+            else if (_staggerActive)
+                next = PlayerStateEnum.Stagger;
             else if (_hitActive)
                 next = PlayerStateEnum.Hit;
             else if (_skillActive)

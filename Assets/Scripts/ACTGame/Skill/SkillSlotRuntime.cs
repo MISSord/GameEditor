@@ -16,6 +16,10 @@ namespace ACTGameEditor
         Skill3 = 3,
         Ultimate = 4,
         Dodge = 5,
+        /// <summary>失衡窗连携。仅窗口内可出。</summary>
+        Chain = 6,
+        /// <summary>黄闪招架。绑 ButtonB / 键盘 L。</summary>
+        Parry = 7,
     }
 
     /// <summary>

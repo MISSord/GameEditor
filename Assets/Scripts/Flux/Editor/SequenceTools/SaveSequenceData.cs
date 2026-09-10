@@ -4,13 +4,16 @@ using Flux;
 using SimpleJSON;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace FluxEditor
 {
-    /// <summary>Flux Sequence 导出入口：校验、保存 SkillAllEventData、编辑器菜单。</summary>
+    /// <summary>Flux Sequence 导出入口：校验、保存 SkillAllEventData、写回 Sequence 预制体、编辑器菜单。</summary>
     public class SaveSequenceData
     {
+        public const string SequencePrefabFolder = "Assets/Editor/SkillSequences";
+
         public static AgentModelType curAgentName;
 
         public static void GetData()
@@ -18,7 +21,10 @@ namespace FluxEditor
             TrySaveCurrentSequence();
         }
 
-        /// <summary>校验当前窗口 Sequence 后导出。失败弹窗；成功只还原场景 Animator，不改工程 Controller。</summary>
+        /// <summary>
+        /// 校验当前窗口 Sequence 后导出 SO，并写回 Sequence 预制体。
+        /// 失败弹窗；成功会先还原预览 Animator，再存预制体，避免把预览 Controller 打进源。
+        /// </summary>
         public static bool TrySaveCurrentSequence()
         {
             if (FSequenceEditorWindow.instance == null)
@@ -38,6 +44,15 @@ namespace FluxEditor
                 return false;
 
             RestorePreviewAnimators(sequence);
+            if (!TrySaveSequencePrefab(sequence, out string prefabError))
+            {
+                EditorUtility.DisplayDialog(
+                    "预制体未保存",
+                    "技能数据已导出，但 Sequence 预制体没有写回：\n" + prefabError,
+                    "确定");
+                return false;
+            }
+
             AssetDatabase.SaveAssets();
             return true;
         }
@@ -174,8 +189,17 @@ namespace FluxEditor
                     continue;
                 }
 
-                SaveOneSeq(seq);
+                if (!SaveOneSeq(seq))
+                    continue;
+
                 RestorePreviewAnimators(seq);
+                if (!TrySaveSequencePrefab(seq, out string prefabError))
+                {
+                    EditorUtility.DisplayDialog(
+                        "预制体未保存",
+                        $"技能 {seq.SkillId} 数据已导出，但 Sequence 预制体没有写回：\n{prefabError}",
+                        "确定");
+                }
             }
             AssetDatabase.SaveAssets();
         }
@@ -230,6 +254,137 @@ namespace FluxEditor
 
             SaveSequenceAnimExporter.CheckAddAnim(sequence);
             return true;
+        }
+
+        /// <summary>规范路径：<c>Assets/Editor/SkillSequences/{SkillId}.prefab</c>。</summary>
+        public static string GetCanonicalSequencePrefabPath(string skillId)
+        {
+            return SequencePrefabFolder + "/" + skillId + ".prefab";
+        }
+
+        /// <summary>
+        /// 把当前编辑的 Sequence 写回预制体。须在 <see cref="RestorePreviewAnimators"/> 之后调用。
+        /// Prefab 模式存正在编的资产；场景实例 Apply 到源；SkillId 与源路径不一致时另存为规范路径，避免误覆盖其它技能。
+        /// </summary>
+        public static bool TrySaveSequencePrefab(FSequence sequence, out string error)
+        {
+            error = null;
+            if (sequence == null)
+            {
+                error = "没有打开的 Sequence。";
+                return false;
+            }
+
+            GameObject go = sequence.gameObject;
+            if (go == null)
+            {
+                error = "Sequence 没有 GameObject。";
+                return false;
+            }
+
+            EditorUtility.SetDirty(sequence);
+            EditorUtility.SetDirty(go);
+
+            try
+            {
+                PrefabStage stage = PrefabStageUtility.GetPrefabStage(go);
+                if (stage != null && !string.IsNullOrEmpty(stage.assetPath))
+                {
+                    PrefabUtility.SaveAsPrefabAsset(stage.prefabContentsRoot, stage.assetPath, out bool stageOk);
+                    if (!stageOk)
+                    {
+                        error = "Prefab 模式保存失败：" + stage.assetPath;
+                        return false;
+                    }
+
+                    LogPrefabSaved(stage.assetPath);
+                    return true;
+                }
+
+                string skillId = sequence.SkillId;
+                string expectedPath = string.IsNullOrWhiteSpace(skillId)
+                    ? null
+                    : GetCanonicalSequencePrefabPath(skillId.Trim());
+
+                if (PrefabUtility.IsPartOfPrefabInstance(go))
+                {
+                    GameObject instanceRoot = PrefabUtility.GetNearestPrefabInstanceRoot(go);
+                    if (instanceRoot == null)
+                        instanceRoot = go;
+
+                    string sourcePath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(instanceRoot);
+                    if (IsSameAssetPath(sourcePath, expectedPath))
+                    {
+                        PrefabUtility.ApplyPrefabInstance(instanceRoot, InteractionMode.AutomatedAction);
+                        LogPrefabSaved(sourcePath);
+                        return true;
+                    }
+
+                    if (string.IsNullOrEmpty(expectedPath))
+                    {
+                        PrefabUtility.ApplyPrefabInstance(instanceRoot, InteractionMode.AutomatedAction);
+                        LogPrefabSaved(sourcePath);
+                        return true;
+                    }
+
+                    PrefabUtility.UnpackPrefabInstance(
+                        instanceRoot,
+                        PrefabUnpackMode.Completely,
+                        InteractionMode.AutomatedAction);
+                    GameObject forked = PrefabUtility.SaveAsPrefabAssetAndConnect(
+                        sequence.gameObject,
+                        expectedPath,
+                        InteractionMode.AutomatedAction);
+                    if (forked == null)
+                    {
+                        error = "另存预制体失败：" + expectedPath;
+                        return false;
+                    }
+
+                    LogPrefabSaved(expectedPath + "（SkillId 与原预制体不同，已另存，未覆盖 " + sourcePath + "）");
+                    return true;
+                }
+
+                if (string.IsNullOrEmpty(expectedPath))
+                {
+                    error = "不是预制体实例，且 SkillId 为空，无法确定保存路径。";
+                    return false;
+                }
+
+                GameObject created = PrefabUtility.SaveAsPrefabAssetAndConnect(
+                    go,
+                    expectedPath,
+                    InteractionMode.AutomatedAction);
+                if (created == null)
+                {
+                    error = "保存预制体失败：" + expectedPath;
+                    return false;
+                }
+                LogPrefabSaved(expectedPath);
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                error = e.Message;
+                return false;
+            }
+        }
+
+        static bool IsSameAssetPath(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b))
+                return false;
+            a = a.Replace('\\', '/');
+            b = b.Replace('\\', '/');
+            return string.Equals(a, b, System.StringComparison.OrdinalIgnoreCase);
+        }
+
+        static void LogPrefabSaved(string path)
+        {
+            string msg = "已保存 Sequence 预制体 " + path;
+            Debug.Log("[SaveSequenceData] " + msg);
+            if (FSequenceEditorWindow.instance != null)
+                FSequenceEditorWindow.instance.ShowNotification(new GUIContent(msg));
         }
     }
 }

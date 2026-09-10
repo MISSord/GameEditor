@@ -1,4 +1,4 @@
-using DeBug = UnityEngine.Debug;
+﻿using DeBug = UnityEngine.Debug;
 
 public enum LogLevel
 {

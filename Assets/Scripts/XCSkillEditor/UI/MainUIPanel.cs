@@ -250,6 +250,11 @@ namespace XiaoCao
             uiBarDic.Add(netId, newUIBar);
             if (TryGetHp(item, out int hp, out int maxHp))
                 newUIBar.SetFillValue(hp, maxHp);
+            CombatMeterComponent spawnMeter = item.Combat.DazeMeter;
+            if (spawnMeter != null && spawnMeter.IsConfigured)
+                newUIBar.SetDazeFill(spawnMeter.CurrentRatio, true);
+            else
+                newUIBar.SetDazeFill(0f, false);
             newUIBar.OnUpdate();
 
             AddSwitchViewButton(item);
@@ -372,6 +377,11 @@ namespace XiaoCao
                     bar.SetTarget(follow);
                 if (TryGetHp(item, out int hp, out int maxHp))
                     bar.SetFillValue(hp, maxHp);
+                CombatMeterComponent meter = item.Combat.DazeMeter;
+                if (meter != null && meter.IsConfigured)
+                    bar.SetDazeFill(meter.CurrentRatio, true);
+                else
+                    bar.SetDazeFill(0f, false);
                 bar.OnUpdate();
             }
         }
@@ -586,6 +596,7 @@ namespace XiaoCao
                 return;
 
             bar.SetTarget(null);
+            bar.SetDazeFill(0f, false);
             bar.gameObject.SetActive(false);
         }
 

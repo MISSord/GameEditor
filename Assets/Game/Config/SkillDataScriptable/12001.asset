@@ -78,27 +78,6 @@ MonoBehaviour:
         HitGroupId: 0
         EffectIds: 
     SkillInputEvents:
-      Events:
-      - Range:
-          _start: 34
-          _end: 72
-        IsLocalTrueOnly: 0
-        InputDataList:
-        - ListernType: 1
-          PressType: 0
-          InputCallBackType: 1
-          SkillId: 11002
-          SkillSort: 100
-          RequiredTags: []
-          BlockedTags: []
-          InputTimeout: 0
-        - ListernType: 2
-          PressType: 0
-          InputCallBackType: 1
-          SkillId: 11004
-          SkillSort: 100
-          RequiredTags: []
-          BlockedTags: []
-          InputTimeout: 0
+      Events: []
     EffectEvents:
       Events: []

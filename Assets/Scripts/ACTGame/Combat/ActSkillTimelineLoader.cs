@@ -31,6 +31,29 @@ namespace ACTGameEditor.Combat
                     PrefabPath.GetSkillDataScriObjPath(true), config.SkillId.ToString());
             }
 
+            if (skillData == null && skillId == CombatChainSkill.SkillId)
+            {
+#if UNITY_EDITOR
+                GameLog.CombatDebug($"[Chain] {CombatChainSkill.SkillId} 轴未导出，暂用 {CombatChainSkill.FallbackTimelineSkillId}");
+#endif
+                return GetOrLoad(CombatChainSkill.FallbackTimelineSkillId);
+            }
+
+            if (skillData == null && CombatParry.IsPlayerParrySkill(skillId))
+            {
+#if UNITY_EDITOR
+                GameLog.CombatDebug($"[Parry] {CombatParry.PlayerSkillId} 轴未导出，暂用 {CombatParry.PlayerFallbackTimelineSkillId}");
+#endif
+                skillData = GetOrLoad(CombatParry.PlayerFallbackTimelineSkillId);
+            }
+            else if (skillData == null && CombatParry.IsEnemyYellowSkill(skillId))
+            {
+#if UNITY_EDITOR
+                GameLog.CombatDebug($"[Parry] {CombatParry.EnemyYellowSkillId} 轴未导出，暂用 {CombatParry.EnemyFallbackTimelineSkillId}");
+#endif
+                skillData = GetOrLoad(CombatParry.EnemyFallbackTimelineSkillId);
+            }
+
             if (skillData != null)
                 Cache[skillId] = skillData;
 
