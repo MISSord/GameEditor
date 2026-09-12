@@ -179,8 +179,7 @@ namespace ACTGameEditor.Combat.Ai
                 query.Owner,
                 entry.SkillId,
                 (int)entry.Sort,
-                query.CdTimer,
-                checkCostAndCooldown: true);
+                query.CdTimer);
             return fail == ActivateFail.None ? 1f : 0f;
         }
 

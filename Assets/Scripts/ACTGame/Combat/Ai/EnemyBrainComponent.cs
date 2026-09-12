@@ -708,8 +708,7 @@ namespace ACTGameEditor.Combat.Ai
                 _owner,
                 _selected.SkillId,
                 (int)_selected.Sort,
-                _spell.CDTimer,
-                checkCostAndCooldown: true);
+                _spell.CDTimer);
             if (fail != ActivateFail.None)
             {
                 ClearSelection();
@@ -757,7 +756,7 @@ namespace ACTGameEditor.Combat.Ai
                 return;
 
             ActivateFail fail = AbilityActivationGate.Evaluate(
-                _owner, followUpId, (int)_selected.Sort, _spell.CDTimer, checkCostAndCooldown: true);
+                _owner, followUpId, (int)_selected.Sort, _spell.CDTimer);
             if (fail != ActivateFail.None)
                 return;
 

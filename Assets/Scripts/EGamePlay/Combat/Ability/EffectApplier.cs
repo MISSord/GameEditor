@@ -90,28 +90,19 @@ namespace EGamePlay.Combat
                 return;
             }
 
-            var dmgEffect = new DamageEffect
-            {
-                DamageType = setting.DamageType,
-                DamageValueProperty = ratio,
-                FormulaType = (DamageCalcuFormulaType)setting.FormulaType,
-                CanCrit = setting.CanCrit != 0,
-            };
-
-            var context = new TriggerContext
-            {
-                EffectConfig = dmgEffect,
-                SourceAbility = sourceAbility,
-                TriggerSource = caster.Entity,
-                Target = target,
-                DamageSegmentIndex = damageSegmentIndex,
-                HasHitWorldPosition = hasHitWorldPosition,
-                HitWorldPosition = hitWorldPosition,
-            };
-
             if (caster.DamageAbility != null && caster.DamageAbility.TryMakeAction(out var damageAction))
             {
-                damageAction.TriggerContext = context;
+                damageAction.BindEffect(
+                    setting.DamageType,
+                    ratio,
+                    (DamageCalcuFormulaType)setting.FormulaType,
+                    setting.CanCrit != 0,
+                    sourceAbility,
+                    caster.Entity,
+                    target,
+                    damageSegmentIndex,
+                    hasHitWorldPosition,
+                    hitWorldPosition);
                 damageAction.DamageSource = DamageSource.Skill;
                 damageAction.HitReaction = setting.HitReaction;
                 damageAction.InterruptLevel = setting.ResolveInterruptLevel();

@@ -116,6 +116,24 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Switch1"",
+                    ""type"": ""Button"",
+                    ""id"": ""e1a2b3c4-d5e6-4f70-8a91-b2c3d4e5f607"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Switch2"",
+                    ""type"": ""Button"",
+                    ""id"": ""f2b3c4d5-e6f7-4081-9b02-c3d4e5f60718"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -338,6 +356,28 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
                     ""action"": ""Sprint"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""a3c4d5e6-f708-4192-ac13-d4e5f6071829"",
+                    ""path"": ""<Keyboard>/q"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""Switch1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""b4d5e6f7-0819-42a3-bd24-e5f60718293a"",
+                    ""path"": ""<Keyboard>/e"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""Switch2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -378,6 +418,8 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         m_ACTPlayer_Jump = m_ACTPlayer.FindAction("Jump", throwIfNotFound: true);
         m_ACTPlayer_WalkToggle = m_ACTPlayer.FindAction("WalkToggle", throwIfNotFound: true);
         m_ACTPlayer_Sprint = m_ACTPlayer.FindAction("Sprint", throwIfNotFound: true);
+        m_ACTPlayer_Switch1 = m_ACTPlayer.FindAction("Switch1", throwIfNotFound: true);
+        m_ACTPlayer_Switch2 = m_ACTPlayer.FindAction("Switch2", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -449,6 +491,8 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_ACTPlayer_Jump;
     private readonly InputAction m_ACTPlayer_WalkToggle;
     private readonly InputAction m_ACTPlayer_Sprint;
+    private readonly InputAction m_ACTPlayer_Switch1;
+    private readonly InputAction m_ACTPlayer_Switch2;
     public struct ACTPlayerActions
     {
         private @RPGFREEInputActions m_Wrapper;
@@ -463,6 +507,8 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         public InputAction @Jump => m_Wrapper.m_ACTPlayer_Jump;
         public InputAction @WalkToggle => m_Wrapper.m_ACTPlayer_WalkToggle;
         public InputAction @Sprint => m_Wrapper.m_ACTPlayer_Sprint;
+        public InputAction @Switch1 => m_Wrapper.m_ACTPlayer_Switch1;
+        public InputAction @Switch2 => m_Wrapper.m_ACTPlayer_Switch2;
         public InputActionMap Get() { return m_Wrapper.m_ACTPlayer; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -502,6 +548,12 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
             @Sprint.started += instance.OnSprint;
             @Sprint.performed += instance.OnSprint;
             @Sprint.canceled += instance.OnSprint;
+            @Switch1.started += instance.OnSwitch1;
+            @Switch1.performed += instance.OnSwitch1;
+            @Switch1.canceled += instance.OnSwitch1;
+            @Switch2.started += instance.OnSwitch2;
+            @Switch2.performed += instance.OnSwitch2;
+            @Switch2.canceled += instance.OnSwitch2;
         }
 
         private void UnregisterCallbacks(IACTPlayerActions instance)
@@ -536,6 +588,12 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
             @Sprint.started -= instance.OnSprint;
             @Sprint.performed -= instance.OnSprint;
             @Sprint.canceled -= instance.OnSprint;
+            @Switch1.started -= instance.OnSwitch1;
+            @Switch1.performed -= instance.OnSwitch1;
+            @Switch1.canceled -= instance.OnSwitch1;
+            @Switch2.started -= instance.OnSwitch2;
+            @Switch2.performed -= instance.OnSwitch2;
+            @Switch2.canceled -= instance.OnSwitch2;
         }
 
         public void RemoveCallbacks(IACTPlayerActions instance)
@@ -583,5 +641,7 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         void OnJump(InputAction.CallbackContext context);
         void OnWalkToggle(InputAction.CallbackContext context);
         void OnSprint(InputAction.CallbackContext context);
+        void OnSwitch1(InputAction.CallbackContext context);
+        void OnSwitch2(InputAction.CallbackContext context);
     }
 }

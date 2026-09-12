@@ -16,7 +16,7 @@ namespace EGamePlay.Combat
         {
             if (action == null)
                 return;
-            if (action.Effect.HasFlag(AddStatusActionEffect.Interrupt))
+            if ((action.Effect & AddStatusActionEffect.Interrupt) != 0)
                 return;
 
             ICombatUnit target = action.Target;
@@ -26,8 +26,7 @@ namespace EGamePlay.Combat
                 return;
             }
 
-            if (action.Effect.HasFlag(AddStatusActionEffect.Immunity)
-                || action.Effect.HasFlag(AddStatusActionEffect.Resisted))
+            if ((action.Effect & (AddStatusActionEffect.Immunity | AddStatusActionEffect.Resisted)) != 0)
                 return;
 
             StatusComponent status = target.Status;

@@ -39,6 +39,12 @@ namespace ACTGameEditor.Combat
         public override void Update(float deltaTime)
         {
             CDTimer?.OnUpdate(deltaTime);
+            CombatEntity unit = Unit;
+            if (unit != null && (unit.IsBench || unit.SquadPresence == SquadPresence.Exiting))
+            {
+                ClearQueue();
+                return;
+            }
             if (_queue.Count == 0)
                 return;
 
@@ -62,9 +68,8 @@ namespace ACTGameEditor.Combat
             if (winner == null)
                 return;
 
-            bool checkCostAndCooldown = CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate;
             ActivateFail fail = AbilityActivationGate.Evaluate(
-                Unit, winner.SkillId, winner.Sort, CDTimer, checkCostAndCooldown);
+                Unit, winner.SkillId, winner.Sort, CDTimer);
 
             if (fail == ActivateFail.SortBlocked)
             {

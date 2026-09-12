@@ -42,7 +42,7 @@ namespace ACTGameEditor.Combat
                 return null;
             }
 
-            var session = (ActSpellSession)CombatContext.Instance.AddAction<ActSpellSession>();
+            var session = (ActSpellSession)CombatContext.Instance.AddTickingAction<ActSpellSession>();
             session._caster = caster;
             session._ability = ability;
             session._skillId = ability.SkillID;
@@ -115,22 +115,7 @@ namespace ACTGameEditor.Combat
             if (_caster.ResourceAbility == null || !_caster.ResourceAbility.TryMakeAction(out var resourceAction))
                 return true;
 
-            var effect = new CureEffect
-            {
-                AttributeType = attrType,
-                CureValueProperty = -need,
-            };
-
-            var context = new TriggerContext
-            {
-                EffectConfig = effect,
-                SourceAbility = _ability,
-                TriggerSource = _caster,
-                Target = _caster,
-            };
-
-            resourceAction.Target = _caster;
-            resourceAction.TriggerContext = context;
+            resourceAction.BindCure(attrType, -need, _ability, _caster, _caster);
             resourceAction.ApplyCure();
             return true;
         }
@@ -171,11 +156,8 @@ namespace ACTGameEditor.Combat
 
             CombatParry.TryBindAttackerTags(_caster, _inputTarget, _skillId, _runner.Id);
 
-            if (CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate)
-            {
-                var spellComp = _caster.GetComponent<ActSpellComponent>();
-                spellComp?.CDTimer?.StartCooldown(_ability.SkillID);
-            }
+            var spellComp = _caster.GetComponent<ActSpellComponent>();
+            spellComp?.CDTimer?.StartCooldown(_ability.SkillID);
 
             return true;
         }
@@ -270,6 +252,7 @@ namespace ACTGameEditor.Combat
 
         public override void OnDestroy()
         {
+            CombatEntity caster = _caster;
             ReleaseChainHold();
 
             if (_runner != null)
@@ -292,6 +275,9 @@ namespace ACTGameEditor.Combat
             _sort = 0;
             _postProcessed = false;
             _chainHolding = false;
+
+            if (caster != null && !caster.IsDisposed)
+                CombatSquad.Instance?.NotifyExitComplete(caster);
         }
 
         public override void OnReset()

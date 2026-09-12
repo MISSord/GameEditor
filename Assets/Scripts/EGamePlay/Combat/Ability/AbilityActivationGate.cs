@@ -1,4 +1,6 @@
-﻿namespace EGamePlay.Combat
+﻿using EGamePlay;
+
+namespace EGamePlay.Combat
 {
     /// <summary>施法 Gate 失败原因。SortBlocked 表示本帧保留队列，其余为丢弃。</summary>
     public enum ActivateFail : byte
@@ -34,14 +36,13 @@
     public static class AbilityActivationGate
     {
         /// <summary>
-        /// 裁决一次出手意图。提交时复检硬直/标签；checkCostAndCooldown 为 false 时跳过 CD/资源。
+        /// 裁决一次出手意图。提交时复检硬直/标签/CD/资源，不扣资源、不转 CD。
         /// </summary>
         public static ActivateFail Evaluate(
             ICombatUnit actor,
             int skillId,
             int incomingSort,
-            ICooldownQuery cdTimer,
-            bool checkCostAndCooldown)
+            ICooldownQuery cdTimer)
         {
             if (actor == null || actor.IsDisposed)
                 return ActivateFail.NoAbility;
@@ -81,17 +82,14 @@
             if (config != null && !actor.CanSpellSkillWithTagLists(config.RequiredTags, config.BlockedTags))
                 return ActivateFail.Tag;
 
-            if (!PassesTriggerFormula(config))
+            if (!PassesTriggerFormula(config, actor.Entity))
                 return ActivateFail.Formula;
 
-            if (checkCostAndCooldown)
-            {
-                if (cdTimer != null && !cdTimer.IsCDEnd(skillId))
-                    return ActivateFail.Cooldown;
+            if (cdTimer != null && !cdTimer.IsCDEnd(skillId))
+                return ActivateFail.Cooldown;
 
-                if (!CanAfford(actor, ability))
-                    return ActivateFail.Resource;
-            }
+            if (!CanAfford(actor, ability))
+                return ActivateFail.Resource;
 
             if (current != null && !SkillCancelService.ShouldReplace(current.Sort, incomingSort))
                 return ActivateFail.SortBlocked;
@@ -158,11 +156,11 @@
         }
 
         /// <summary>表驱动 TriggerFormula。空公式视为通过。</summary>
-        public static bool PassesTriggerFormula(SkillDemoSetting config)
+        public static bool PassesTriggerFormula(SkillDemoSetting config, Entity caster)
         {
             if (config == null || string.IsNullOrEmpty(config.TriggerFormula))
                 return true;
-            object result = FastStaticExecutor.Execute(config.TriggerFormula);
+            object result = FastStaticExecutor.Execute(config.TriggerFormula, caster);
             return result is bool ok && ok;
         }
     }

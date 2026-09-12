@@ -32,6 +32,7 @@ namespace EGamePlay
         public List<Component> FixedUpdateComponents { get; private set; } = new List<Component>();
         public bool IsNeedUpdate => UpdateComponents.Count > 0;
         public bool IsNeedFixUpdate => FixedUpdateComponents.Count > 0;
+        EventComponent _eventComponent;
 
         #region 复写部分
         public virtual void Awake()
@@ -77,7 +78,7 @@ namespace EGamePlay
 
         private void Dispose()
         {
-            if (EnableLog) GameLog.Debug($"{GetType().Name}->Dispose");
+            //if (EnableLog) GameLog.Debug($"{GetType().Name}->Dispose");
 
             if (Children.Count > 0)
             {
@@ -99,6 +100,7 @@ namespace EGamePlay
             Components.Clear();
             UpdateComponents.Clear();
             FixedUpdateComponents.Clear();
+            _eventComponent = null;
 
             InstanceId = 0;
             if (ECSNode.Entities.ContainsKey(GetType()))
@@ -127,9 +129,10 @@ namespace EGamePlay
             Components.Add(typeof(T), component);
             if (component.IsNeedFixedUpdate == true) FixedUpdateComponents.Add(component);
             if (component.IsNeedUpdate == true) UpdateComponents.Add(component);
-            if (EnableLog) GameLog.Debug($"{GetType().Name}->AddComponent, {typeof(T).Name}");
+            //if (EnableLog) GameLog.Debug($"{GetType().Name}->AddComponent, {typeof(T).Name}");
             component.Awake();
             component.Enable = component.DefaultEnable;
+            BindEventComponent(component);
             return component;
         }
 
@@ -141,9 +144,10 @@ namespace EGamePlay
             Components.Add(typeof(T), component);
             if (component.IsNeedFixedUpdate == true) FixedUpdateComponents.Add(component);
             if (component.IsNeedUpdate == true) UpdateComponents.Add(component);
-            if (EnableLog) GameLog.Debug($"{GetType().Name}->AddComponent, {typeof(T).Name} initData={initData}");
+            //if (EnableLog) GameLog.Debug($"{GetType().Name}->AddComponent, {typeof(T).Name} initData={initData}");
             component.Awake(initData);
             component.Enable = component.DefaultEnable;
+            BindEventComponent(component);
             return component;
         }
 
@@ -155,6 +159,8 @@ namespace EGamePlay
             Components.Remove(typeof(T));
             FixedUpdateComponents.Remove(component);
             UpdateComponents.Remove(component);
+            if (ReferenceEquals(_eventComponent, component))
+                _eventComponent = null;
         }
 
         public T GetComponent<T>() where T : Component
@@ -235,32 +241,32 @@ namespace EGamePlay
 
         public T Publish<T>(T TEvent) where T : class
         {
-            var eventComponent = GetComponent<EventComponent>();
-            if (eventComponent == null)
-            {
+            EventComponent eventComponent = _eventComponent;
+            if (eventComponent == null || eventComponent.IsDisposed)
                 return TEvent;
-            }
             eventComponent.Publish(TEvent);
             return TEvent;
         }
 
         public void Subscribe<T>(Action<T> action) where T : class
         {
-            var eventComponent = GetComponent<EventComponent>();
-            if (eventComponent == null)
-            {
+            EventComponent eventComponent = _eventComponent;
+            if (eventComponent == null || eventComponent.IsDisposed)
                 eventComponent = AddComponent<EventComponent>();
-            }
             eventComponent.Subscribe(action);
         }
 
         public void UnSubscribe<T>(Action<T> action) where T : class
         {
-            var eventComponent = GetComponent<EventComponent>();
-            if (eventComponent != null)
-            {
+            EventComponent eventComponent = _eventComponent;
+            if (eventComponent != null && !eventComponent.IsDisposed)
                 eventComponent.UnSubscribe(action);
-            }
+        }
+
+        void BindEventComponent(Component component)
+        {
+            if (component is EventComponent eventComponent)
+                _eventComponent = eventComponent;
         }
 
         //重置方法

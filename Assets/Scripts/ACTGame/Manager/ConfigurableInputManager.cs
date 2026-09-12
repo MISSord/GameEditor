@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using ACTGameEditor.Combat;
 using ACTGameEditor.Locomotion;
 
 namespace ACTGameEditor
@@ -16,6 +17,8 @@ namespace ACTGameEditor
         private InputAction _moveAction;
         private InputAction _walkToggleAction;
         private InputAction _sprintAction;
+        private InputAction _switch1Action;
+        private InputAction _switch2Action;
         int _sampledFrame = -1;
         PlayerInputSnapshot _snapshot;
 
@@ -53,6 +56,19 @@ namespace ACTGameEditor
             _sprintAction = map.FindAction(InputListernType.Sprint.ToString());
             _walkToggleAction?.Enable();
             _sprintAction?.Enable();
+
+            _switch1Action = map.FindAction(InputListernType.Switch1.ToString());
+            _switch2Action = map.FindAction(InputListernType.Switch2.ToString());
+            if (_switch1Action != null)
+            {
+                _switch1Action.performed += OnSwitch1Perform;
+                _switch1Action.Enable();
+            }
+            if (_switch2Action != null)
+            {
+                _switch2Action.performed += OnSwitch2Perform;
+                _switch2Action.Enable();
+            }
 
             _joyStick = SimpleJoyStick.Instance;
         }
@@ -103,6 +119,29 @@ namespace ACTGameEditor
         public void Update()
         {
             Sample();
+            PollSwitchFallback();
+        }
+
+        void OnSwitch1Perform(InputAction.CallbackContext context)
+        {
+            CombatSquad.Instance?.TrySwitchRelative(1);
+        }
+
+        void OnSwitch2Perform(InputAction.CallbackContext context)
+        {
+            CombatSquad.Instance?.TrySwitchRelative(2);
+        }
+
+        /// <summary>InputAction 未配到 Q/E 时的键盘兜底，不进技能槽。</summary>
+        void PollSwitchFallback()
+        {
+            Keyboard keyboard = Keyboard.current;
+            if (keyboard == null)
+                return;
+            if (_switch1Action == null && keyboard.qKey.wasPressedThisFrame)
+                CombatSquad.Instance?.TrySwitchRelative(1);
+            if (_switch2Action == null && keyboard.eKey.wasPressedThisFrame)
+                CombatSquad.Instance?.TrySwitchRelative(2);
         }
 
         /// <summary>键盘 / 屏上技能钮共用：写入当前玩家预输入。</summary>

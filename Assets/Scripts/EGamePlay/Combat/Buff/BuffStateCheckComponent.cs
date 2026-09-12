@@ -117,42 +117,50 @@ namespace EGamePlay.Combat
 
     public class BuffStateCheck
     {
-        // 定义一个委托来匹配你的静态方法签名
-        private delegate bool BuffStateCheckDelegate(Entity target, Buff buff);
+        delegate bool BuffStateCheckDelegate(Entity target, Buff buff);
 
-        private static Dictionary<string, Delegate> _methodCache = new Dictionary<string, Delegate>();
+        static readonly Dictionary<string, BuffStateCheckDelegate> MethodCache =
+            new Dictionary<string, BuffStateCheckDelegate>(StringComparer.Ordinal);
 
+        /// <summary>预编译 <see cref="BuffMethod"/> 上 (Entity, Buff) => bool 的静态方法。</summary>
+        public static void Initialize()
+        {
+            MethodInfo[] methods = typeof(BuffMethod).GetMethods(BindingFlags.Public | BindingFlags.Static);
+            for (int i = 0; i < methods.Length; i++)
+                TryCache(methods[i]);
+        }
+
+        /// <summary>按方法名调用；未登记则当场编译一次。</summary>
         public static bool CallStaticMethodEfficiently(string name, Entity target, Buff buff)
         {
-            string className = "EGamePlay.Combat.BuffMethod";
-            string methodName = name;
-            string cacheKey = $"{className}.{methodName}";
-
-            // 1. 尝试从缓存中获取委托
-            if (!_methodCache.TryGetValue(cacheKey, out var methodDelegate))
+            if (string.IsNullOrEmpty(name))
+                return false;
+            if (!MethodCache.TryGetValue(name, out BuffStateCheckDelegate methodDelegate))
             {
-                // 2. 缓存中没有，使用反射获取方法信息（同上）
-                Type targetType = Type.GetType(className);
-                MethodInfo methodInfo = targetType?.GetMethod(methodName,
+                MethodInfo methodInfo = typeof(BuffMethod).GetMethod(name,
                     BindingFlags.Public | BindingFlags.Static,
                     null,
-                    new Type[] { typeof(Entity), typeof(Buff) },
-                    null
-                );
-
-                if (methodInfo == null) 
+                    new[] { typeof(Entity), typeof(Buff) },
+                    null);
+                if (methodInfo == null || !TryCache(methodInfo))
                     return false;
-
-                // 3. 创建强类型委托
-                methodDelegate = methodInfo.CreateDelegate(typeof(BuffStateCheckDelegate));
-
-                // 4. 存入缓存
-                _methodCache[cacheKey] = methodDelegate;
+                methodDelegate = MethodCache[name];
             }
 
-            // 5. 转换为具体委托类型并调用（此步速度极快，接近直接调用）
-            var typedDelegate = (BuffStateCheckDelegate)methodDelegate;
-            return typedDelegate.Invoke(target, buff);
+            return methodDelegate.Invoke(target, buff);
+        }
+
+        static bool TryCache(MethodInfo methodInfo)
+        {
+            if (methodInfo == null || methodInfo.ReturnType != typeof(bool))
+                return false;
+            ParameterInfo[] parameters = methodInfo.GetParameters();
+            if (parameters.Length != 2
+                || parameters[0].ParameterType != typeof(Entity)
+                || parameters[1].ParameterType != typeof(Buff))
+                return false;
+            MethodCache[methodInfo.Name] = (BuffStateCheckDelegate)methodInfo.CreateDelegate(typeof(BuffStateCheckDelegate));
+            return true;
         }
     }
 
@@ -186,10 +194,7 @@ namespace EGamePlay.Combat
                 return false;
             if (damage.DamageSource != DamageSource.Skill)
                 return false;
-            if (damage.DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
-                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
-                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Immunity)
-                || damage.DamageActionEffect.HasFlag(DamageActionEffect.Parry))
+            if (damage.BlocksHpDamage)
                 return false;
             if (damage.Target == null || damage.Target.IsDisposed || damage.Target.IsDead)
                 return false;

@@ -32,12 +32,6 @@ namespace EGamePlay.Combat
         }
 #endif
 
-        /// <summary>
-        /// true：入队不扣 CD，时间轴启动后才转；Evaluate 检查 CD/资源。
-        /// false：Idle 入队仍立刻扣 CD（对照旧路径）。
-        /// </summary>
-        public bool UseAbilityGate { get; set; } = true;
-
         /// <summary>命中申报队列，由盒体入队、Context Flush。</summary>
         public HitPipeline HitPipeline { get; private set; }
 
@@ -58,7 +52,18 @@ namespace EGamePlay.Combat
             base.OnDestroy();
         }
 
+        /// <summary>
+        /// 创建开火即忘的行动（伤害 / 上 Buff / 治疗）。不进入 Tick 表。
+        /// </summary>
         public Entity AddAction<T>() where T : Entity
+        {
+            return AddChild<T>();
+        }
+
+        /// <summary>
+        /// 创建需要每帧 Tick 的行动（施法 Session）。
+        /// </summary>
+        public Entity AddTickingAction<T>() where T : Entity
         {
             Entity action = AddChild<T>();
             _spellActions.Add(action);

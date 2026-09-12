@@ -3,95 +3,33 @@ using System.Collections.Generic;
 
 namespace EGamePlay
 {
-	public interface ITimer
+	/// <summary>
+	/// 定时器槽位。不是 Entity，由 <see cref="ETTimerManager"/> 内部池化。
+	/// </summary>
+	public sealed class TimerSlot
 	{
-		void Run(bool isTimeout);
-	}
+		public long Id { get; internal set; }
+		public bool IsRepeated { get; internal set; }
 
-	public class OnceTimer: Entity, ITimer
-	{
-		public Action Callback { get; set; }
+		internal bool Alive;
+		internal long StartTime;
+		internal long RepeatedTime;
+		internal long TillTime;
+		internal int Count;
+		internal Action OnceCallback;
+		internal Action<bool> RepeatCallback;
 
-		public override void Awake(object initData)
+		internal void Reset()
 		{
-			Callback = initData as Action;
-		}
-
-		public void Run(bool isTimeout)
-		{
-			try
-			{
-				this.Callback?.Invoke();
-			}
-			catch (Exception e)
-			{
-				GameLog.Error(e);
-			}
-		}
-	}
-
-	public class RepeatedTimerAwakeData
-	{
-		public long StartTime;
-		public long RepeatedTime;
-		public Action<bool> Callback;
-	}
-
-	public class RepeatedTimer: Entity, ITimer
-	{
-		public override void Awake(object initData)
-		{
-			var awakeData = initData as RepeatedTimerAwakeData;
-			this.StartTime = awakeData.StartTime;
-			this.RepeatedTime = awakeData.RepeatedTime;
-			this.Callback = awakeData.Callback;
-			this.Count = 1;
-		}
-
-		private long StartTime { get; set; }
-
-		private long RepeatedTime { get; set; }
-
-		private int Count { get; set; }
-
-		public Action<bool> Callback { private get; set; }
-
-		public void Run(bool isTimeout)
-		{
-			++this.Count;
-			ETTimerManager timerComponent = this.GetParent<ETTimerManager>();
-			long tillTime = this.StartTime + this.RepeatedTime * this.Count;
-			timerComponent.AddToTimeId(tillTime, this.Id);
-
-			try
-			{
-				this.Callback?.Invoke(isTimeout);
-			}
-			catch (Exception e)
-			{
-				GameLog.Error(e);
-			}
-		}
-
-		public override void OnDestroy()
-		{
-			if (this.IsDisposed)
-			{
-				return;
-			}
-
-			long id = this.Id;
-
-			if (id == 0)
-			{
-				GameLog.Error("RepeatedTimer可能多次释放了");
-				return;
-			}
-
-			this.StartTime = 0;
-			this.RepeatedTime = 0;
-			this.Callback = null;
-			this.Count = 0;
+			Id = 0;
+			IsRepeated = false;
+			Alive = false;
+			StartTime = 0;
+			RepeatedTime = 0;
+			TillTime = 0;
+			Count = 0;
+			OnceCallback = null;
+			RepeatCallback = null;
 		}
 	}
 
@@ -103,21 +41,18 @@ namespace EGamePlay
 	{
 		public static ETTimerManager Instance { get; set; }
 
-		private readonly Dictionary<long, ITimer> _timers = new Dictionary<long, ITimer>();
+		const int InitialPoolSize = 32;
 
-		/// <summary>
-		/// key: time, value: timer id
-		/// </summary>
-		public readonly MultiMap<long, long> TimeId = new MultiMap<long, long>();
-
-		private readonly Queue<long> _timeOutTime = new Queue<long>();
-
-		private readonly Queue<long> _timeOutTimerIds = new Queue<long>();
+		readonly Dictionary<long, TimerSlot> _timers = new Dictionary<long, TimerSlot>(64);
+		readonly Stack<TimerSlot> _slotPool = new Stack<TimerSlot>(InitialPoolSize);
+		readonly MultiMap<long, long> _timeId = new MultiMap<long, long>();
+		readonly Queue<long> _timeOutTime = new Queue<long>();
+		readonly Queue<long> _timeOutTimerIds = new Queue<long>();
+		readonly List<long> _removeScratch = new List<long>(16);
 
 		/// <summary>累计世界毫秒（double 避免每帧截断）。</summary>
-		private double _nowMs;
-
-		private long _minTime = long.MaxValue;
+		double _nowMs;
+		long _minTime = long.MaxValue;
 
 		/// <summary>当前战斗世界钟（毫秒）。无实例时为 0。</summary>
 		public static long NowMs => Instance != null ? (long)Instance._nowMs : 0L;
@@ -130,6 +65,26 @@ namespace EGamePlay
 			Instance = this;
 			_nowMs = 0d;
 			_minTime = long.MaxValue;
+			for (int i = 0; i < InitialPoolSize; i++)
+				_slotPool.Push(new TimerSlot());
+		}
+
+		public override void OnDestroy()
+		{
+			if (Instance == this)
+				Instance = null;
+
+			_removeScratch.Clear();
+			foreach (var id in _timers.Keys)
+				_removeScratch.Add(id);
+			for (int i = 0; i < _removeScratch.Count; i++)
+				Remove(_removeScratch[i]);
+			_removeScratch.Clear();
+			_timers.Clear();
+			_timeId.Clear();
+			_timeOutTime.Clear();
+			_timeOutTimerIds.Clear();
+			_slotPool.Clear();
 		}
 
 		/// <summary>
@@ -138,23 +93,19 @@ namespace EGamePlay
 		public new void Update(float worldDelta)
 		{
 			if (worldDelta > 0f)
-			{
 				_nowMs += (double)worldDelta * 1000.0;
-			}
 
-			if (this.TimeId.Count == 0)
+			if (_timeId.Count == 0)
 			{
 				_minTime = long.MaxValue;
 				return;
 			}
 
 			long timeNow = (long)_nowMs;
-			if (timeNow < this._minTime)
-			{
+			if (timeNow < _minTime)
 				return;
-			}
 
-			foreach (KeyValuePair<long, List<long>> kv in this.TimeId.GetDictionary())
+			foreach (KeyValuePair<long, List<long>> kv in _timeId.GetDictionary())
 			{
 				long k = kv.Key;
 				if (k > timeNow)
@@ -162,28 +113,31 @@ namespace EGamePlay
 					_minTime = k;
 					break;
 				}
-				this._timeOutTime.Enqueue(k);
+				_timeOutTime.Enqueue(k);
 			}
 
-			while (this._timeOutTime.Count > 0)
+			while (_timeOutTime.Count > 0)
 			{
-				long time = this._timeOutTime.Dequeue();
-				foreach (long timerId in this.TimeId[time])
+				long time = _timeOutTime.Dequeue();
+				List<long> ids = _timeId[time];
+				if (ids != null)
 				{
-					this._timeOutTimerIds.Enqueue(timerId);
+					for (int i = 0; i < ids.Count; i++)
+						_timeOutTimerIds.Enqueue(ids[i]);
 				}
-				this.TimeId.Remove(time);
+				_timeId.Remove(time);
 			}
 
-			while (this._timeOutTimerIds.Count > 0)
+			while (_timeOutTimerIds.Count > 0)
 			{
-				long timerId = this._timeOutTimerIds.Dequeue();
-				if (!this._timers.TryGetValue(timerId, out ITimer timer))
-				{
+				long timerId = _timeOutTimerIds.Dequeue();
+				if (!_timers.TryGetValue(timerId, out TimerSlot slot) || !slot.Alive)
 					continue;
-				}
 
-				timer.Run(true);
+				if (slot.IsRepeated)
+					FireRepeated(slot);
+				else
+					FireOnce(slot);
 			}
 		}
 
@@ -193,46 +147,42 @@ namespace EGamePlay
 		public long NewRepeatedTimer(long time, Action<bool> action)
 		{
 			if (time < 30)
-			{
-				throw new Exception($"repeated time < 30");
-			}
+				throw new Exception("repeated time < 30");
+
 			long startTime = Now;
 			long tillTime = startTime + time;
-			RepeatedTimer timer = this.AddChild<RepeatedTimer>(new RepeatedTimerAwakeData()
-			{
-				Callback = action,
-				RepeatedTime = time,
-				StartTime = startTime
-			});
-			this._timers[timer.Id] = timer;
-			AddToTimeId(tillTime, timer.Id);
-			return timer.Id;
+			TimerSlot slot = Rent();
+			slot.IsRepeated = true;
+			slot.RepeatCallback = action;
+			slot.StartTime = startTime;
+			slot.RepeatedTime = time;
+			slot.Count = 1;
+			slot.TillTime = tillTime;
+			_timers[slot.Id] = slot;
+			AddToTimeId(tillTime, slot.Id);
+			return slot.Id;
 		}
 
-		/// <summary>按 Id 取周期定时器；不存在则返回 null。</summary>
-		public RepeatedTimer GetRepeatedTimer(long id)
+		/// <summary>按 Id 取周期定时器；不存在或不是周期则返回 null。</summary>
+		public TimerSlot GetRepeatedTimer(long id)
 		{
-			if (!this._timers.TryGetValue(id, out ITimer timer))
-			{
-				return null;
-			}
-			return timer as RepeatedTimer;
+			if (_timers.TryGetValue(id, out TimerSlot slot) && slot.Alive && slot.IsRepeated)
+				return slot;
+			return null;
 		}
 
-		/// <summary>移除并销毁指定定时器。</summary>
+		/// <summary>移除定时器并归还槽位。已到期被回收的 Id 再调是空操作。</summary>
 		public void Remove(long id)
 		{
 			if (id == 0)
-			{
 				return;
-			}
-			if (!this._timers.TryGetValue(id, out ITimer timer))
-			{
+			if (!_timers.TryGetValue(id, out TimerSlot slot) || !slot.Alive)
 				return;
-			}
-			this._timers.Remove(id);
 
-			(timer as IDisposable)?.Dispose();
+			long tillTime = slot.TillTime;
+			Recycle(slot);
+			if (tillTime != 0)
+				_timeId.Remove(tillTime, id);
 		}
 
 		/// <summary>
@@ -240,10 +190,13 @@ namespace EGamePlay
 		/// </summary>
 		public long NewOnceTimer(long tillTime, Action action)
 		{
-			OnceTimer timer = this.AddChild<OnceTimer>(action);
-			this._timers[timer.Id] = timer;
-			AddToTimeId(tillTime, timer.Id);
-			return timer.Id;
+			TimerSlot slot = Rent();
+			slot.IsRepeated = false;
+			slot.OnceCallback = action;
+			slot.TillTime = tillTime;
+			_timers[slot.Id] = slot;
+			AddToTimeId(tillTime, slot.Id);
+			return slot.Id;
 		}
 
 		/// <summary>
@@ -252,30 +205,80 @@ namespace EGamePlay
 		public long NewOnceTimerAfter(long delayMs, Action action)
 		{
 			if (delayMs < 0L)
-			{
 				delayMs = 0L;
-			}
 			return NewOnceTimer(Now + delayMs, action);
 		}
 
-		/// <summary>按 Id 取一次性定时器；不存在则返回 null。</summary>
-		public OnceTimer GetOnceTimer(long id)
+		/// <summary>按 Id 取一次性定时器；不存在或不是一次性则返回 null。</summary>
+		public TimerSlot GetOnceTimer(long id)
 		{
-			if (!this._timers.TryGetValue(id, out ITimer timer))
-			{
-				return null;
-			}
-			return timer as OnceTimer;
+			if (_timers.TryGetValue(id, out TimerSlot slot) && slot.Alive && !slot.IsRepeated)
+				return slot;
+			return null;
 		}
 
 		/// <summary>将定时器挂到指定世界毫秒戳。业务侧请用 <see cref="Now"/> 或 <see cref="NewOnceTimerAfter"/>，不要用墙钟。</summary>
 		public void AddToTimeId(long tillTime, long id)
 		{
-			this.TimeId.Add(tillTime, id);
-			if (tillTime < this._minTime)
+			_timeId.Add(tillTime, id);
+			if (tillTime < _minTime)
+				_minTime = tillTime;
+		}
+
+		TimerSlot Rent()
+		{
+			TimerSlot slot = _slotPool.Count > 0 ? _slotPool.Pop() : new TimerSlot();
+			slot.Alive = true;
+			slot.Id = IdFactory.NewInstanceId();
+			return slot;
+		}
+
+		void Recycle(TimerSlot slot)
+		{
+			if (slot == null || !slot.Alive)
+				return;
+			slot.Alive = false;
+			_timers.Remove(slot.Id);
+			slot.Reset();
+			_slotPool.Push(slot);
+		}
+
+		void FireOnce(TimerSlot slot)
+		{
+			long id = slot.Id;
+			Action callback = slot.OnceCallback;
+			try
 			{
-				this._minTime = tillTime;
+				callback?.Invoke();
 			}
+			catch (Exception e)
+			{
+				GameLog.Error(e);
+			}
+
+			if (slot.Alive && slot.Id == id)
+				Recycle(slot);
+		}
+
+		void FireRepeated(TimerSlot slot)
+		{
+			long id = slot.Id;
+			try
+			{
+				slot.RepeatCallback?.Invoke(true);
+			}
+			catch (Exception e)
+			{
+				GameLog.Error(e);
+			}
+
+			if (!slot.Alive || slot.Id != id)
+				return;
+
+			slot.Count++;
+			long tillTime = slot.StartTime + slot.RepeatedTime * slot.Count;
+			slot.TillTime = tillTime;
+			AddToTimeId(tillTime, slot.Id);
 		}
 	}
 }

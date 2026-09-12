@@ -23,6 +23,8 @@ public enum InputListernType
     Targeting,
     WalkToggle,
     Sprint,
+    Switch1,
+    Switch2,
 }
 
 public enum PressType { Click, LongPress }

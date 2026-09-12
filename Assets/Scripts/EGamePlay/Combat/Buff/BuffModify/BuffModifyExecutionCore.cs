@@ -32,28 +32,19 @@ namespace EGamePlay.Combat
             bool canCrit = setting.ParamInt3 != 0;
             float skillRate = setting.ParamFloat1 > 0f ? setting.ParamFloat1 : 1f;
 
-            var dmgEffect = new DamageEffect
-            {
-                DamageType = damageType,
-                DamageValueProperty = skillRate,
-                FormulaType = formulaType,
-                CanCrit = canCrit,
-            };
-
-            var context = new TriggerContext
-            {
-                EffectConfig = dmgEffect,
-                SourceAbility = sourceAbility,
-                TriggerSource = triggerSource,
-                Target = target,
-                DamageSegmentIndex = damageSegmentIndex,
-                HasHitWorldPosition = hasHitWorldPosition,
-                HitWorldPosition = hitWorldPosition,
-            };
-
             if (caster.DamageAbility != null && caster.DamageAbility.TryMakeAction(out var damageAction))
             {
-                damageAction.TriggerContext = context;
+                damageAction.BindEffect(
+                    damageType,
+                    skillRate,
+                    formulaType,
+                    canCrit,
+                    sourceAbility,
+                    triggerSource,
+                    target,
+                    damageSegmentIndex,
+                    hasHitWorldPosition,
+                    hitWorldPosition);
                 damageAction.DamageSource = damageSource;
                 damageAction.ApplyDamage();
             }
@@ -99,22 +90,7 @@ namespace EGamePlay.Combat
             {
                 if (caster.ResourceAbility.TryMakeAction(out var cureAction))
                 {
-                    var cureEffect = new CureEffect
-                    {
-                        AttributeType = attrType,
-                        CureValueProperty = delta,
-                    };
-
-                    var triggerContext = new TriggerContext
-                    {
-                        EffectConfig = cureEffect,
-                        SourceAbility = null,
-                        TriggerSource = triggerSource,
-                        Target = target,
-                    };
-
-                    cureAction.Target = target as ICombatUnit;
-                    cureAction.TriggerContext = triggerContext;
+                    cureAction.BindCure(attrType, delta, null, triggerSource, target);
                     cureAction.ApplyCure();
                     return;
                 }

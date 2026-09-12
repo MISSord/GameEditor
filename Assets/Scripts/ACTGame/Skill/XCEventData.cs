@@ -1,4 +1,4 @@
-using ACTGameEditor;
+﻿using ACTGameEditor;
 using DG.Tweening;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
@@ -24,29 +24,18 @@ namespace ACTGameEditor
         public int Start
         {
             get { return _start; }
-            //暂时屏蔽
-            //set
-            //{
-            //    _start = value;
-            //}
         }
 
         /// @brief Returns the end frame.
         public int End
         {
             get { return _end; }
-            //暂时屏蔽
-            //set
-            //{
-            //    _end = value;
-            //}
         }
 
         /// @brief Sets / Gets the length.
         /// @note It doesn't cache the value.
         public int Length
         {
-            /*set { End = _start + value; } */
             get { return _end - _start; }
         }
 
@@ -61,43 +50,6 @@ namespace ACTGameEditor
             this._start = start;
             this._end = end;
         }
-
-        ///// @brief Returns \e i clamped to the Range.
-        //public int Cull(int i)
-        //{
-        //    return Mathf.Clamp(i, _start, _end);
-        //}
-
-        ///// @brief Returns if \e i is inside [start, end], i.e. including borders
-        //public bool Contains(int i)
-        //{
-        //    return i >= _start && i <= _end;
-        //}
-
-        ///// @brief Returns if \e i is inside ]start, end[, i.e. excluding borders
-        //public bool ContainsExclusive(int i)
-        //{
-        //    return i > _start && i < _end;
-        //}
-
-        ///// @brief Returns if the ranges intersect, i.e. touching returns false
-        ///// @note Assumes They are both valid
-        //public bool Collides(XCRange Range)
-        //{
-        //    return _start < Range._end && _end > Range._start;
-        //}
-
-        ///// @brief Returns if the ranges overlap, i.e. touching return true
-        ///// @note Assumes They are both valid
-        //public bool Overlaps(XCRange Range)
-        //{
-        //    return Range.End >= _start && Range.Start <= _end;
-        //}
-
-        //public override string ToString()
-        //{
-        //    return string.Format("[{0}; {1}]", _start, _end);
-        //}
     }
 
     public abstract class XCEventData
@@ -125,6 +77,19 @@ namespace ACTGameEditor
         /// 已废弃：请用 ExitPolicy。保留仅兼容旧资源；运行时若 ExitPolicy 为默认且本字段为 false，仍按 Locomotion。
         /// </summary>
         public bool IsBackToIdle;
+
+        [NonSerialized] int _clipHash;
+
+        /// <summary>AnimName 的 Animator hash，运行时缓存。</summary>
+        public int ClipHash
+        {
+            get
+            {
+                if (_clipHash == 0)
+                    _clipHash = Animator.StringToHash(AnimName);
+                return _clipHash;
+            }
+        }
     }
 
     [Serializable]

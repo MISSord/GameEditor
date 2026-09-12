@@ -26,7 +26,7 @@ namespace EGamePlay.Combat
         bool IsCanParrySkill { get; }
         bool IsDead { get; }
         bool isTruePlayer { get; }
-        /// <summary>技能轴、CD、动画走玩家钟（本地玩家，或 SkillTimeStop 发起者 hold）。</summary>
+        /// <summary>技能轴、CD、动画走玩家钟（小队成员含候场、本地主控，或 SkillTimeStop 发起者 hold）。</summary>
         bool UsesPlayerCombatClock { get; }
 
         Vector3 Position { get; set; }

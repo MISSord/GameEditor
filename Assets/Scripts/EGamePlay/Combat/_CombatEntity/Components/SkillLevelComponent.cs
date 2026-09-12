@@ -1,5 +1,4 @@
-using System.Collections.Generic;
-using EGamePlay;
+﻿using System.Collections.Generic;
 
 namespace EGamePlay.Combat
 {

@@ -24,8 +24,14 @@ namespace EGamePlay.Unity
         /// <summary>角色等级，用于属性计算：基础值 + 等级 * 增长值。</summary>
         public int Level;
 
-        /// <summary>仅本地主控角色。人机即使 AgentTag 为 PlayerA 也必须为 false，否则 NetId 会与主控撞成 0。</summary>
+        /// <summary>当前主控。小队候场 / 人机必须为 false。</summary>
         public bool isTruePlayer;
+
+        /// <summary>玩家三人小队成员。敌人与调试假玩家为 false。</summary>
+        public bool IsPlayerSquad;
+
+        /// <summary>小队槽 0/1/2；非小队为 -1。</summary>
+        public int SquadSlot;
     }
 
     /// <summary>编辑器下 Entity 对应 GameObject 的挂载根。</summary>

@@ -1,6 +1,7 @@
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
+using System;
 using UnityEngine;
 
 namespace ACTGameEditor.Combat
@@ -12,10 +13,12 @@ namespace ACTGameEditor.Combat
         AudioSource _audioSource;
         Renderer[] _cachedRenderers;
         long _unmoveTimerId;
+        Action _onUnmoveElapsed;
 
         public override void Awake()
         {
             _owner = GetEntity<CombatEntity>();
+            _onUnmoveElapsed ??= OnUnmoveElapsed;
 #if UNITY
             Transform audioRoot = _owner.RootTransform != null ? _owner.RootTransform : _owner.ModelTrans;
             if (audioRoot != null)
@@ -102,11 +105,13 @@ namespace ACTGameEditor.Combat
             if (durationSeconds <= 0f)
                 return;
 
-            _unmoveTimerId = ETTimerManager.Instance.NewOnceTimerAfter((long)(durationSeconds * 1000f), () =>
-            {
-                _unmoveTimerId = 0;
-                _owner?.SetTimedMoveLock(false);
-            });
+            _unmoveTimerId = ETTimerManager.Instance.NewOnceTimerAfter((long)(durationSeconds * 1000f), _onUnmoveElapsed);
+        }
+
+        void OnUnmoveElapsed()
+        {
+            _unmoveTimerId = 0;
+            _owner?.SetTimedMoveLock(false);
         }
 
         void CancelUnmoveTimer()

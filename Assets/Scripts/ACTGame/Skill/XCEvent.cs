@@ -1,10 +1,8 @@
-using ACTGameEditor.Combat;
+﻿using ACTGameEditor.Combat;
 using DG.Tweening;
-using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace ACTGameEditor
@@ -18,7 +16,6 @@ namespace ACTGameEditor
     public class XCEvent: IResettable
     {
         public XCEventData EventData;
-
         public XCRange Range;
         protected uint NetId { get => OwnCombat.NetId; }
         protected CombatEntity OwnCombat { get; private set; }
@@ -53,13 +50,11 @@ namespace ACTGameEditor
         public int Start
         {
             get { return Range.Start; }
-            //set { Range.Start = value; }
         }
 
         public int End
         {
             get { return Range.End; }
-            //set { Range.End = value; }
         }
 
         public float StartTime
@@ -128,7 +123,7 @@ namespace ACTGameEditor
         public override void Init(CombatEntity owner, XCNewEventsRunner runner)
         {
             base.Init(owner, runner);
-            _cachedClipHash = Animator.StringToHash(eventData.AnimName);
+            _cachedClipHash = eventData.ClipHash;
             _cachedClipLength = 0f;
             _animToken = 0;
             _director = null;
@@ -163,7 +158,7 @@ namespace ACTGameEditor
 
         public override void OnTrigger(float timeSinceTrigger)
         {
-            AnimComponent animComp = OwnCombat?.GetComponent<AnimComponent>();
+            AnimComponent animComp = OwnCombat?.Anim;
             _director = animComp?.Director;
             Animator animator = animComp?.animator;
             if (_director == null || animator == null)
@@ -191,7 +186,7 @@ namespace ACTGameEditor
                 eventData.UseRootMotion,
                 eventData.SuppressGravity);
             AnimExitPolicy policy = eventData.ExitPolicy;
-            SelfRunner?.GetParent<ActSkillRunner>()?.NotifyAnimPlayed(_animToken, policy);
+            SelfRunner?.ParentRunner?.NotifyAnimPlayed(_animToken, policy);
 
             base.OnTrigger(timeSinceTrigger);
             _director.Scrub(timeSinceTrigger);
@@ -210,6 +205,7 @@ namespace ACTGameEditor
         private XCObjEventData _eventData;
         private ParticleSystem _ps;
         ParticleSystem[] _particles;
+        TrailRenderer[] _trails;
         public GameObject LoadObj { get; private set; }
 
         public override void Init(CombatEntity owner, XCNewEventsRunner runner)
@@ -218,7 +214,11 @@ namespace ACTGameEditor
             _eventData = (XCObjEventData)EventData;
             LoadObj = RunTimePoolManager.Instance.LoadResPoolObj(_eventData.BundlePath, _eventData.AssetPath);
             if (LoadObj != null)
+            {
                 LoadObj.SetActive(false);
+                if (_eventData.IsEffect)
+                    CacheVfxComponents(LoadObj);
+            }
             SelfRunner.ObjEvent = this;  //赋值给运行器
         }
 
@@ -233,9 +233,7 @@ namespace ACTGameEditor
             SetFirstPos();
             if (_eventData.IsEffect)
             {
-                ResetPooledVfx(LoadObj);
-                _ps = LoadObj.GetComponentInChildren<ParticleSystem>(true);
-                _particles = LoadObj.GetComponentsInChildren<ParticleSystem>(true);
+                ResetPooledVfx();
                 _ps?.Play(true);
                 ApplyParticleClock();
             }
@@ -286,9 +284,10 @@ namespace ACTGameEditor
         {
             if (LoadObj != null)
             {
-                ResetPooledVfx(LoadObj);
+                ResetPooledVfx();
                 _ps = null;
                 _particles = null;
+                _trails = null;
                 LoadObj.SetActive(false);
                 RunTimePoolManager.Instance.ReCycle(
                     RunTimePoolManager.GetResPath(_eventData.BundlePath, _eventData.AssetPath),
@@ -297,18 +296,26 @@ namespace ACTGameEditor
             }
         }
 
-        static void ResetPooledVfx(GameObject vfx)
+        void CacheVfxComponents(GameObject vfx)
         {
-            if (vfx == null)
-                return;
+            _particles = vfx.GetComponentsInChildren<ParticleSystem>(true);
+            _trails = vfx.GetComponentsInChildren<TrailRenderer>(true);
+            _ps = _particles != null && _particles.Length > 0 ? _particles[0] : null;
+        }
 
-            ParticleSystem[] particles = vfx.GetComponentsInChildren<ParticleSystem>(true);
-            for (int i = 0; i < particles.Length; i++)
-                particles[i]?.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        void ResetPooledVfx()
+        {
+            if (_particles != null)
+            {
+                for (int i = 0; i < _particles.Length; i++)
+                    _particles[i]?.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
 
-            TrailRenderer[] trails = vfx.GetComponentsInChildren<TrailRenderer>(true);
-            for (int i = 0; i < trails.Length; i++)
-                trails[i]?.Clear();
+            if (_trails != null)
+            {
+                for (int i = 0; i < _trails.Length; i++)
+                    _trails[i]?.Clear();
+            }
         }
     }
 
@@ -322,15 +329,15 @@ namespace ACTGameEditor
         {
             base.Init(owner, runner);
             _m4 = OwnerTF.localToWorldMatrix;
-            _motion = owner?.GetComponent<AnimComponent>()?.Motion;
+            _motion = owner?.Anim?.Motion;
+            _cc = OwnerTF.GetComponent<CharacterController>();
         }
 
         public override void OnTrigger(float timeSinceTrigger)
         {
             base.OnTrigger(timeSinceTrigger);
-            _cc = OwnerTF.GetComponent<CharacterController>();
             if (_motion == null)
-                _motion = OwnCombat?.GetComponent<AnimComponent>()?.Motion;
+                _motion = OwnCombat?.Anim?.Motion;
 
             var moveData = (XCMoveEventData)EventData;
             if (moveData.StartVec != Vector3.zero)
@@ -499,6 +506,15 @@ namespace ACTGameEditor
             if (!OwnCombat.IsCanCauseHarm || _collider == null || !_collider.enabled)
                 return;
 
+            SelfRunner?.RequestOverlapScan();
+        }
+
+        /// <summary>由 Runner 在本帧统一 SyncTransforms 之后调用。</summary>
+        internal void ScanOverlaps()
+        {
+            if (!OwnCombat.IsCanCauseHarm || _collider == null || !_collider.enabled)
+                return;
+
             ScanExistingOverlaps();
         }
 
@@ -526,21 +542,17 @@ namespace ACTGameEditor
             });
 
             if (CountsAsFocusHit(target))
-                SelfRunner.GetParent<ActSkillRunner>()?.NotifyPlayerHitConnected();
+                SelfRunner.ParentRunner?.NotifyPlayerHitConnected();
         }
 
-        /// <summary>挥空计数：本地玩家，以及同阵营假玩家/队友（预留）。</summary>
+        /// <summary>挥空计数：当前主控或玩家小队成员。</summary>
         static bool CountsAsFocusHit(ICombatUnit target)
         {
             if (target == null)
                 return false;
-            if (target.isTruePlayer)
-                return true;
-            CombatEntity entity = target as CombatEntity;
-            if (entity == null)
-                return false;
-            AgentTag agent = entity.CurAgent;
-            return agent == AgentTag.PlayerA || agent == AgentTag.PlayerB;
+            if (target is CombatEntity entity)
+                return entity.IsPlayerSquad || entity.isTruePlayer;
+            return target.isTruePlayer;
         }
 
         /// <summary>
@@ -593,7 +605,6 @@ namespace ACTGameEditor
             if (_collider == null || !_collider.enabled)
                 return;
 
-            Physics.SyncTransforms();
             int count = QueryTriggerOverlapsNonAlloc(_collider, OverlapBuffer);
             if (count <= 0)
                 return;
@@ -782,12 +793,12 @@ namespace ACTGameEditor
             if (eventData.InputType == EventTriggerType.ParentFinish)
             {
                 //通知总运行器 当前技能主要部分已经运行结束，但依然会运行当前技能后续部分
-                SelfRunner.GetParent<ActSkillRunner>().Finish();
+                SelfRunner.ParentRunner?.Finish();
             }
             else if (eventData.InputType == EventTriggerType.ParentExit)
             {
                 //通知总运行器，当前技能已经全部结束，应回到其他状态。
-                SelfRunner.GetParent<ActSkillRunner>().BreakSkill();
+                SelfRunner.ParentRunner?.BreakSkill();
             }
         }
     }
@@ -813,7 +824,7 @@ namespace ACTGameEditor
             }
 
             // 本地战斗实体直接落地（编辑器/单机）；网络仍走 PlayerManager
-            long runnerId = SelfRunner?.GetParent<ActSkillRunner>()?.Id ?? 0;
+            long runnerId = SelfRunner?.ParentRunner?.Id ?? 0;
             OwnCombat?.HandleTimelineMessage(
                 eventData.MsgName,
                 eventData.FloatdMsg,
@@ -869,7 +880,7 @@ namespace ACTGameEditor
             List<string> list = eventData.SkillTagList;
             if (list != null && list.Count > 0)
             {
-                long runnerId = SelfRunner?.GetParent<ActSkillRunner>()?.Id ?? 0;
+                long runnerId = SelfRunner?.ParentRunner?.Id ?? 0;
                 var src = TagSource.Skill(runnerId);
                 for (int i = 0; i < list.Count; i++)
                     OwnCombat.PushTag(src, list[i]);
@@ -885,7 +896,7 @@ namespace ACTGameEditor
             List<string> list = eventData.SkillTagList;
             if (list != null && list.Count > 0)
             {
-                long runnerId = SelfRunner?.GetParent<ActSkillRunner>()?.Id ?? 0;
+                long runnerId = SelfRunner?.ParentRunner?.Id ?? 0;
                 var src = TagSource.Skill(runnerId);
                 for (int i = 0; i < list.Count; i++)
                     OwnCombat.PopTag(src, list[i]);
@@ -906,7 +917,7 @@ namespace ACTGameEditor
         public override void Init(CombatEntity owner, XCNewEventsRunner runner)
         {
             base.Init(owner, runner);
-            _actSkillRunner = runner.GetParent<ActSkillRunner>();
+            _actSkillRunner = runner.ParentRunner;
             if (owner.AttackPlayer is IAttackPlayer ap)
             {
                 _attackPlayer = ap;
@@ -936,7 +947,7 @@ namespace ACTGameEditor
             info.Point = MathHelper.GetPositionInFront(this.OwnCombat.Position, this.OwnCombat.Rotation, 3f);
             info.SkillId = skillId;
             info.Sort = sort;
-            this.OwnCombat.GetComponent<ACTGameEditor.Combat.ActSpellComponent>().Enqueue(info);
+            this.OwnCombat.Spell?.Enqueue(info);
             _isHaveTrigger = true;
         }
     }
