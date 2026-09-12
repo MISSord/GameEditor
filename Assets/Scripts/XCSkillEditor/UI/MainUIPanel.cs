@@ -90,6 +90,7 @@ namespace XiaoCao
             }
             PlayerManager.Instance.AddAckerAct += AddNewBar;
             PlayerManager.Instance.RemoveAckerAct += RemoveOne;
+            PlayerManager.Instance.SquadControlChanged += OnSquadControlChanged;
 
             if (addFakePlayerButton != null)
                 addFakePlayerButton.onClick.AddListener(OnAddFakePlayerClick);
@@ -106,8 +107,12 @@ namespace XiaoCao
 
         private void OnDestroy()
         {
-            PlayerManager.Instance.AddAckerAct -= AddNewBar;
-            PlayerManager.Instance.RemoveAckerAct -= RemoveOne;
+            if (PlayerManager.Instance != null)
+            {
+                PlayerManager.Instance.AddAckerAct -= AddNewBar;
+                PlayerManager.Instance.RemoveAckerAct -= RemoveOne;
+                PlayerManager.Instance.SquadControlChanged -= OnSquadControlChanged;
+            }
         }
 
         private void Update()
@@ -117,89 +122,80 @@ namespace XiaoCao
             RefreshSwitchViewCooldowns();
         }
 
-        /// <summary> 每帧刷新所有视角切换按钮的冷却显示（参考崩坏3）。 </summary>
+        /// <summary> 每帧刷新小队换人按钮与调试切镜头冷却。 </summary>
         private void RefreshSwitchViewCooldowns()
         {
-            if (_switchViewCooldownDic.Count == 0) return;
+            if (_switchViewButtonDic.Count == 0 && _switchViewCooldownDic.Count == 0) return;
             float remaining = PlayerManager.Instance.GetRemainingSwitchCooldown();
             float total = PlayerManager.Instance.SwitchCooldownDuration;
             uint currentNetId = PlayerManager.Instance.CurrentFollowNetId;
+            CombatSquad squad = CombatSquad.Instance;
+
+            foreach (var kv in _switchViewButtonDic)
+            {
+                Button btn = kv.Value;
+                if (btn == null) continue;
+                ActPlayer player = PlayerManager.Instance.GetAcker(kv.Key);
+                CombatEntity combat = player != null ? player.Combat : null;
+                bool squadMember = combat != null && combat.IsPlayerSquad;
+                if (squadMember)
+                {
+                    btn.interactable = squad != null && squad.CanSwitchTo(combat.SquadSlot);
+                    Text labelText = btn.GetComponentInChildren<Text>(true);
+                    if (labelText != null)
+                        labelText.text = FormatSquadLabel(combat);
+                }
+                else
+                {
+                    btn.interactable = remaining <= 0f || kv.Key == currentNetId;
+                }
+            }
+
             foreach (var kv in _switchViewCooldownDic)
             {
                 if (kv.Value == null) continue;
-                kv.Value.SetCooldown(remaining, total, currentNetId == kv.Key);
-                //if (Input.GetKeyDown(KeyCode.F3))
-                //{
-                //    var player = playerMrg.LocalPlayer;
-                //    Vector3 forward = player.transform.forward;
-                //    forward.y = 0;
-
-                //    playerMrg.AddFakePlayer(player.transform.position + forward * 5, GameSetting.HasAIEnable, AgentTag.PlayerA, modelType);
-                //}
-
-                //if (Input.GetKeyDown(KeyCode.F5))
-                //{
-                //    //playerMrg.LocalPlayer.skin
-                //    int len = Enum.GetValues(typeof(PlayerSkin)).Length;
-                //    int next = (int)playerMrg.LocalPlayer.skin + 1;
-                //    if (next >= len)
-                //    {
-                //        next = 0;
-                //    }
-                //    playerMrg.LocalPlayer.ChangeSkin((PlayerSkin)next);
-                //}
-
-                //需要的功能 (AI开关)
-                //if (Input.GetKeyDown(KeyCode.F1))
-                //{
-                //    bool isEnbale = true;
-                //    bool isFrist = true;
-                //    foreach (var item in playerMrg.MonoAttackerDic.Values)
-                //    {
-                //        if (!item.isTruePlayer)
-                //        {
-                //            if (isFrist)
-                //            {
-                //                isEnbale = !item.AI.enabled;
-                //                isFrist = false;
-                //                Debug.Log($"yns AI enble {isEnbale} count {playerMrg.MonoAttackerDic.Count}");
-                //            }
-                //            GameSetting.HasAIEnable = isEnbale;
-                //            item.AI.enabled = isEnbale;
-                //        }
-                //    }
-                //    ShowDamageText("AI "+isEnbale, PlayerManager.Instance.LocalPlayer.transform.position, true);
-                //}
-
-                //if (Input.GetKeyDown(KeyCode.F4))
-                //{
-                //    var enums = Enum.GetValues(typeof(AgentModelType));
-                //    int len = enums.Length;
-                //    modelType = (AgentModelType)(((int)modelType + 1) % len);
-                //    ShowDamageText(modelType.ToString(), PlayerManager.Instance.LocalPlayer.transform.position,true);
-                //}
-
-                //if (Input.GetKeyDown(KeyCode.F6))
-                //{
-                //    int len = playerMrg.MonoAttackerDic.Count;
-                //    Debug.Log($"len = {len}");
-
-                //    foreach (var item in playerMrg.MonoAttackerDic)
-                //    {
-                //        Debug.Log($"yns {item.Key} {item.Value.gameObject}");
-                //    }
-                //}
-
-                //foreach (var item in skillIcons)
-                //{
-                //    item.OnUpdate();
-                //}
-
-                //foreach (var item in disSkillIcons)
-                //{
-                //    item.OnDisUpdate();
-                //}
+                ActPlayer player = PlayerManager.Instance.GetAcker(kv.Key);
+                CombatEntity combat = player != null ? player.Combat : null;
+                bool squadMember = combat != null && combat.IsPlayerSquad;
+                float showRemaining = squadMember ? 0f : remaining;
+                float showTotal = squadMember ? 1f : total;
+                kv.Value.SetCooldown(showRemaining, showTotal, currentNetId == kv.Key);
             }
+        }
+
+        static string FormatSquadLabel(CombatEntity combat)
+        {
+            if (combat.isTruePlayer)
+                return $"上场 {combat.SquadSlot}";
+            if (combat.SquadPresence == SquadPresence.Exiting)
+                return $"退场 {combat.SquadSlot}";
+            return $"候场 {combat.SquadSlot}";
+        }
+
+        void OnSquadControlChanged(ActPlayer incoming)
+        {
+            if (incoming == null || incoming.Combat == null || localUIBar == null)
+                return;
+
+            uint newId = incoming.Combat.NetId;
+            uint oldId = 0;
+            bool foundOld = false;
+            foreach (var kv in uiBarDic)
+            {
+                if (kv.Value == localUIBar && kv.Key != newId)
+                {
+                    oldId = kv.Key;
+                    foundOld = true;
+                    break;
+                }
+            }
+
+            if (foundOld)
+                uiBarDic.Remove(oldId);
+            uiBarDic[newId] = localUIBar;
+            localUIBar.SetTarget(ResolveBarTarget(incoming));
+            if (TryGetHp(incoming, out int hp, out int maxHp))
+                localUIBar.SetFillValue(hp, maxHp);
         }
 
         private void LateUpdate()
@@ -217,10 +213,16 @@ namespace XiaoCao
             if (uiBarDic.ContainsKey(netId))
                 return;
 
-            UIBar newUIBar;
-            Transform follow = ResolveBarTarget(item);
             bool useLocalHud = item.Combat.isTruePlayer
                 && PlayerManager.Instance.LocalPlayer == item;
+            if (item.Combat.IsPlayerSquad && !useLocalHud)
+            {
+                AddSwitchViewButton(item);
+                return;
+            }
+
+            UIBar newUIBar;
+            Transform follow = ResolveBarTarget(item);
             if (useLocalHud)
             {
                 newUIBar = localUIBar;
@@ -288,6 +290,9 @@ namespace XiaoCao
         private void AddSwitchViewButton(ActPlayer item)
         {
             if (switchViewButtonPrefab == null || switchViewButtonParent == null) return;
+            uint netId = item.Combat.NetId;
+            if (_switchViewButtonDic.ContainsKey(netId))
+                return;
             GameObject go = Object.Instantiate(switchViewButtonPrefab, switchViewButtonParent);
             go.SetActive(true);
             go.transform.localScale = Vector3.one;
@@ -296,12 +301,14 @@ namespace XiaoCao
             if (btn == null) btn = go.GetComponentInChildren<Button>(true);
             if (btn != null)
             {
-                uint netId = item.Combat.NetId;
-                string label = item.Combat.isTruePlayer ? "玩家(主)" : (item.Agent == AgentTag.enemy ? "敌人" : "假玩家");
+                string label = item.Combat.IsPlayerSquad
+                    ? FormatSquadLabel(item.Combat)
+                    : (item.Combat.isTruePlayer ? "玩家(主)" : (item.Agent == AgentTag.enemy ? "敌人" : "假玩家"));
                 Text labelText = go.GetComponentInChildren<Text>(true);
-                if (labelText != null) labelText.text = $"{label} {netId}";
+                if (labelText != null)
+                    labelText.text = item.Combat.IsPlayerSquad ? label : $"{label} {netId}";
 
-                btn.onClick.AddListener(() => PlayerManager.Instance.SwitchCameraToPlayer(netId));
+                btn.onClick.AddListener(() => PlayerManager.Instance.TrySelectAttacker(netId));
                 _switchViewButtonDic.Add(netId, btn);
 
                 var cooldown = go.GetComponent<SwitchViewButtonCooldown>();
@@ -362,6 +369,13 @@ namespace XiaoCao
                 {
                     if (uiBarDic.ContainsKey(netId))
                         RemoveOne(netId);
+                    continue;
+                }
+
+                if (item.Combat.IsPlayerSquad && PlayerManager.Instance.LocalPlayer != item)
+                {
+                    if (!_switchViewButtonDic.ContainsKey(netId))
+                        AddSwitchViewButton(item);
                     continue;
                 }
 

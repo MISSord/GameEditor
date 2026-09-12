@@ -163,6 +163,8 @@ namespace FluxEditor
             xce.BlenderLength = fe._blendLength * XCSetting.FramePerSec;
             xce.IsBackToIdle = fe.isBackToIdle;
             xce.ExitPolicy = fe.ExitPolicy;
+            xce.UseRootMotion = fe.UseRootMotion;
+            xce.SuppressGravity = fe.SuppressGravity;
             xce.AnimName = fe._animationClip.name;
             return xce;
         }

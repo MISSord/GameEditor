@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: 11000
   m_EditorClassIdentifier: 
   SkillId: 11000
+  SchemaVersion: 1
   TargetInputType: 3
   skillAllEventDatas:
   - SkillId: 11000
@@ -41,6 +42,9 @@ MonoBehaviour:
         AnimName: StandToRoll
         BlenderLength: 0.13333334
         StartOffset: 0
+        ExitPolicy: 0
+        UseRootMotion: 1
+        SuppressGravity: 0
         IsBackToIdle: 1
     MoveEvents:
       Events: []
@@ -67,8 +71,8 @@ MonoBehaviour:
           _start: 0
           _end: 71
         IsLocalTrueOnly: 0
-        NormalEffectList: 
-        SkillEffectList: 
+        NormalEffectIds: 
+        SkillEffectIds: 
         SkillTagList:
         - Buff.UnStopped
         - Buff.Roll

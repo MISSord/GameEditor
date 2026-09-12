@@ -2,9 +2,6 @@ using Flux;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.InputSystem.XR;
-using static PlasticPipe.Server.MonitorStats;
-using static UnityEditor.VersionControl.Asset;
 
 namespace FluxEditor
 {
@@ -45,8 +42,8 @@ namespace FluxEditor
 
         private SerializedProperty _sequenceSetting;
 
-        // sequence selection popup variables
-        private GUIContent _sequenceLabel = new GUIContent("Sequence", "Select Sequence...");
+        // sequence name (read-only; 打开/新建改走技能工作台)
+        private GUIContent _sequenceLabel = new GUIContent("Sequence", "当前技能轴。打开与新建请用技能工作台。");
         private GUIContent _seqSettigLabel = new GUIContent("SeqSetting", "SeqSetting");
 
         // rect of the sequence label
@@ -60,15 +57,6 @@ namespace FluxEditor
 
         // rect of the sequence name
         private Rect _seqSettingRect;
-
-        // rect for the button to create a new sequence
-        private Rect _sequenceAddButtonRect;
-
-        private FSequence[] _sequences;
-
-        private GUIContent[] _sequenceNames;
-
-        private int _selectedSequenceIndex;
 
         // update mode UI variables
         private GUIContent _updateModeLabel = new GUIContent("Update Mode", "How does the sequence update:\n\tNormal: uses Time.time in Update()\n\tAnimatePhysics: uses Time.fixedTime in FixedUpdate()\n\tUnscaledTime: uses Time.unscaledTime in Update()");
@@ -110,44 +98,10 @@ namespace FluxEditor
         {
             _sequenceWindow = sequenceWindow;
 
-            RebuildSequenceList();
-
-            EditorApplication.hierarchyWindowChanged += OnHierarchyChanged;
-
             _addContainerLabel.image = FUtility.GetFluxTexture("AddFolder.png");
             _openInspectorLabel.image = FUtility.GetFluxTexture("Inspector.png");
             _savaDataLabel.image = FUtility.GetFluxTexture("Save.png");
 
-        }
-
-        private void OnHierarchyChanged()
-        {
-            RebuildSequenceList();
-        }
-
-        private void RebuildSequenceList()
-        {
-            FSequence[] found = GameObject.FindObjectsOfType<FSequence>();
-            System.Array.Sort<FSequence>(found, delegate (FSequence x, FSequence y) { return x.name.CompareTo(y.name); });
-
-            List<FSequence> sceneSequences = new List<FSequence>(found.Length);
-            for (int i = 0; i != found.Length; ++i)
-            {
-                if (found[i] != null && found[i].gameObject.scene.IsValid())
-                    sceneSequences.Add(found[i]);
-            }
-            _sequences = sceneSequences.ToArray();
-
-            _sequenceNames = new GUIContent[_sequences.Length + 2];
-            for (int i = 0; i != _sequences.Length; ++i)
-            {
-                _sequenceNames[i] = new GUIContent(_sequences[i].name);
-            }
-            _sequenceNames[_sequenceNames.Length - 2] = new GUIContent("null");
-            _sequenceNames[_sequenceNames.Length - 1] = new GUIContent("[Create New Sequence]");
-
-
-            _selectedSequenceIndex = -1;
         }
 
         float FieldHigh = 0;
@@ -187,19 +141,13 @@ namespace FluxEditor
 
 
             _sequencePopupRect = rect;
-            //SetRectY(0, ref _sequencePopupRect);
             _sequencePopupRect.xMin = _sequenceLabelRect.xMax;
             _sequencePopupRect.width = Mathf.Min(width - _sequenceLabelRect.width, MAX_SEQUENCE_POPUP_WIDTH);
-            //			Debug.Log( _sequenceNameRect.width );
-
-            _sequenceAddButtonRect = rect;
-            _sequenceAddButtonRect.xMin = _sequencePopupRect.xMax + LABEL_SPACE;
-            _sequenceAddButtonRect.width = 16;
-
-            float reminderWidth = width - _sequenceAddButtonRect.xMax;
 
             _addContainerRect = new Rect(0, 3, 22, 22);
             _addContainerRect.x = _sequencePopupRect.xMax + LABEL_SPACE;
+
+            float reminderWidth = width - (_addContainerRect.x + _addContainerRect.width);
 
             reminderWidth -= (ELEMENT_SPACE + _addContainerRect.width);
 
@@ -275,72 +223,15 @@ namespace FluxEditor
 
             FSequence sequence = sequenceEditor.Sequence;
 
-            if ((_selectedSequenceIndex < 0 && sequence != null) || (_selectedSequenceIndex >= 0 && _selectedSequenceIndex < _sequences.Length && _sequences[_selectedSequenceIndex] != sequence))
-            {
-                _selectedSequenceIndex = -1;
-                for (int i = 0; i != _sequences.Length; ++i)
-                {
-                    if (_sequences[i] == sequence)
-                    {
-                        _selectedSequenceIndex = i;
-                        break;
-                    }
-                }
-            }
-
-            bool currentNotInList = sequence != null && _selectedSequenceIndex < 0;
-            GUIContent[] popupNames = _sequenceNames;
-            int popupIndex = _selectedSequenceIndex;
-            if (currentNotInList)
-            {
-                popupNames = new GUIContent[_sequenceNames.Length + 1];
-                popupNames[0] = new GUIContent(sequence.name);
-                for (int i = 0; i < _sequenceNames.Length; ++i)
-                    popupNames[i + 1] = _sequenceNames[i];
-                popupIndex = 0;
-            }
+            string sequenceTitle = sequence != null ? sequence.name : "未打开";
+            EditorGUI.PrefixLabel(_sequenceLabelRect, _sequenceLabel);
+            EditorGUI.LabelField(_sequencePopupRect, sequenceTitle);
 
             if (Event.current.type == EventType.MouseDown && Event.current.alt && _sequencePopupRect.Contains(Event.current.mousePosition))
             {
-                Selection.activeObject = sequence;
+                if (sequence != null)
+                    Selection.activeObject = sequence;
                 Event.current.Use();
-            }
-
-            EditorGUI.BeginChangeCheck();
-            EditorGUI.PrefixLabel(_sequenceLabelRect, _sequenceLabel);
-            int newSequenceIndex = EditorGUI.Popup(_sequencePopupRect, popupIndex, popupNames);
-            if (EditorGUI.EndChangeCheck())
-            {
-                if (currentNotInList)
-                {
-                    if (newSequenceIndex == 0)
-                    {
-                        EditorGUIUtility.keyboardControl = 0;
-                        EditorGUIUtility.ExitGUI();
-                        return;
-                    }
-                    newSequenceIndex -= 1;
-                }
-
-                if (newSequenceIndex == _sequenceNames.Length - 1)
-                {
-                    FSequence newSequence = FSequenceEditorWindow.CreateSequence();
-                    Selection.activeTransform = newSequence.transform;
-                    sequenceEditor.OpenSequence(newSequence);
-                }
-                else if (newSequenceIndex == _sequenceNames.Length - 2)
-                {
-                    sequenceEditor.OpenSequence(null);
-                }
-                else
-                {
-                    _selectedSequenceIndex = newSequenceIndex;
-                    FSequence fSequence = _sequences[_selectedSequenceIndex];
-                    sequenceEditor.OpenSequence(fSequence);
-                    _sequenceWindow.RemoveNotification();
-                }
-                EditorGUIUtility.keyboardControl = 0; // deselect it
-                EditorGUIUtility.ExitGUI();
             }
 
             // if we're in play mode, can't change anything

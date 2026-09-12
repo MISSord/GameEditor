@@ -31,6 +31,13 @@ namespace Flux
 		[Tooltip("轴自然结束：Locomotion=交回移动；Hold=保持末帧")]
 		public EGamePlay.Unity.AnimExitPolicy ExitPolicy = EGamePlay.Unity.AnimExitPolicy.Locomotion;
 
+		[Header("战斗位移")]
+		[Tooltip("本段是否把动画 Root Motion 写入 CharacterController。带曲线位移的招必须关掉。")]
+		public bool UseRootMotion = true;
+
+		[Tooltip("本段技能全控位移时压制重力（浮空 / 动画带 Y 时勾选）。")]
+		public bool SuppressGravity;
+
 		public float _speed = 1;
 
 		private Animator _animator = null;

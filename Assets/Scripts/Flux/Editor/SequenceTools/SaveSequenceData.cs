@@ -27,6 +27,15 @@ namespace FluxEditor
         /// </summary>
         public static bool TrySaveCurrentSequence()
         {
+            if (SkillWorkbenchSession.IsEditing)
+            {
+                FSequence fluxSeq = FSequenceEditorWindow.instance != null
+                    ? FSequenceEditorWindow.instance.GetSequenceEditor()?.Sequence
+                    : null;
+                if (fluxSeq == null || SkillWorkbenchSession.IsWorkbenchSequence(fluxSeq))
+                    return SkillWorkbenchSession.Save();
+            }
+
             if (FSequenceEditorWindow.instance == null)
             {
                 EditorUtility.DisplayDialog("保存失败", "Flux 窗口未打开。", "确定");
@@ -243,6 +252,12 @@ namespace FluxEditor
 
             curAgentName = seq.FSeqSetting.agentName;
             SaveSequenceAssetSync.LoadCombatEventsFromAsset(seq, curAgentName);
+        }
+
+        /// <summary>只导出 SkillAllEventData 并收集动画；不写 Sequence 预制体。</summary>
+        internal static bool ExportOpenedSequence(FSequence sequence)
+        {
+            return SaveOneSeq(sequence);
         }
 
         static bool SaveOneSeq(FSequence sequence)
