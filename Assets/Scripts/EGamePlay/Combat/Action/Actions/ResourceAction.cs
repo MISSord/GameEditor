@@ -35,7 +35,29 @@ namespace EGamePlay.Combat
         public ICombatUnit Target { get; set; }
         public TriggerContext TriggerContext { get; set; }
 
+        readonly CureEffect _cureScratch = new CureEffect();
+
         public void FinishAction() => Entity.Destroy(this);
+
+        /// <summary>填入复用的 CureEffect，避免每次治疗 new。</summary>
+        public void BindCure(
+            AttributeType attrType,
+            float cureValue,
+            Ability sourceAbility,
+            Entity triggerSource,
+            Entity target)
+        {
+            _cureScratch.AttributeType = attrType;
+            _cureScratch.CureValueProperty = cureValue;
+            Target = target as ICombatUnit;
+            TriggerContext = new TriggerContext
+            {
+                EffectConfig = _cureScratch,
+                SourceAbility = sourceAbility,
+                TriggerSource = triggerSource,
+                Target = target,
+            };
+        }
 
         void PreProcess()
         {
@@ -65,6 +87,16 @@ namespace EGamePlay.Combat
                 CombatBuffPipeline.Notify(Creator, ActionPointType.PostGiveCure, this);
                 CombatBuffPipeline.Notify(Target, ActionPointType.PostReceiveCure, this);
             }
+        }
+
+        public override void OnReset()
+        {
+            TriggerContext = default;
+            CureValue = 0;
+            Creator = null;
+            Target = null;
+            _cureScratch.AttributeType = default;
+            _cureScratch.CureValueProperty = 0f;
         }
     }
 }

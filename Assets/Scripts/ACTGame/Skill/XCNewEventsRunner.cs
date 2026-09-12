@@ -1,7 +1,6 @@
 ﻿using ACTGameEditor.Combat;
 using EGamePlay;
 using EGamePlay.Combat;
-using EGamePlay.Unity;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -17,6 +16,7 @@ namespace ACTGameEditor
         private readonly Dictionary<int, BuffModifySetting> _effectSettingsById = new Dictionary<int, BuffModifySetting>(16);
         private readonly HashSet<HitKey> _resolvedHits = new HashSet<HitKey>();
         private ActSkillRunner _parentRunner;
+        private bool _needOverlapScan;
 
         private RunnerState _state;
         private float _time = InitialTimeOffset;
@@ -27,6 +27,8 @@ namespace ACTGameEditor
 
         public RunnerState State { get => _state; set => _state = value; }
         public CombatEntity OwnerEntity => _parentRunner != null ? _parentRunner.OwnerEntity : null;
+        /// <summary>父技能轴，事件不要再 GetParent。</summary>
+        public ActSkillRunner ParentRunner => _parentRunner;
 
         //释放技能时记录角度 和 位置
         public Vector3 CastEuler { get; private set; }
@@ -46,6 +48,7 @@ namespace ACTGameEditor
             // 池化复用时必须重置时间，否则首帧会跳过整段时间轴
             _time = InitialTimeOffset;
             _frame = 0;
+            _needOverlapScan = false;
             if (_events.Count > 0)
             {
                 for (int i = _events.Count - 1; i >= 0; i--)
@@ -88,7 +91,9 @@ namespace ACTGameEditor
         {
             if (State == RunnerState.StopEnd || State == RunnerState.Break)
             {
+#if UNITY_EDITOR
                 Debug.LogError("有问题，这种状态不应该进来的！！！");
+#endif
                 return true;
             }
 
@@ -96,8 +101,8 @@ namespace ACTGameEditor
             //帧数是用时间累加计算出来的 delta不是稳定的
             //当前的1帧,指的的是逻辑帧,即1/30s,而不是update的一帧
             _frame = Mathf.FloorToInt(_time * XCSetting.FrameRate);
+            _needOverlapScan = false;
 
-            bool isFinish = true;
             for (int i = 0; i < _events.Count; i++)
             {
                 var ev = _events[i];
@@ -108,7 +113,9 @@ namespace ACTGameEditor
                 {
                     if (ev.HasTriggered)
                     {
+#if UNITY_EDITOR
                         Debug.LogError($"{ev.GetType().Name} 有问题，应该在销毁Runner时候就完成重置！！！");
+#endif
                         ev.OnReset();
                     }
                 }
@@ -121,19 +128,15 @@ namespace ACTGameEditor
                             ev.OnTrigger(_time - ev.StartTime);
                         }
                         ev.UpdateEvent(_frame, _time - ev.StartTime);
-
-                        // 在结束帧精确结束事件
-                        if (_frame >= ev.End && ev.HasTriggered && !ev.HasFinished)
-                        {
-                            FinishEvent(ev);
-                        }
                     }
                 }
                 else
                 {
                     if (!ev.HasTriggered)
                     {
+#if UNITY_EDITOR
                         Debug.LogError($"{ev.GetType().Name} 有问题，可能设置运行时间太短或者时间间隔太大了导致没触发就结束了，排查！！！");
+#endif
                     }
 
                     //当 frame > end ,既已经完成 可以退出了
@@ -143,14 +146,33 @@ namespace ACTGameEditor
                         ev.SetFinished();
                     }
                 }
-                //有一个没完成就不能结束
-                if (!ev.HasFinished)
+            }
+
+            if (_needOverlapScan)
+            {
+                Physics.SyncTransforms();
+                for (int i = 0; i < _events.Count; i++)
                 {
-                    isFinish = false;
+                    if (_events[i] is XCTriggerEvent trigger)
+                        trigger.ScanOverlaps();
                 }
+                _needOverlapScan = false;
+            }
+
+            bool isFinish = true;
+            for (int i = 0; i < _events.Count; i++)
+            {
+                var ev = _events[i];
+                if (!ev.HasFinished && ev.HasTriggered && _frame >= ev.End)
+                    FinishEvent(ev);
+                if (!ev.HasFinished)
+                    isFinish = false;
             }
             return isFinish;
         }
+
+        /// <summary>本帧有攻击盒要扫时由 Trigger 登记，统一 SyncTransforms 后再扫。</summary>
+        internal void RequestOverlapScan() => _needOverlapScan = true;
 
         public void AddXCEvent(XCEvent xcevent)
         {
@@ -174,6 +196,7 @@ namespace ACTGameEditor
             _events.Clear();
             _resolvedHits.Clear();
             _parentRunner = null;
+            _needOverlapScan = false;
             _frame = 0;
             _time = InitialTimeOffset;
             ObjEvent = null;
@@ -189,23 +212,12 @@ namespace ACTGameEditor
             _effectSettingsById.Clear();
             _resolvedHits.Clear();
             _parentRunner = null;
+            _needOverlapScan = false;
             _state = RunnerState.Finish;
             _time = InitialTimeOffset;
             _frame = 0;
             ObjEvent = null;
             _events.Clear();
-        }
-
-        public Animator GetAnimator()
-        {
-            if (ObjEvent != null)
-            {
-                return ObjEvent.LoadObj.GetComponentInChildren<Animator>();
-            }
-            else
-            {
-                return OwnerEntity.GetComponent<AnimComponent>().animator;
-            }
         }
 
         /// <summary>命中过滤：指定目标、HitGroup 去重（只读）、子轴仍在 Update。</summary>
@@ -395,8 +407,9 @@ namespace ACTGameEditor
                 return;
             }
 
-            foreach (var effectId in effectIds)
+            for (int i = 0; i < effectIds.Count; i++)
             {
+                int effectId = effectIds[i];
                 if (effectId <= 0) continue;
                 if (_effectSettingsById.TryGetValue(effectId, out var setting))
                 {

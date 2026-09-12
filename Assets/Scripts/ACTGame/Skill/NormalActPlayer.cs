@@ -348,7 +348,7 @@ namespace ACTGameEditor
 
                 if (skillId <= 0) continue;
 
-                ActivateFail fail = AbilityActivationGate.Evaluate(Combat, skillId, entry.Sort, CDTimer, true);
+                ActivateFail fail = AbilityActivationGate.Evaluate(Combat, skillId, entry.Sort, CDTimer);
                 if (fail != ActivateFail.None)
                 {
                     if (entry.SlotId == SkillSlotId.Parry)
@@ -462,14 +462,6 @@ namespace ACTGameEditor
 
         private void AddSpellInfo(int skillId, int sort, CombatEntity targetOverride = null)
         {
-            bool useGate = CombatContext.Instance != null && CombatContext.Instance.UseAbilityGate;
-            if (!useGate)
-            {
-                if (CDTimer == null || !CDTimer.IsCDEnd(skillId))
-                    return;
-                CDTimer.StartCooldown(skillId);
-            }
-
             var info = PoolManager.Instance.TryGet<SkillSpellInfo>();
             info.SkillId = skillId;
             info.Sort = sort;
@@ -582,7 +574,7 @@ namespace ACTGameEditor
                 if (!InputBuffer.CanConsume(data.ListernType, data.PressType, data.InputCallBackType, now, maxAge))
                     continue;
 
-                ActivateFail fail = AbilityActivationGate.Evaluate(Combat, data.SkillId, data.SkillSort, CDTimer, true);
+                ActivateFail fail = AbilityActivationGate.Evaluate(Combat, data.SkillId, data.SkillSort, CDTimer);
                 if (fail != ActivateFail.None)
                     continue;
 

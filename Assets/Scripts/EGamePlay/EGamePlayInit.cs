@@ -16,8 +16,6 @@ public class EGamePlayInit : MonoBehaviour
 {
     public static EGamePlayInit Instance { get; private set; }
     public bool EntityLog;
-    [Tooltip("开：入队不扣 CD，时间轴启动后才转。关：Idle 入队立刻扣 CD。")]
-    public bool UseAbilityGate = true;
     [Tooltip("伤害 HitFlash / HitStop 默认参数；留空则使用内置默认值。")]
     public CombatFxPreset FxPreset;
     [Tooltip("表现 Package 目录；留空则使用内置默认包。")]
@@ -41,11 +39,11 @@ public class EGamePlayInit : MonoBehaviour
         ecsNode.AddChildNoPool<ETTimerManager>();
         ecsNode.AddChildNoPool<CombatContext>();
         CombatContext.Instance.AddChildNoPool<CombatEncounterDirector>();
+        CombatContext.Instance.AddChildNoPool<CombatSquad>();
         ecsNode.AddChildNoPool<GameObjectPool>();
 
-        CombatContext.Instance.UseAbilityGate = UseAbilityGate;
-
         FastStaticExecutor.Initialize<SkillMethod>();
+        BuffStateCheck.Initialize();
     }
 
     private void Start()
@@ -78,7 +76,6 @@ public class EGamePlayInit : MonoBehaviour
         var combatContext = CombatContext.Instance;
         if (combatContext != null)
         {
-            combatContext.UseAbilityGate = UseAbilityGate;
             CombatEncounterDirector.Instance?.Tick(GameTimeManager.WorldDelta);
             combatContext.Update(GameTimeManager.WorldDelta); // 单位内部按 CombatTimeClock 选玩家/世界层
         }

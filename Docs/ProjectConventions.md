@@ -8,7 +8,7 @@
 
 Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGamePlay（自研 Entity/Component，**不是** Unity DOTS）。对照鸣潮 / 绝区零的手感，不用 Unity 全局 `Time.timeScale` 做魔女时间。
 
-入口：`EGamePlayInit`（`DefaultExecutionOrder(100)`）创建 ECS 根、`CombatContext`、`ETTimerManager`，再 `PlayerManager.AddTruePlayer()`。
+入口：`EGamePlayInit`（`DefaultExecutionOrder(100)`）创建 ECS 根、`CombatContext`、`CombatSquad`、`ETTimerManager`，再 `PlayerManager.AddTruePlayer()`（同一预制体 ×3）。
 
 ---
 
@@ -149,4 +149,6 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 | `Docs/ActCameraStage2Design.md` | 相机意图 P2：混合构图设计备忘（未排期） |
 | `Docs/ActEnemyAiDesign.md` | 敌人 AI：导演 + HFSM + 效用选招 + XC 轴（后续只看文内 §十二） |
 | `Docs/ActCombatRoadmap.md` | 战斗缺口与改进方案（对照绝区零：失衡/异常/招架/连携，里程碑 M1–M5） |
+| `Docs/ActSquadDesign.md` | 三人小队：换人 / 快速支援 / 极限支援 / 延奏 / 连携轮转 |
+| `Docs/ActCharacterKitTemplate.md` | 角色选型（单手刀/剑）与招式包模板：槽位/段表/轴/表现/验收 |
 | `Assets/Scripts/EGamePlay/Combat/Buff/BuffModify/EffectModifyParamSlots.md` | Modify 各类型 Param 槽位 |

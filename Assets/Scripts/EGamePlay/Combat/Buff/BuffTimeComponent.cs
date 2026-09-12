@@ -25,6 +25,17 @@ namespace EGamePlay.Combat
         private long _endTimeMs;
         private long _lastTriggerTimeMs;
 
+        readonly Action _onDelayElapsed;
+        readonly Action _onEnd;
+        readonly Action<bool> _onTick;
+
+        public BuffTimeComponent()
+        {
+            _onDelayElapsed = OnDelayElapsed;
+            _onEnd = DoFireOnEnd;
+            _onTick = OnRepeatedTick;
+        }
+
         public override void OnEnable()
         {
             _lifecycle.Start();
@@ -41,78 +52,68 @@ namespace EGamePlay.Combat
         {
             if (Config == null || ETTimerManager.Instance == null) return;
 
-            long now = ETTimerManager.NowMs;
-            float delaySec = Config.DelayTick != null ? Config.DelayTick.Value : 0f;
-            float intervalSec = Config.TickInterval != null ? Config.TickInterval.Value : 0f;
-            float durationSec = Config.Duration != null ? Config.Duration.Value : 0f;
-
-            long delayMs = (long)(delaySec * 1000);
-            long intervalMs = Math.Max(30, (long)(intervalSec * 1000));
-            long durationMs = (long)(durationSec * 1000);
-
-            void FireOnStart()
-            {
-                State.HasStarted = true;
-                Events.OnStart?.Invoke();
-            }
-
-            void FireOnTick()
-            {
-                Events.OnTick?.Invoke();
-            }
-
-            void ScheduleTickAndEnd()
-            {
-                _startTimeMs = ETTimerManager.NowMs;
-                _endTimeMs = durationMs > 0 ? _startTimeMs + durationMs : 0;
-
-                if (intervalSec > 0)
-                {
-                    _tickTimerId = ETTimerManager.Instance.NewRepeatedTimer(intervalMs, _ =>
-                    {
-                        FireOnTick();
-                        if (durationMs > 0 && ETTimerManager.NowMs >= _endTimeMs)
-                        {
-                            ETTimerManager.Instance.Remove(_tickTimerId);
-                            _tickTimerId = 0;
-                            if (_endTimerId != 0)
-                            {
-                                ETTimerManager.Instance.Remove(_endTimerId);
-                                _endTimerId = 0;
-                            }
-                            DoFireOnEnd();
-                        }
-                    });
-                }
-
-                if (durationMs > 0)
-                {
-                    _endTimerId = ETTimerManager.Instance.NewOnceTimer(_endTimeMs, () =>
-                    {
-                        _endTimerId = 0;
-                        if (_tickTimerId != 0)
-                        {
-                            ETTimerManager.Instance.Remove(_tickTimerId);
-                            _tickTimerId = 0;
-                        }
-                        DoFireOnEnd();
-                    });
-                }
-            }
-
+            long delayMs = (long)((Config.DelayTick != null ? Config.DelayTick.Value : 0f) * 1000);
             if (delayMs > 0)
             {
-                _delayTimerId = ETTimerManager.Instance.NewOnceTimer(now + delayMs, () =>
-                {
-                    _delayTimerId = 0;
-                    FireOnStart();
-                    ScheduleTickAndEnd();
-                });
+                _delayTimerId = ETTimerManager.Instance.NewOnceTimer(ETTimerManager.NowMs + delayMs, _onDelayElapsed);
+                return;
             }
-            else
+
+            FireOnStart();
+            ScheduleTickAndEnd();
+        }
+
+        void OnDelayElapsed()
+        {
+            _delayTimerId = 0;
+            FireOnStart();
+            ScheduleTickAndEnd();
+        }
+
+        void FireOnStart()
+        {
+            State.HasStarted = true;
+            Events.OnStart?.Invoke();
+        }
+
+        void ScheduleTickAndEnd()
+        {
+            if (Config == null || ETTimerManager.Instance == null) return;
+
+            float intervalSec = Config.TickInterval != null ? Config.TickInterval.Value : 0f;
+            float durationSec = Config.Duration != null ? Config.Duration.Value : 0f;
+            long durationMs = (long)(durationSec * 1000);
+
+            _startTimeMs = ETTimerManager.NowMs;
+            _endTimeMs = durationMs > 0 ? _startTimeMs + durationMs : 0;
+
+            if (intervalSec > 0)
             {
-                FireOnStart();
-                ScheduleTickAndEnd();
+                long intervalMs = Math.Max(30, (long)(intervalSec * 1000));
+                _tickTimerId = ETTimerManager.Instance.NewRepeatedTimer(intervalMs, _onTick);
+            }
+
+            if (durationMs > 0)
+                _endTimerId = ETTimerManager.Instance.NewOnceTimer(_endTimeMs, _onEnd);
+        }
+
+        void OnRepeatedTick(bool _)
+        {
+            Events.OnTick?.Invoke();
+            float durationSec = Config?.Duration != null ? Config.Duration.Value : 0f;
+            if (durationSec > 0f && ETTimerManager.NowMs >= _endTimeMs)
+            {
+                if (_tickTimerId != 0)
+                {
+                    ETTimerManager.Instance?.Remove(_tickTimerId);
+                    _tickTimerId = 0;
+                }
+                if (_endTimerId != 0)
+                {
+                    ETTimerManager.Instance?.Remove(_endTimerId);
+                    _endTimerId = 0;
+                }
+                DoFireOnEnd();
             }
         }
 
@@ -233,7 +234,7 @@ namespace EGamePlay.Combat
                 _endTimerId = 0;
             }
             if (_endTimeMs > 0)
-                _endTimerId = ETTimerManager.Instance.NewOnceTimer(_endTimeMs, DoFireOnEnd);
+                _endTimerId = ETTimerManager.Instance.NewOnceTimer(_endTimeMs, _onEnd);
         }
     }
 }

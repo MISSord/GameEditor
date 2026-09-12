@@ -25,6 +25,14 @@ namespace ACTGameEditor.Combat
 
         public uint NetId { get; private set; }
         public bool isTruePlayer;
+        /// <summary>玩家三人小队成员。候场也走玩家钟。</summary>
+        public bool IsPlayerSquad { get; private set; }
+        /// <summary>小队槽 0/1/2；非小队为 -1。</summary>
+        public int SquadSlot { get; private set; }
+        /// <summary>上场 / 退场中 / 候场。非小队恒为 OnField。</summary>
+        public SquadPresence SquadPresence { get; private set; }
+        /// <summary>候场隐藏。非小队恒为 false。</summary>
+        public bool IsBench => IsPlayerSquad && SquadPresence == SquadPresence.Bench;
         int _playerCombatClockHold;
         public AgentTag CurAgent { get; set; }
         public Transform ModelTrans { get; set; }
@@ -46,6 +54,12 @@ namespace ACTGameEditor.Combat
         public SkillLevelComponent SkillLevels { get; private set; }
         public EntityTimeScaleComponent TimeScale { get; private set; }
         public CombatFormComponent FormComponent => _formComponent;
+        /// <summary>技能队列与 CD。</summary>
+        public ActSpellComponent Spell => _spell;
+#if UNITY
+        /// <summary>动画与 MotionDirector。</summary>
+        public AnimComponent Anim => _anim;
+#endif
         /// <summary>失衡计量。玩家未 Configure，<see cref="CombatMeterComponent.IsConfigured"/> 为 false。</summary>
         public CombatMeterComponent DazeMeter { get; private set; }
 
@@ -177,6 +191,7 @@ namespace ACTGameEditor.Combat
         #region 私有字段
 
         AbilityComponent _abilityComponent;
+        ActSpellComponent _spell;
         CombatFormComponent _formComponent;
         ICombatTimelinePresenter _timelinePresenter;
 
@@ -212,6 +227,9 @@ namespace ACTGameEditor.Combat
         public override void OnReset()
         {
             isTruePlayer = false;
+            IsPlayerSquad = false;
+            SquadSlot = -1;
+            SquadPresence = SquadPresence.OnField;
             _playerCombatClockHold = 0;
             NetId = 0;
             CurMoveState = MoveTypeEnum.Idle;
@@ -229,6 +247,12 @@ namespace ACTGameEditor.Combat
 
         public override void Update(float deltaTime)
         {
+            if (IsBench)
+            {
+                _spell?.Update(deltaTime);
+                return;
+            }
+
             if (RootTransform != null)
             {
                 Position = RootTransform.position;
@@ -244,12 +268,16 @@ namespace ACTGameEditor.Combat
         /// <inheritdoc />
         public void TickPendingSkillInput()
         {
+            if (IsPlayerSquad && (!isTruePlayer || IsBench || SquadPresence == SquadPresence.Exiting))
+                return;
             if (AttackPlayer is IAttackPlayer attack)
                 attack.TickSkillInput();
         }
 
         public override void FixedUpdate(float fixDeltaTime)
         {
+            if (IsBench)
+                return;
             for (int i = 0; i < FixedUpdateComponents.Count; i++)
                 FixedUpdateComponents[i].FixedUpdate(fixDeltaTime);
         }
@@ -257,7 +285,12 @@ namespace ACTGameEditor.Combat
         void InitializeIdentity(GameObjectData data)
         {
             isTruePlayer = data.isTruePlayer;
-            NetId = PlayerManager.GetID(isTruePlayer);
+            IsPlayerSquad = data.IsPlayerSquad;
+            SquadSlot = data.SquadSlot;
+            SquadPresence = data.IsPlayerSquad && !data.isTruePlayer
+                ? SquadPresence.Bench
+                : SquadPresence.OnField;
+            NetId = PlayerManager.GetID();
         }
 
         void AddCoreComponents(GameObjectData data)
@@ -274,7 +307,7 @@ namespace ACTGameEditor.Combat
             TimeScale = AddComponent<EntityTimeScaleComponent>();
             ActionPoints = AddComponent<ActionPointComponent>();
             _abilityComponent = AddComponent<AbilityComponent>();
-            AddComponent<ActSpellComponent>();
+            _spell = AddComponent<ActSpellComponent>();
             _formComponent = AddComponent<CombatFormComponent>();
 
             CurrentVital = AddComponent<VitalComponent>();
@@ -321,6 +354,7 @@ namespace ACTGameEditor.Combat
             _formComponent = null;
             _timelinePresenter = null;
             _abilityComponent = null;
+            _spell = null;
             ActiveExecution = null;
             DamageAbility = null;
             ResourceAbility = null;
@@ -416,8 +450,44 @@ namespace ACTGameEditor.Combat
 
         public float GetTimeScale() => TimeScale != null ? TimeScale.GetTimeScale() : 1f;
 
-        /// <summary>本地玩家，或 SkillTimeStop 期间的发起者，走玩家钟。</summary>
-        public bool UsesPlayerCombatClock => isTruePlayer || _playerCombatClockHold > 0;
+        /// <summary>小队成员（含候场）、当前主控，或 SkillTimeStop 发起者，走玩家钟。</summary>
+        public bool UsesPlayerCombatClock => IsPlayerSquad || isTruePlayer || _playerCombatClockHold > 0;
+
+        /// <summary>小队 Presence 只由 <see cref="CombatSquad"/> / <see cref="PlayerManager"/> 写入。</summary>
+        public void SetSquadPresence(SquadPresence presence)
+        {
+            if (!IsPlayerSquad)
+                return;
+            SquadPresence = presence;
+        }
+
+        /// <summary>关掉 CharacterController 再瞬移，避免胶囊穿透。</summary>
+        public void WarpTo(Vector3 pos, Quaternion rot)
+        {
+            Transform root = RootTransform;
+            if (root == null)
+            {
+                Position = pos;
+                Rotation = rot;
+                return;
+            }
+
+            CharacterController cc = root.GetComponent<CharacterController>();
+            if (cc != null && cc.enabled)
+            {
+                cc.enabled = false;
+                root.SetPositionAndRotation(pos, rot);
+                cc.enabled = true;
+            }
+            else
+            {
+                root.SetPositionAndRotation(pos, rot);
+            }
+
+            Physics.SyncTransforms();
+            Position = pos;
+            Rotation = rot;
+        }
 
         /// <summary>SkillTimeStop 开始时调用，与 <see cref="RemovePlayerCombatClockHold"/> 成对。</summary>
         public void AddPlayerCombatClockHold() => _playerCombatClockHold++;
@@ -527,6 +597,8 @@ namespace ACTGameEditor.Combat
 #endif
             Status?.RemoveAll(BuffRemoveReason.Death);
             GetComponent<PassiveSkillBuffComponent>()?.NotifyOwnerDeath();
+            if (IsPlayerSquad)
+                CombatSquad.Instance?.NotifyMemberDeath(this);
         }
 
         /// <summary>重受击硬直 + 打断技能 + 受击动画。轻段不要调；已死亡/硬控中返回 false。霸体走抗打断比大小，这里不再问 UnStopped。</summary>
@@ -535,7 +607,11 @@ namespace ACTGameEditor.Combat
             if (!CanEnterHitReaction())
                 return false;
 
+            bool exiting = IsPlayerSquad && SquadPresence == SquadPresence.Exiting;
             BreakActiveSkill();
+            if (exiting)
+                return false;
+
             _stateDirector?.EnterHit(sourceId, durationSeconds);
 
 #if UNITY
@@ -663,7 +739,7 @@ namespace ACTGameEditor.Combat
 
             _stateDirector?.ExitControl();
             // 人机不要跟主控共用键盘；有 EnemyBrain 时仍开电机，停步靠 MoveWeight。
-            ChangeInputMoveState(isTruePlayer || GetComponent<Ai.EnemyBrainComponent>() != null);
+            ChangeInputMoveState(ShouldEnableMotor());
 
             if (_stateDirector != null && _stateDirector.IsStagger)
             {
@@ -723,7 +799,7 @@ namespace ACTGameEditor.Combat
             if (_stateDirector != null && _stateDirector.IsControl)
                 return;
 
-            ChangeInputMoveState(isTruePlayer || GetComponent<Ai.EnemyBrainComponent>() != null);
+            ChangeInputMoveState(ShouldEnableMotor());
 
 #if UNITY
             AnimComponent anim = GetComponent<AnimComponent>();
@@ -731,6 +807,15 @@ namespace ACTGameEditor.Combat
             anim?.Motion?.SetPolicy(MotionPolicy.Locomotion);
             anim?.Motion?.SetSkillSuppressGravity(false);
 #endif
+        }
+
+        bool ShouldEnableMotor()
+        {
+            if (IsDead || IsBench)
+                return false;
+            if (GetComponent<Ai.EnemyBrainComponent>() != null)
+                return true;
+            return isTruePlayer || SquadPresence == SquadPresence.Exiting;
         }
 
         #endregion

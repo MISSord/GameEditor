@@ -131,7 +131,7 @@ namespace ACTGameEditor
             if (AnimToken == 0 || OwnerEntity == null || OwnerEntity.IsDisposed)
                 return;
 
-            CombatAnimDirector director = OwnerEntity.GetComponent<AnimComponent>()?.Director;
+            CombatAnimDirector director = OwnerEntity.Anim?.Director;
             director?.Release(AnimToken, returnToLocomotion);
             AnimToken = 0;
         }

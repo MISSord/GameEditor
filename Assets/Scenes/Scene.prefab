@@ -513,7 +513,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   EntityLog: 0
-  UseAbilityGate: 1
   FxPreset: {fileID: 0}
   FxPackageCatalog: {fileID: 0}
   ActionsAsset: {fileID: -944628639613478452, guid: 6b6795ab1f575dc48a56e966854759b6, type: 3}

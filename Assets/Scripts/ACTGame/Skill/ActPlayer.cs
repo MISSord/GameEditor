@@ -160,8 +160,8 @@ namespace ACTGameEditor
             return feet + Vector3.up * 1.05f;
         }
 
-        /// <summary>装配战斗实体。人机不要传 isTruePlayer。</summary>
-        public void Init(bool isTruePlayer = false)
+        /// <summary>装配战斗实体。人机不要传 isTruePlayer。小队候场传 isPlayerSquad 且 isTruePlayer=false。</summary>
+        public void Init(bool isTruePlayer = false, bool isPlayerSquad = false, int squadSlot = -1)
         {
             _modelShow = transform.Find("ActTest");
             _cameraTarget = transform.Find("CinemachineCameraTarget");
@@ -183,6 +183,8 @@ namespace ACTGameEditor
                 CharacterId = CharacterId,
                 Level = Level,
                 isTruePlayer = isTruePlayer,
+                IsPlayerSquad = isPlayerSquad,
+                SquadSlot = squadSlot,
             };
 
             PlayerTimeSource = data.animTimeScale ?? GameTimeAnimTimeScaleSource.Default;

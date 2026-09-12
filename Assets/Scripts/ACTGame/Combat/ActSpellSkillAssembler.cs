@@ -59,7 +59,7 @@ namespace ACTGameEditor.Combat
             runner.InitData(skillData, castEuler, castPos);
 
             if (skillData.HasObjEvent)
-                AddTrackToRunner<XCObjEvent>(runner, skillOwner, new List<XCEventData> { skillData.ObjEvent });
+                AddOneToRunner<XCObjEvent>(runner, skillOwner, skillData.ObjEvent);
 
             AddTrackToRunner<XCTriggerEvent>(runner, skillOwner, skillData.TriggerEvents.ToXCEventList());
             AddTrackToRunner<XCAnimEvent>(runner, skillOwner, skillData.AnimEvents.ToXCEventList());
@@ -70,6 +70,21 @@ namespace ACTGameEditor.Combat
             AddTrackToRunner<XCSwitchEvent>(runner, skillOwner, skillData.SwitchEvents.ToXCEventList());
             AddTrackToRunner<XCSkillInputEvent>(runner, skillOwner, skillData.SkillInputEvents.ToXCEventList());
             AddTrackToRunner<XCEffectEvent>(runner, skillOwner, skillData.EffectEvents.ToXCEventList());
+        }
+
+        static void AddOneToRunner<T>(XCNewEventsRunner runner, CombatEntity owner, XCEventData data)
+            where T : XCEvent
+        {
+            if (data == null)
+                return;
+            if (IsRemoveLocalTrue(owner.isTruePlayer, data))
+                return;
+
+            XCEvent runn = PoolManager.Instance.TryGet<T>();
+            runn.EventData = data;
+            runn.Range = data.Range;
+            runn.Init(owner, runner);
+            runner.AddXCEvent(runn);
         }
 
         static void AddTrackToRunner<T>(XCNewEventsRunner runner, CombatEntity owner, List<XCEventData> xcevents)

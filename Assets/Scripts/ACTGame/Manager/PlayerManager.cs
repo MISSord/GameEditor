@@ -1,24 +1,24 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using ACTGameEditor.Combat;
+using ACTGameEditor.Locomotion;
 using EGamePlay;
+using EGamePlay.Unity;
+using UnityEngine;
 
 namespace ACTGameEditor
 {
     public class PlayerManager : Singleton<PlayerManager>
     {
-        static uint idCounter = 1;
-        public static uint GetID(bool isTruePlayer)
-        {
-            if (isTruePlayer)
-            {
-                return 0;
-            }
-            else
-            {
-                return idCounter++;
-            }
-        }
+        static uint idCounter;
+
+        /// <summary>生成时分配，之后不变。小队三槽从 0 起递增。</summary>
+        public static uint GetID() => idCounter++;
+
+        /// <summary>当前主控变化（换人同一帧）。HUD 跟上场者。</summary>
+        public Action<ActPlayer> SquadControlChanged;
+
+        readonly ActPlayer[] _squadPlayers = new ActPlayer[CombatSquad.SlotCount];
 
         #region NetWorkManager
 
@@ -151,19 +151,162 @@ namespace ACTGameEditor
             }
         }
 
+        /// <summary>开战生成同一预制体 ×3：槽 0 上场，1/2 候场隐藏。</summary>
         public void AddTruePlayer()
         {
-            ActPlayer player = SpawnActPlayer(PrefabPath.Player, "ActPlayer", Vector3.zero, AgentTag.PlayerA, isTruePlayer: true);
+            if (LocalPlayer != null)
+                return;
 
-            //跟随玩家
-            CameraManager.Instance.ChangeCurFollowTarget(player);
+            CombatEntity[] members = new CombatEntity[CombatSquad.SlotCount];
+            for (int i = 0; i < CombatSquad.SlotCount; i++)
+            {
+                bool onField = i == 0;
+                ActPlayer player = SpawnActPlayer(
+                    PrefabPath.Player,
+                    "ActPlayer",
+                    Vector3.zero,
+                    AgentTag.PlayerA,
+                    isTruePlayer: onField,
+                    isPlayerSquad: true,
+                    squadSlot: i);
+                _squadPlayers[i] = player;
+                members[i] = player.Combat;
+                PlayerNetIdList.Add(player.Combat.NetId);
+                RegisterPlayer(player);
+            }
 
-            LocalPlayer = player;
-            LocalNetId = player.Combat.NetId;
-            CurrentFollowNetId = player.Combat.NetId;
+            IgnoreSquadCollisions(true);
+            CombatSquad.Instance?.Bind(members[0], members[1], members[2]);
 
-            PlayerNetIdList.Add(player.Combat.NetId);
-            RegisterPlayer(player);
+            for (int i = 1; i < CombatSquad.SlotCount; i++)
+                ApplySquadPresence(members[i], SquadPresence.Bench);
+
+            ActPlayer lead = _squadPlayers[0];
+            CameraManager.Instance.ChangeCurFollowTarget(lead);
+            LocalPlayer = lead;
+            LocalNetId = lead.Combat.NetId;
+            CurrentFollowNetId = lead.Combat.NetId;
+            SquadControlChanged?.Invoke(lead);
+        }
+
+        /// <summary>Q/E 与肖像：小队走换人，其余单位只切镜头（调试）。</summary>
+        public void TrySelectAttacker(uint netId)
+        {
+            ActPlayer player = GetAcker(netId);
+            if (player?.Combat == null)
+                return;
+            if (player.Combat.IsPlayerSquad)
+            {
+                CombatSquad.Instance?.TrySwitch(player.Combat.SquadSlot, SwitchReason.Manual);
+                return;
+            }
+
+            SwitchCameraToPlayer(netId);
+        }
+
+        /// <summary>换人同一帧：主控 / 显隐 / 相机 / 输入。逻辑判定在 <see cref="CombatSquad.TrySwitch"/>。</summary>
+        public void ApplySquadSwitch(
+            CombatEntity outgoing,
+            CombatEntity incoming,
+            bool comboExit,
+            Vector3 incomingPos,
+            Quaternion incomingRot)
+        {
+            if (incoming == null || incoming.AttackPlayer == null)
+                return;
+
+            if (outgoing != null)
+            {
+                ClearAttackerInput(outgoing);
+                ApplySquadPresence(outgoing, comboExit ? SquadPresence.Exiting : SquadPresence.Bench);
+                CombatFxPackagePlayer.Play(
+                    CombatFxPackageId.SwitchOut,
+                    CombatFxPlayContext.ForOwner(outgoing, CombatFxSource.Entity(outgoing.Id)));
+            }
+
+            incoming.WarpTo(incomingPos, incomingRot);
+            ApplySquadPresence(incoming, SquadPresence.OnField);
+            incoming.GetComponent<AnimComponent>()?.Director?.ForceLocomotion();
+            CombatFxPackagePlayer.Play(
+                CombatFxPackageId.SwitchIn,
+                CombatFxPlayContext.ForOwner(incoming, CombatFxSource.Entity(incoming.Id)));
+
+            ActPlayer lead = incoming.AttackPlayer;
+            LocalPlayer = lead;
+            LocalNetId = incoming.NetId;
+            CurrentFollowNetId = incoming.NetId;
+            if (CameraManager.Instance != null)
+                CameraManager.Instance.ChangeCurFollowTarget(lead);
+            ConfigurableInputManager.Instance.ChangeCurPlayer();
+            SquadControlChanged?.Invoke(lead);
+        }
+
+        /// <summary>按 Presence 显隐、电机与本地输入绑定。</summary>
+        public void ApplySquadPresence(CombatEntity combat, SquadPresence presence)
+        {
+            if (combat == null || combat.IsDisposed)
+                return;
+
+            combat.SetSquadPresence(presence);
+            ActPlayer player = combat.AttackPlayer;
+            if (player == null)
+                return;
+
+            if (presence == SquadPresence.Bench && !combat.IsDead)
+            {
+                combat.StateDirector?.ClearHit();
+                combat.GetComponent<AnimComponent>()?.Director?.ForceLocomotion();
+            }
+
+            bool visible = presence != SquadPresence.Bench;
+            if (player.gameObject.activeSelf != visible)
+                player.gameObject.SetActive(visible);
+
+            CharacterController cc = player.GetComponent<CharacterController>();
+            if (cc != null)
+                cc.enabled = visible && !combat.IsDead;
+
+            bool motor = visible && !combat.IsDead;
+            combat.ChangeInputMoveState(motor);
+            CombatLocomotionInstaller.BindLocalControl(
+                combat,
+                presence == SquadPresence.OnField && combat.isTruePlayer);
+        }
+
+        static void ClearAttackerInput(CombatEntity combat)
+        {
+            if (combat.AttackPlayer is NormalActPlayer normal)
+                normal.InputBuffer?.Clear();
+        }
+
+        void IgnoreSquadCollisions(bool ignore)
+        {
+            for (int a = 0; a < CombatSquad.SlotCount; a++)
+            {
+                for (int b = a + 1; b < CombatSquad.SlotCount; b++)
+                    IgnoreCollisionPair(_squadPlayers[a], _squadPlayers[b], ignore);
+            }
+        }
+
+        static void IgnoreCollisionPair(ActPlayer a, ActPlayer b, bool ignore)
+        {
+            if (a == null || b == null)
+                return;
+            Collider[] ca = a.GetComponentsInChildren<Collider>(true);
+            Collider[] cb = b.GetComponentsInChildren<Collider>(true);
+            for (int i = 0; i < ca.Length; i++)
+            {
+                Collider left = ca[i];
+                if (left == null)
+                    continue;
+                for (int j = 0; j < cb.Length; j++)
+                {
+                    Collider right = cb[j];
+                    if (right == null || left == right)
+                        continue;
+                    Physics.IgnoreCollision(left, right, ignore);
+                }
+            }
         }
 
         public ActPlayer AddFakePlayer(Vector3 startPos, bool isAi, AgentTag agentTag, AgentModelType agentName = AgentModelType.Player)
@@ -171,7 +314,7 @@ namespace ACTGameEditor
             string prefabPath = agentName == AgentModelType.Player ? PrefabPath.Player : PrefabPath.EnemyB;
             string assetPath = agentName == AgentModelType.Player ? "ActPlayer" : "EnemyB";
 
-            ActPlayer player = SpawnActPlayer(prefabPath, assetPath, startPos, agentTag, isTruePlayer: false, agentName);
+            ActPlayer player = SpawnActPlayer(prefabPath, assetPath, startPos, agentTag, isTruePlayer: false, modelType: agentName);
 
             PlayerNetIdList.Add(player.Combat.NetId);
             RegisterPlayer(player);
@@ -181,8 +324,15 @@ namespace ACTGameEditor
         /// <summary>
         /// 从运行时对象池取出角色；池未就绪时回退 Instantiate。
         /// </summary>
-        ActPlayer SpawnActPlayer(string bundle, string asset, Vector3 position, AgentTag agent, bool isTruePlayer,
-            AgentModelType modelType = AgentModelType.Player)
+        ActPlayer SpawnActPlayer(
+            string bundle,
+            string asset,
+            Vector3 position,
+            AgentTag agent,
+            bool isTruePlayer,
+            AgentModelType modelType = AgentModelType.Player,
+            bool isPlayerSquad = false,
+            int squadSlot = -1)
         {
             GameObject obj = RunTimePoolManager.Instance != null
                 ? RunTimePoolManager.Instance.LoadResPoolObj(bundle, asset)
@@ -203,7 +353,7 @@ namespace ACTGameEditor
             player.RestoreForReuse();
             player.Agent = agent;
             player.ModelType = modelType;
-            player.Init(isTruePlayer);
+            player.Init(isTruePlayer, isPlayerSquad, squadSlot);
             return player;
         }
 
@@ -244,7 +394,7 @@ namespace ACTGameEditor
             return AddFakePlayer(pos, true, AgentTag.enemy, AgentModelType.EnemyA);
         }
 
-        /// <summary> 切换摄像机跟随玩家；冷却中时不会切换。 </summary>
+        /// <summary>调试：只切镜头，不换人。正式换人走 <see cref="TrySelectAttacker"/>。</summary>
         public void SwitchCameraToPlayer(uint netId)
         {
             if (IsSwitchInCooldown()) return;

@@ -1,89 +1,164 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace EGamePlay.Combat
 {
     /// <summary>
-    /// 高性能版本，使用预编译的委托
+    /// 表驱动静态方法：启动时编译表达式委托，命令字符串只解析一次。
     /// </summary>
     public static class FastStaticExecutor
     {
-        private static Dictionary<string, Delegate> _delegateCache = new Dictionary<string, Delegate>(StringComparer.OrdinalIgnoreCase);
-        private static Dictionary<string, Type[]> _paramTypesCache = new Dictionary<string, Type[]>();
+        sealed class CompiledMethod
+        {
+            public Func<object[], object> Invoke;
+            public ParameterInfo[] Parameters;
+        }
+
+        sealed class BoundCommand
+        {
+            public CompiledMethod Method;
+            public object[] ArgsScratch;
+            public int ContextArgIndex;
+        }
+
+        static readonly Dictionary<string, CompiledMethod> Methods =
+            new Dictionary<string, CompiledMethod>(StringComparer.OrdinalIgnoreCase);
+
+        static readonly Dictionary<string, BoundCommand> Commands =
+            new Dictionary<string, BoundCommand>(StringComparer.Ordinal);
 
         /// <summary>
-        /// 初始化并预编译所有方法
+        /// 预编译类型上所有 public static 方法。
         /// </summary>
         public static void Initialize<T>() where T : class
         {
-            var type = typeof(T);
-            var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
-
-            foreach (var method in methods)
-            {
-                CompileMethod(method);
-            }
+            MethodInfo[] methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.Static);
+            for (int i = 0; i < methods.Length; i++)
+                CompileMethod(methods[i]);
         }
 
         /// <summary>
-        /// 执行命令
+        /// 执行命令。格式 <c>Method#arg1#arg2</c>。第一个非 string 的引用类型参数填 <paramref name="context"/>（通常是施法者 Entity）。
         /// </summary>
-        public static object Execute(string command)
+        public static object Execute(string command, object context = null)
         {
-            if (command == string.Empty) return true;
+            if (string.IsNullOrEmpty(command))
+                return true;
 
-            // 解析命令
-            var parts = command.Split('#');
-            string methodName = parts[0].Trim();
-            string[] stringArgs = parts.Length > 1 ? parts.Skip(1).ToArray(): Array.Empty<string>();
-
-            // 获取缓存的委托和参数类型
-            if (!_delegateCache.TryGetValue(methodName, out var del) ||
-                !_paramTypesCache.TryGetValue(methodName, out var paramTypes))
+            if (!Commands.TryGetValue(command, out BoundCommand bound))
             {
+                bound = BindCommand(command);
+                Commands[command] = bound;
+            }
+
+            object[] args = bound.ArgsScratch;
+            int ctxIndex = bound.ContextArgIndex;
+            if (ctxIndex >= 0)
+                args[ctxIndex] = context;
+
+            object result = bound.Method.Invoke(args);
+
+            if (ctxIndex >= 0)
+                args[ctxIndex] = null;
+
+            return result;
+        }
+
+        static BoundCommand BindCommand(string command)
+        {
+            int hash = command.IndexOf('#');
+            string methodName = hash < 0 ? command.Trim() : command.Substring(0, hash).Trim();
+            if (!Methods.TryGetValue(methodName, out CompiledMethod method))
                 throw new MissingMethodException($"未找到方法: {methodName}");
-            }
 
-            // 转换参数
-            object[] args = new object[paramTypes.Length];
-            for (int i = 0; i < paramTypes.Length; i++)
+            ParameterInfo[] parameters = method.Parameters;
+            object[] args = new object[parameters.Length];
+            int contextIndex = -1;
+            int start = hash < 0 ? command.Length : hash + 1;
+
+            for (int i = 0; i < parameters.Length; i++)
             {
-                if (i < stringArgs.Length)
+                Type paramType = parameters[i].ParameterType;
+                if (contextIndex < 0 && IsContextParameter(paramType))
                 {
-                    //这里会有装箱封箱情况，但考虑调用频率，暂时不处理
-                    args[i] = Convert.ChangeType(stringArgs[i], paramTypes[i]);
+                    contextIndex = i;
+                    args[i] = null;
+                    continue;
                 }
-                else
+
+                if (!TryReadArg(command, ref start, out string raw))
                 {
-                    args[i] = GetDefaultValue(paramTypes[i]);
+                    args[i] = paramType.IsValueType ? Activator.CreateInstance(paramType) : null;
+                    continue;
                 }
+
+                args[i] = ConvertArg(raw, paramType);
             }
 
-            // 调用委托（wrapper 内部用 Invoke，但避免重复查找方法）
-            return ((Func<object[], object>)del)(args);
+            return new BoundCommand
+            {
+                Method = method,
+                ArgsScratch = args,
+                ContextArgIndex = contextIndex,
+            };
         }
 
-        /// <summary>
-        /// 预编译方法为委托。使用 Invoke 包装以兼容任意签名（Entity、float、bool 等），避免 CreateDelegate 对委托签名的严格匹配要求。
-        /// </summary>
-        private static void CompileMethod(MethodInfo method)
+        static bool IsContextParameter(Type paramType)
         {
-            string methodName = method.Name;
-            var parameters = method.GetParameters();
-            Type[] paramTypes = parameters.Select(p => p.ParameterType).ToArray();
-
-            _paramTypesCache[methodName] = paramTypes;
-
-            // 统一使用 Func<object[], object> 包装，兼容任意参数/返回类型（bool、Entity 等）
-            Func<object[], object> wrapper = args => method.Invoke(null, args);
-            _delegateCache[methodName] = wrapper;
+            return !paramType.IsValueType && paramType != typeof(string);
         }
 
-        private static object GetDefaultValue(Type type)
+        static bool TryReadArg(string command, ref int start, out string raw)
         {
-            return type.IsValueType ? Activator.CreateInstance(type) : null;
+            raw = null;
+            if (start >= command.Length)
+                return false;
+            int end = command.IndexOf('#', start);
+            if (end < 0)
+                end = command.Length;
+            raw = command.Substring(start, end - start).Trim();
+            start = end + 1;
+            return true;
+        }
+
+        static object ConvertArg(string raw, Type type)
+        {
+            if (type == typeof(string))
+                return raw;
+            if (type.IsEnum)
+                return Enum.Parse(type, raw, true);
+            return Convert.ChangeType(raw, type, CultureInfo.InvariantCulture);
+        }
+
+        static void CompileMethod(MethodInfo method)
+        {
+            ParameterInfo[] parameters = method.GetParameters();
+            ParameterExpression argsParam = Expression.Parameter(typeof(object[]), "args");
+            Expression[] callArgs = new Expression[parameters.Length];
+            for (int i = 0; i < parameters.Length; i++)
+            {
+                Expression indexed = Expression.ArrayIndex(argsParam, Expression.Constant(i));
+                callArgs[i] = Expression.Convert(indexed, parameters[i].ParameterType);
+            }
+
+            Expression call = Expression.Call(method, callArgs);
+            Expression body;
+            if (method.ReturnType == typeof(void))
+                body = Expression.Block(call, Expression.Constant(null, typeof(object)));
+            else if (method.ReturnType.IsValueType)
+                body = Expression.Convert(call, typeof(object));
+            else
+                body = call;
+
+            Func<object[], object> invoke = Expression.Lambda<Func<object[], object>>(body, argsParam).Compile();
+            Methods[method.Name] = new CompiledMethod
+            {
+                Invoke = invoke,
+                Parameters = parameters,
+            };
         }
     }
 }

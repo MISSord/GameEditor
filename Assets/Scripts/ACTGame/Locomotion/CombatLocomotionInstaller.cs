@@ -2,6 +2,7 @@
 using EGamePlay;
 using EGamePlay.Unity;
 using UnityEngine;
+using ACTGameEditor;
 
 namespace ACTGameEditor.Locomotion
 {
@@ -50,22 +51,51 @@ namespace ACTGameEditor.Locomotion
 
             if (director != null)
             {
-                if (localControl)
-                {
-                    director.MoveIntentProvider = () =>
-                    {
-                        var mgr = ConfigurableInputManager.Instance;
-                        return mgr != null ? mgr.Snapshot.MoveAxis : Vector2.zero;
-                    };
-                }
-                else
-                {
-                    director.MoveIntentProvider = static () => Vector2.zero;
-                }
-
-                director.MoveIntentDeadZone = tuning.InputDeadZone;
+                BindMoveIntent(director, localControl, tuning.InputDeadZone);
                 motor.SetAnimParamWriteGate(() => !director.HasSkillOwner);
             }
+        }
+
+        /// <summary>换人后切换本地输入 / 停步；电机 Enable 仍由 Presence 管。</summary>
+        public static void BindLocalControl(CombatEntity entity, bool localControl)
+        {
+            if (entity == null || entity.IsDisposed)
+                return;
+
+            InputMoveComponent move = entity.GetComponent<InputMoveComponent>();
+            AnimComponent anim = entity.GetComponent<AnimComponent>();
+            if (move == null)
+                return;
+
+            IMoveInputProvider input = localControl
+                ? ConfigurableInputMoveProvider.Instance
+                : IdleMoveInputProvider.Instance;
+            move.InstallAiDrivers(
+                input,
+                new TransformCameraProvider(null),
+                localControl ? new CombatLockFacingProvider() : null);
+
+            CombatAnimDirector director = anim?.Director;
+            if (director != null)
+                BindMoveIntent(director, localControl, director.MoveIntentDeadZone);
+        }
+
+        static void BindMoveIntent(CombatAnimDirector director, bool localControl, float deadZone)
+        {
+            if (localControl)
+            {
+                director.MoveIntentProvider = () =>
+                {
+                    var mgr = ConfigurableInputManager.Instance;
+                    return mgr != null ? mgr.Snapshot.MoveAxis : Vector2.zero;
+                };
+            }
+            else
+            {
+                director.MoveIntentProvider = static () => Vector2.zero;
+            }
+
+            director.MoveIntentDeadZone = deadZone;
         }
     }
 }

@@ -123,6 +123,17 @@ namespace EGamePlay.Combat
             Recompute();
         }
 
+        /// <summary>候场时清短硬直，避免隐藏后计时冻结、再上场仍硬直。</summary>
+        public void ClearHit()
+        {
+            if (!_hitActive)
+                return;
+            _hitActive = false;
+            _hitSourceId = 0;
+            _hitEndTime = 0f;
+            Recompute();
+        }
+
         /// <summary>进入死亡（最高优先）。</summary>
         public void EnterDead()
         {

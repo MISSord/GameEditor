@@ -53,6 +53,13 @@ namespace EGamePlay.Combat
         public HitReactionType HitReaction { get; set; }
         /// <summary>出手打断等级；与目标抗打断比大小。0 不断招。Buff/DoT 保持 0。</summary>
         public int InterruptLevel { get; set; }
+        readonly EntityDeadEvent _deadEvent = new EntityDeadEvent();
+        readonly DamageEffect _effectScratch = new DamageEffect();
+        const DamageActionEffect BlockHpMask =
+            DamageActionEffect.Interrupt
+            | DamageActionEffect.Dodge
+            | DamageActionEffect.Immunity
+            | DamageActionEffect.Parry;
         /// <summary>本次结算使用的属性类型；供飘字染色。</summary>
         public DamageType AppliedDamageType { get; set; }
         /// <summary>攻击盒与受击体接触点；无盒体采样（如 DoT）时为 false，飘字回退胸口。</summary>
@@ -64,6 +71,38 @@ namespace EGamePlay.Combat
         public DamageEffect DamageEffect => TriggerContext.EffectConfig as DamageEffect;
 
         public void FinishAction() => Entity.Destroy(this);
+
+        /// <summary>闪避 / 免疫 / 招架 / 中断：本单不扣血。</summary>
+        public bool BlocksHpDamage => (DamageActionEffect & BlockHpMask) != 0;
+
+        /// <summary>填入复用的 DamageEffect，避免每段伤害 new。</summary>
+        public void BindEffect(
+            DamageType damageType,
+            float damageValueProperty,
+            DamageCalcuFormulaType formulaType,
+            bool canCrit,
+            Ability sourceAbility,
+            Entity triggerSource,
+            Entity target,
+            int damageSegmentIndex,
+            bool hasHitWorldPosition,
+            Vector3 hitWorldPosition)
+        {
+            _effectScratch.DamageType = damageType;
+            _effectScratch.DamageValueProperty = damageValueProperty;
+            _effectScratch.FormulaType = formulaType;
+            _effectScratch.CanCrit = canCrit;
+            TriggerContext = new TriggerContext
+            {
+                EffectConfig = _effectScratch,
+                SourceAbility = sourceAbility,
+                TriggerSource = triggerSource,
+                Target = target,
+                DamageSegmentIndex = damageSegmentIndex,
+                HasHitWorldPosition = hasHitWorldPosition,
+                HitWorldPosition = hitWorldPosition,
+            };
+        }
 
         /// <summary>
         /// 结算本张伤害单。顺序：
@@ -91,7 +130,7 @@ namespace EGamePlay.Combat
                 CombatBuffPipeline.Notify(Target, ActionPointType.PreReceiveDamage, this);
 
                 // 3. 施法取消：不扣血、不后置
-                if (DamageActionEffect.HasFlag(DamageActionEffect.Interrupt))
+                if ((DamageActionEffect & DamageActionEffect.Interrupt) != 0)
                 {
                     FinishAction();
                     return;
@@ -138,9 +177,10 @@ namespace EGamePlay.Combat
                 // 7. 死亡演出 / 逻辑订阅，与击杀 Buff 回调分开
                 if (isDead)
                 {
-                    var deadEvent = new EntityDeadEvent { DeadEntity = Target.Entity };
-                    Target.Entity.Publish(deadEvent);
-                    CombatContext.Instance.Publish(deadEvent);
+                    _deadEvent.DeadEntity = Target.Entity;
+                    Target.Entity.Publish(_deadEvent);
+                    CombatContext.Instance.Publish(_deadEvent);
+                    _deadEvent.DeadEntity = null;
                 }
 
                 FinishAction();
@@ -208,13 +248,7 @@ namespace EGamePlay.Combat
                 CombatBuffPipeline.Notify(Target, ActionPointType.PostReceiveDamage, this);
         }
 
-        bool ShouldApplyDamageToTarget()
-        {
-            return !DamageActionEffect.HasFlag(DamageActionEffect.Interrupt)
-                && !DamageActionEffect.HasFlag(DamageActionEffect.Dodge)
-                && !DamageActionEffect.HasFlag(DamageActionEffect.Immunity)
-                && !DamageActionEffect.HasFlag(DamageActionEffect.Parry);
-        }
+        bool ShouldApplyDamageToTarget() => !BlocksHpDamage;
 
         public override void OnReset()
         {
@@ -232,6 +266,11 @@ namespace EGamePlay.Combat
             Creator = null;
             Target = null;
             DamageActionEffect = DamageActionEffect.None;
+            _deadEvent.DeadEntity = null;
+            _effectScratch.DamageType = default;
+            _effectScratch.DamageValueProperty = 0f;
+            _effectScratch.FormulaType = default;
+            _effectScratch.CanCrit = false;
         }
     }
 

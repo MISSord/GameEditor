@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace EGamePlay
 {
@@ -84,46 +84,29 @@ namespace EGamePlay
 
         private void Dispose()
         {
-            if (Entity.EnableLog) GameLog.Debug($"{GetType().Name}->Dispose");
+            //if (Entity.EnableLog) GameLog.Debug($"{GetType().Name}->Dispose");
             Entity = null;
             Enable = false;
             IsDisposed = true;
         }
 
-        public static void Destroy<T>(T entity) where T : Component
+        public static void Destroy<T>(T component) where T : Component
         {
             try
             {
-                entity.OnDestroy();
+                component.OnDestroy();
             }
             catch (Exception e)
             {
                 GameLog.Error(e);
             }
-            entity.Dispose();
-            PoolManager.Instance.Return(entity);
+            component.Dispose();
+            PoolManager.Instance.Return(component);
         }
 
         public void Reset()
         {
             this.OnReset();
         }
-
-        //事件广播 //Entity自带，还是少用这里的
-        //public T Publish<T>(T TEvent) where T : class
-        //{
-        //    Entity.Publish(TEvent);
-        //    return TEvent;
-        //}
-
-        //public void Subscribe<T>(Action<T> action) where T : class
-        //{
-        //    Entity.Subscribe(action);
-        //}
-
-        //public void UnSubscribe<T>(Action<T> action) where T : class
-        //{
-        //    Entity.UnSubscribe(action);
-        //}
     }
 }

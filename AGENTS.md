@@ -10,4 +10,6 @@
 - 相机意图/构图：[Docs/ActCameraStage2Design.md](Docs/ActCameraStage2Design.md)
 - 敌人 AI（导演 / HFSM / 选招）：[Docs/ActEnemyAiDesign.md](Docs/ActEnemyAiDesign.md)
 - 战斗缺口与里程碑（失衡/异常/招架/连携）：[Docs/ActCombatRoadmap.md](Docs/ActCombatRoadmap.md)
+- 小队换人（三人队 / 支援 / 延奏）：[Docs/ActSquadDesign.md](Docs/ActSquadDesign.md)
+- 角色选型与招式包模板（单手刀/剑）：[Docs/ActCharacterKitTemplate.md](Docs/ActCharacterKitTemplate.md)
 - Unity 热路径性能：仓库根目录 `.cursorrules`

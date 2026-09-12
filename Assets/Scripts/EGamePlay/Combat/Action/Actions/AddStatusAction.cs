@@ -118,7 +118,7 @@ namespace EGamePlay.Combat
 
                 StatusApplyResolver.Resolve(this);
 
-                if (Effect.HasFlag(AddStatusActionEffect.Interrupt) || BuffId <= 0)
+                if ((Effect & AddStatusActionEffect.Interrupt) != 0 || BuffId <= 0)
                 {
                     FinishAction();
                     return;
@@ -168,9 +168,9 @@ namespace EGamePlay.Combat
 
         bool ShouldApplyStatus()
         {
-            return !Effect.HasFlag(AddStatusActionEffect.Interrupt)
-                && !Effect.HasFlag(AddStatusActionEffect.Immunity)
-                && !Effect.HasFlag(AddStatusActionEffect.Resisted);
+            return (Effect & (AddStatusActionEffect.Interrupt
+                | AddStatusActionEffect.Immunity
+                | AddStatusActionEffect.Resisted)) == 0;
         }
 
         public override void OnReset()
