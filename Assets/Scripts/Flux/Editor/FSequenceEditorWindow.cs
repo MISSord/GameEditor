@@ -44,38 +44,6 @@ namespace FluxEditor
             instance._sequenceEditor.OpenSequence(sequence);
         }
 
-        [MenuItem(MENU_PATH + PRODUCT_NAME + "/Create Sequence", false, 100)]
-        public static FSequence CreateSequence()
-        {
-            // find new name & priority for sequence
-            string sequenceNameFormat = "Sequence_{0}";
-
-            int sequenceId = 0;
-
-            string sequenceName = string.Format(sequenceNameFormat, sequenceId.ToString("000"));
-
-            FSequence[] sequences = FindObjectsOfType<FSequence>();
-            for (int i = 0, limit = sequences.Length; i != limit; ++i)
-            {
-                if (sequences[i].name == sequenceName)
-                {
-                    // try new name
-                    ++sequenceId;
-                    sequenceName = string.Format(sequenceNameFormat, sequenceId.ToString("000"));
-                    i = -1; // restart search
-                }
-            }
-
-            FSequence sequence = FSequence.CreateSequence();
-            sequence.name = sequenceName;
-            sequence.FrameRate = FUtility.FrameRate;
-            sequence.Length = sequence.FrameRate * FSequence.DEFAULT_LENGTH;
-
-            Undo.RegisterCreatedObjectUndo(sequence.gameObject, "Create Sequence");
-
-            return sequence;
-        }
-
         [MenuItem(MENU_PATH + PRODUCT_NAME + "/Website", false, 200)]
         public static void OpenWebsite()
         {
@@ -108,6 +76,8 @@ namespace FluxEditor
 
         [SerializeField]
         private FSequenceEditor _sequenceEditor;
+
+        bool _emptyOpenHintShown;
 
         void OnEnable()
         {
@@ -292,35 +262,45 @@ namespace FluxEditor
             FSequence sequence = _sequenceEditor.Sequence;
 
             if (sequence == null)
-                ShowNotification(new GUIContent("Select Or Create Sequence"));
-            else if (Event.current.isKey)
             {
-                if (Event.current.keyCode == KeyCode.Space)
+                if (!_emptyOpenHintShown)
                 {
-                    if (Event.current.type == EventType.KeyUp)
+                    ShowNotification(new GUIContent("用技能工作台打开技能"));
+                    _emptyOpenHintShown = true;
+                }
+            }
+            else
+            {
+                _emptyOpenHintShown = false;
+                if (Event.current.isKey)
+                {
+                    if (Event.current.keyCode == KeyCode.Space)
                     {
-                        if (_sequenceEditor.IsPlaying)
+                        if (Event.current.type == EventType.KeyUp)
                         {
-                            if (Event.current.shift)
-                                Stop();
+                            if (_sequenceEditor.IsPlaying)
+                            {
+                                if (Event.current.shift)
+                                    Stop();
+                                else
+                                    Pause();
+                            }
                             else
-                                Pause();
-                        }
-                        else
-                        {
-                            Play(Event.current.shift);
-                        }
+                            {
+                                Play(Event.current.shift);
+                            }
 
+                            Repaint();
+                        }
+                        Event.current.Use();
+                    }
+
+                    if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Return)
+                    {
+                        EditorGUIUtility.keyboardControl = 0;
+                        Event.current.Use();
                         Repaint();
                     }
-                    Event.current.Use();
-                }
-
-                if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Return)
-                {
-                    EditorGUIUtility.keyboardControl = 0;
-                    Event.current.Use();
-                    Repaint();
                 }
             }
 

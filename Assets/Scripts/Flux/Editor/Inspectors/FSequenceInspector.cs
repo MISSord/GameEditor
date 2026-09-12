@@ -76,7 +76,17 @@ namespace FluxEditor
 
 			if( GUILayout.Button( "Open In Flux Editor" ) )
 			{
-				FSequenceEditorWindow.Open( _sequence );
+				string assetPath = AssetDatabase.GetAssetPath(_sequence);
+				if (EditorUtility.IsPersistent(_sequence)
+					&& !string.IsNullOrEmpty(assetPath)
+					&& assetPath.Replace('\\', '/').StartsWith(SaveSequenceData.SequencePrefabFolder, System.StringComparison.OrdinalIgnoreCase))
+				{
+					SkillWorkbenchWindow.OpenAndEdit(assetPath);
+				}
+				else
+				{
+					FSequenceEditorWindow.Open( _sequence );
+				}
 			}
 
 			EditorGUILayout.Space();

@@ -137,7 +137,7 @@ namespace Flux
 		[SerializeField]
 		private FSeqSetting _fSeqSetting;
 
-		public FSeqSetting FSeqSetting { get { return _fSeqSetting; } }
+		public FSeqSetting FSeqSetting { get { return _fSeqSetting; } set { _fSeqSetting = value; } }
 
 		public Transform GetPlayerTF()
         {

@@ -291,8 +291,17 @@ namespace Flux
 				_owner = transform.Find( _ownerPath );
 		}*/
 
+		/// <summary>
+		/// 技能工作台临时绑预览体时置位：OnValidate 不改序列化 OwnerPath，避免把场景角色写进技能预制体。
+		/// </summary>
+		[System.NonSerialized]
+		public bool SuppressOwnerPathWrite;
+
 		protected virtual void OnValidate()
 		{
+			if (SuppressOwnerPathWrite)
+				return;
+
 			if( _owner != null)
             {
 				var newPath = GetTransformPath(_owner);
@@ -306,6 +315,23 @@ namespace Flux
 				}
 				_ownerPath = newPath;
 			}
+		}
+
+		/// <summary>编辑器预览绑定，不改物体名、不改 OwnerPath。</summary>
+		public void BindOwnerForPreview(Transform owner)
+		{
+			SuppressOwnerPathWrite = true;
+			_owner = owner;
+			if (Container != null && Sequence != null && Sequence.IsInit)
+				Init();
+		}
+
+		/// <summary>保存前恢复预制体上的 Owner 序列化：场景引用清空，路径写回打开时记下的值。</summary>
+		public void RestoreSerializedOwner(string ownerPath)
+		{
+			SuppressOwnerPathWrite = true;
+			_owner = null;
+			_ownerPath = ownerPath;
 		}
 
 		// helper function to get the transform path of a specific transform t

@@ -1641,7 +1641,11 @@ namespace FluxEditor
         public void Select(ISelectableElement e)
         {
             if (e.IsSelected)
+            {
+                if (e is FEventEditor)
+                    FocusUnityInspectorSoon();
                 return;
+            }
 
             int undoGroup = Undo.GetCurrentGroup();
             string undoStr = "select ";
@@ -1651,6 +1655,7 @@ namespace FluxEditor
                 Select(((FEventEditor)e).TrackEditor);
                 Selection.activeObject = ((FEventEditor)e).Evt.transform;
                 undoStr += "Event";
+                FocusUnityInspectorSoon();
             }
             else if (e is FTrackEditor)
             {
@@ -1687,6 +1692,33 @@ namespace FluxEditor
 
             Repaint();
             Undo.CollapseUndoOperations(undoGroup);
+        }
+
+        static bool _pendingInspectorFocus;
+
+        static void FocusUnityInspectorSoon()
+        {
+            if (_pendingInspectorFocus)
+                return;
+            _pendingInspectorFocus = true;
+            EditorApplication.delayCall += FocusUnityInspector;
+        }
+
+        static void FocusUnityInspector()
+        {
+            _pendingInspectorFocus = false;
+            Type inspectorType = typeof(Editor).Assembly.GetType("UnityEditor.InspectorWindow");
+            if (inspectorType == null)
+                return;
+            Object[] windows = Resources.FindObjectsOfTypeAll(inspectorType);
+            for (int i = 0; i < windows.Length; i++)
+            {
+                EditorWindow window = windows[i] as EditorWindow;
+                if (window == null)
+                    continue;
+                window.Focus();
+                return;
+            }
         }
 
         public void Deselect(ISelectableElement e)

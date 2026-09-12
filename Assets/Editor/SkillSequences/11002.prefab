@@ -29,8 +29,8 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 612609449}
   - {fileID: 527081772}
+  - {fileID: 6060203027225785753}
   m_Father: {fileID: 6889016167695844011}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -50,8 +50,8 @@ MonoBehaviour:
   _timeline: {fileID: 6889016167695844012}
   _evtTypeStr: Flux.FTriggerRangeEvent
   _events:
-  - {fileID: 612609448}
   - {fileID: 527081773}
+  - {fileID: 6060203027225785752}
   _cacheMode: 0
 --- !u!1 &450098825
 GameObject:
@@ -134,7 +134,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 303830292}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &527081773
 MonoBehaviour:
@@ -143,68 +143,6 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 527081771}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d364b18a603168340a65dae7bebde3ab, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _id: 1
-  EnableEvent: 1
-  isLocalTrueOnly: 0
-  _track: {fileID: 303830291}
-  _triggerOnSkip: 1
-  _frameRange:
-    _start: 16
-    _end: 26
-  cubeRange:
-    pos: {x: 0, y: 1, z: -0.77}
-    rotation: {x: 0, y: 0, z: 0}
-    size: {x: 1.85, y: 0.5, z: 1}
-    radius: 0
-    height: 0
-    colliderType: 0
-  DamageSegmentIndex: 2
-  HitGroupId: 0
-  EffectIds: 
---- !u!1 &612609447
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 612609449}
-  - component: {fileID: 612609448}
-  m_Layer: 0
-  m_Name: Flux.FTriggerRangeEvent
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &612609449
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 612609447}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 303830292}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &612609448
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 612609447}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d364b18a603168340a65dae7bebde3ab, type: 3}
@@ -404,6 +342,68 @@ MonoBehaviour:
   isBackToIdle: 1
   ExitPolicy: 0
   _speed: 1
+--- !u!1 &6060203027225785758
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6060203027225785753}
+  - component: {fileID: 6060203027225785752}
+  m_Layer: 0
+  m_Name: Flux.FTriggerRangeEvent
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6060203027225785753
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6060203027225785758}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 303830292}
+  m_RootOrder: 1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6060203027225785752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6060203027225785758}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d364b18a603168340a65dae7bebde3ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _id: 1
+  EnableEvent: 1
+  isLocalTrueOnly: 0
+  _track: {fileID: 303830291}
+  _triggerOnSkip: 1
+  _frameRange:
+    _start: 16
+    _end: 26
+  cubeRange:
+    pos: {x: 0, y: 1, z: -0.77}
+    rotation: {x: 0, y: 0, z: 0}
+    size: {x: 1.85, y: 0.5, z: 1}
+    radius: 0
+    height: 0
+    colliderType: 0
+  DamageSegmentIndex: 2
+  HitGroupId: 0
+  EffectIds: 
 --- !u!1 &6889016166023563177
 GameObject:
   m_ObjectHideFlags: 0

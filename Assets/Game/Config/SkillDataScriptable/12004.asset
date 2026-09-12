@@ -78,7 +78,7 @@ MonoBehaviour:
           _end: 32
         IsLocalTrueOnly: 0
         CubeRange:
-          pos: {x: 1.27, y: 0.89, z: 0}
+          pos: {x: 1.4901305, y: 1, z: 3.19043e-14}
           rotation: {x: 0, y: -90, z: 0}
           size: {x: 2, y: 2, z: 1}
           radius: 0

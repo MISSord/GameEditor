@@ -104,7 +104,7 @@ MonoBehaviour:
     _start: 21
     _end: 32
   cubeRange:
-    pos: {x: 1.27, y: 0.89, z: 0}
+    pos: {x: 1.4901305, y: 1, z: 3.19043e-14}
     rotation: {x: 0, y: -90, z: 0}
     size: {x: 2, y: 2, z: 1}
     radius: 0
@@ -226,6 +226,8 @@ MonoBehaviour:
   _stateHash: -186917087
   isBackToIdle: 1
   ExitPolicy: 0
+  UseRootMotion: 1
+  SuppressGravity: 0
   _speed: 1
 --- !u!1 &2441378072855600367
 GameObject:
