@@ -1,0 +1,18 @@
+[
+  {
+    "CharacterId": 1,
+    "Attribute": "",
+    "Faction": "",
+    "CombatRole": "",
+    "CorePassiveSkillId": 0,
+    "AdditionalAbilitySkillId": 0,
+    "AdditionalCondition": 0,
+    "ExtraPassiveSkillIds": [],
+    "DefaultFormId": 0,
+    "ChainSkillId": 13001,
+    "QuickAssistSkillId": 0,
+    "DefensiveAssistSkillId": 11005,
+    "EvasiveAssistSkillId": 0,
+    "AssistFollowUpSkillId": 0
+  }
+]

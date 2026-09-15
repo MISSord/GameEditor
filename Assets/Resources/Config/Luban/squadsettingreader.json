@@ -1,0 +1,12 @@
+[
+  {
+    "Id": 1,
+    "SwitchLock": 0.3,
+    "AssistWindow": 1.2,
+    "AssistPointsMax": 3,
+    "AssistPointRegenPerSec": 0.12,
+    "SwitchIFrame": 0.4,
+    "AssistPointDefensiveCost": 1,
+    "AssistPointEvasiveCost": 1
+  }
+]

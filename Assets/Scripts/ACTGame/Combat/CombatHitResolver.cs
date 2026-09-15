@@ -14,6 +14,7 @@ namespace ACTGameEditor.Combat
         int _rollTagIndex;
         int _dazeRecoverIndex;
         int _parryWindowIndex;
+        int _switchIFrameIndex;
 
         public override void Awake()
         {
@@ -21,6 +22,7 @@ namespace ACTGameEditor.Combat
             _rollTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffRoll];
             _dazeRecoverIndex = TagCollection.TagToIndexDic[CombatTags.CombatDazeRecover];
             _parryWindowIndex = TagCollection.TagToIndexDic[CombatTags.CombatParryWindow];
+            _switchIFrameIndex = TagCollection.TagToIndexDic[CombatTags.CombatSwitchIFrame];
             _owner.ListenActionPoint(ActionPointType.PreReceiveDamage, OnPreReceiveDamage);
         }
 
@@ -32,6 +34,7 @@ namespace ACTGameEditor.Combat
             _rollTagIndex = 0;
             _dazeRecoverIndex = 0;
             _parryWindowIndex = 0;
+            _switchIFrameIndex = 0;
         }
 
         public override void OnReset()
@@ -40,6 +43,7 @@ namespace ACTGameEditor.Combat
             _rollTagIndex = 0;
             _dazeRecoverIndex = 0;
             _parryWindowIndex = 0;
+            _switchIFrameIndex = 0;
         }
 
         void OnPreReceiveDamage(Entity action)
@@ -59,7 +63,8 @@ namespace ACTGameEditor.Combat
                 return;
             }
 
-            if (_owner.TagHost.HasIndex(_parryWindowIndex))
+            if (_owner.TagHost.HasIndex(_parryWindowIndex)
+                || _owner.TagHost.HasIndex(_switchIFrameIndex))
             {
                 damage.DamageActionEffect |= DamageActionEffect.Immunity;
                 return;

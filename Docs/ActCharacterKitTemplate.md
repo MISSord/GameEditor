@@ -1,7 +1,7 @@
 # ACT 角色选型与招式包模板（单手刀 / 单手剑）
 
 > 状态：**选型结论 + 模板规范，未开工**。做新角色（玩家侧）前先读本文，按 §五 模板逐项填表。
-> 关联：`ActCombatRoadmap.md`（M1 失衡 / M2 招架 / M5 喧响，新角色招式是这些系统的落点）、`ActSkillConfigAndLeveling.md`（段表与升级）、`ActEnemyAiDesign.md`（12000 号段隔离策略）、`ProjectConventions.md`（轴/配表硬约定）。
+> 关联：`ActCombatRoadmap.md`（M1 失衡 / M2 招架 / M5 喧响，新角色招式是这些系统的落点）、`ActSkillConfigAndLeveling.md`（段表与升级）、`ActSkillKitConfig.md`（招式包进 Luban：Kit/槽位/被动/号段）、`ActEnemyAiDesign.md`（12000 号段隔离策略）、`ProjectConventions.md`（轴/配表硬约定）。
 > 养成（等级/命座/装备）不在本文，按项目约定后置。
 
 ---
@@ -100,7 +100,7 @@
 | 3 | **露西亚·红莲**（可选第二角色） | 三战技变体 + 大范围剑气大招，验证多技能槽与演出上限 |
 | 4 | **刻晴**（可选实验） | E 瞬移 + 大招多段，压测位移通道与段表 |
 
-**段号规划**：玩家新角色统一走 `13xxx` 段（11000=现有玩家段、12000=敌人段、13000=新角色段），每个角色一个号段（漂泊者 130xx、露西亚 131xx……），配表 / 轴 / 表现包按号段隔离，与敌人 12000 的分离策略一致。
+**段号规划**：11000=现役演示、12000=敌人、**13000–13099=小队系统技**（13001 连携已占）。新角色从 **13100** 起每角色 100 号（安比 131xx、漂泊者 132xx、露西亚 133xx）。详见 `ActSkillKitConfig.md` §六。
 
 ---
 
@@ -108,7 +108,7 @@
 
 ### 5.1 开工前清单
 
-- [ ] 段号申请（13xxx 起，不与 11/12 冲突）
+- [ ] 段号申请（新角色从 **13100** 起每角色 100 号；**13000–13099 留给系统连携**。详见 `ActSkillKitConfig.md` §六）
 - [ ] 槽位表（§5.2）
 - [ ] 段表行（§5.3）
 - [ ] 技能轴（§5.4，只改 `Assets/Editor/SkillSequences/{SkillId}.prefab` 再 Flux 导出，禁止手改 `SkillDataScriptable`）
@@ -117,14 +117,18 @@
 - [ ] 打断 / 抗打断数值（§5.7）
 - [ ] 新角色验收（§5.8）
 
-### 5.2 槽位表（`SkillSlotConfig` / `SkillFormConfig`）
+### 5.2 槽位表（目标：`CharacterKit` + `CharacterSlot` Luban）
+
+> 技能 Id 走 `CharacterKit` + `CharacterSlot` Luban。`SkillSlotConfig` 只绑 4 战斗键输入。收口见 `ActSkillKitConfig.md`：X 普攻 / Y 闪避 / A 终结 / **B 战技**；**Q/E（Z）** 是换人+黄闪招架+连携。不要为招架另做面键。空列不继承系统 11000。
+
+### 5.2.1 槽位清单（`SkillSlotConfig` / `SkillFormConfig`）
 
 | 槽位 | Sort | 技能 | 说明 |
 |---|---|---|---|
-| 普攻 | Normal（连招链 1→2→3→…） | 13001… | 连招窗追加 |
-| 战技 | 战技 Sort | 13010（多战技可 13011/13012 变体） | 可带位移段 |
-| 闪避 | Roll | 复用现有翻滚 | 极限闪避自动断裂 |
-| 大招 | Ultimate | 13020 | `UltimateCinematic` 时停演出 |
+| 普攻 | Normal（连招链 1→2→3→…） | 13101…（示例：安比号段） | 连招窗追加 |
+| 战技 | 战技 Sort | 13110（EX 为 13111，**同行** `EmpoweredSkillId`，不限点按） | 可带位移段 |
+| 闪避 | Roll | 本角色自己填；空则无闪避 | 极限闪避自动断裂 |
+| 大招 | Ultimate | 13120 | `UltimateCinematic` 时停演出 |
 | 被动 | 常驻 Buff | `PassiveSkillBuffComponent` 挂接 | 不进技能轴 |
 | 形态（可选） | Form | 换段表 / 换槽位表 | 漂泊者光/暗用 |
 
@@ -194,7 +198,7 @@
 ## 七、待拍板
 
 1. 首个正式角色是否用漂泊者（风格主线一致）；
-2. 13000 号段起拍值（漂泊者 130xx / 露西亚 131xx 是否 OK）；
+2. 号段已在 `ActSkillKitConfig.md` 拍板：系统 13000、安比 13100、漂泊者 13200（原 130xx 让路）；
 3. 大招剑气范围段规格（扇形角度 / 段数，先行 3 段 90° 扇面建议）；
 4. 形态系统先做"换段表"还是"换槽位表 + 换段表"。
 

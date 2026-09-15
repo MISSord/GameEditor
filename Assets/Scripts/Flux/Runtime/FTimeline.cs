@@ -184,10 +184,12 @@ namespace Flux
 //			if( !Sequence.IsStopped )
 //				track.Init();
 
-			FEvent evt = FEvent.Create<T>( range );
+            FEvent evt = FEvent.Create<T>( range );
             evt.Start =Mathf.Clamp(Sequence.Sequence.CurrentFrame,0,Sequence.Sequence.Length);
 			evt.End = Mathf.Clamp(Sequence.Sequence.CurrentFrame + 20, 0, Sequence.Sequence.Length);
+#if FLUX_DEBUG
             Debug.Log("yns  add T");
+#endif
             //evt.End -= 100;
             track.Add( evt );
 

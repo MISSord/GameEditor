@@ -18,7 +18,7 @@ namespace ACTGameEditor.Combat
             if (Cache.TryGetValue(skillId, out SkillAllEventData cached))
                 return cached;
 
-            var config = SkillSettingMgr.Instance.GetSkillDemoSetting(skillId);
+            var config = SkillSettingMgr.Instance.GetSkillDemoSettingOrNull(skillId);
             if (config == null || config.Type != AbilityType.ActiveSkill.ToString())
                 return null;
 
@@ -26,27 +26,11 @@ namespace ACTGameEditor.Combat
                 PrefabPath.GetSkillDataScriObjPath(false), config.SkillId.ToString());
             if (skillData == null)
             {
-                // 敌人专用轴（12000 号段）在 SkillData_Enemy 目录，与玩家技能分离演进
                 skillData = AssetBundleManager.Instance.LoadAssetSync<SkillAllEventData>(
                     PrefabPath.GetSkillDataScriObjPath(true), config.SkillId.ToString());
             }
 
-            if (skillData == null && skillId == CombatChainSkill.SkillId)
-            {
-#if UNITY_EDITOR
-                GameLog.CombatDebug($"[Chain] {CombatChainSkill.SkillId} 轴未导出，暂用 {CombatChainSkill.FallbackTimelineSkillId}");
-#endif
-                return GetOrLoad(CombatChainSkill.FallbackTimelineSkillId);
-            }
-
-            if (skillData == null && CombatParry.IsPlayerParrySkill(skillId))
-            {
-#if UNITY_EDITOR
-                GameLog.CombatDebug($"[Parry] {CombatParry.PlayerSkillId} 轴未导出，暂用 {CombatParry.PlayerFallbackTimelineSkillId}");
-#endif
-                skillData = GetOrLoad(CombatParry.PlayerFallbackTimelineSkillId);
-            }
-            else if (skillData == null && CombatParry.IsEnemyYellowSkill(skillId))
+            if (skillData == null && CombatParry.IsEnemyYellowSkill(skillId))
             {
 #if UNITY_EDITOR
                 GameLog.CombatDebug($"[Parry] {CombatParry.EnemyYellowSkillId} 轴未导出，暂用 {CombatParry.EnemyFallbackTimelineSkillId}");

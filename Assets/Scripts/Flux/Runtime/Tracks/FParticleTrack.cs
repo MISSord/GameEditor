@@ -28,7 +28,9 @@ namespace Flux
         {
             base.OnOwnerChange(owner);
             Init();
+#if FLUX_DEBUG
             Debug.Log("yns ReInit");
+#endif
         }
 
         //		public override void CreateCache()

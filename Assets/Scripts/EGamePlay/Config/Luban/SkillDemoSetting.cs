@@ -35,6 +35,9 @@ public sealed partial class SkillDemoSetting : Luban.BeanBase
         { if(!_buf["CostB"].IsNumber) { throw new SerializationException(); }  CostB = _buf["CostB"]; }
         { if(!_buf["SkillGroupId"].IsNumber) { throw new SerializationException(); }  SkillGroupId = _buf["SkillGroupId"]; }
         { if(!_buf["MaxLevel"].IsNumber) { throw new SerializationException(); }  MaxLevel = _buf["MaxLevel"]; }
+        { if(!_buf["SkillCategory"].IsNumber) { throw new SerializationException(); }  SkillCategory = (SkillCategory)_buf["SkillCategory"].AsInt; }
+        { if(!_buf["OwnerCharacterId"].IsNumber) { throw new SerializationException(); }  OwnerCharacterId = _buf["OwnerCharacterId"]; }
+        { var __json0 = _buf["PassiveBuffIds"]; if(!__json0.IsArray) { throw new SerializationException(); } PassiveBuffIds = new System.Collections.Generic.List<int>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { int __v0;  { if(!__e0.IsNumber) { throw new SerializationException(); }  __v0 = __e0; }  PassiveBuffIds.Add(__v0); }   }
     }
 
     public static SkillDemoSetting DeserializeSkillDemoSetting(JSONNode _buf)
@@ -114,6 +117,18 @@ public sealed partial class SkillDemoSetting : Luban.BeanBase
     /// 技能等级上限
     /// </summary>
     public readonly int MaxLevel;
+    /// <summary>
+    /// 技能分类
+    /// </summary>
+    public readonly SkillCategory SkillCategory;
+    /// <summary>
+    /// 归属角色
+    /// </summary>
+    public readonly int OwnerCharacterId;
+    /// <summary>
+    /// 被动挂载 Buff
+    /// </summary>
+    public readonly System.Collections.Generic.List<int> PassiveBuffIds;
    
     public const int __ID__ = 642189308;
     public override int GetTypeId() => __ID__;
@@ -143,6 +158,9 @@ public sealed partial class SkillDemoSetting : Luban.BeanBase
         + "CostB:" + CostB + ","
         + "SkillGroupId:" + SkillGroupId + ","
         + "MaxLevel:" + MaxLevel + ","
+        + "SkillCategory:" + SkillCategory + ","
+        + "OwnerCharacterId:" + OwnerCharacterId + ","
+        + "PassiveBuffIds:" + Luban.StringUtil.CollectionToString(PassiveBuffIds) + ","
         + "}";
     }
 }

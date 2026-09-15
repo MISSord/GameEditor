@@ -5,6 +5,13 @@ using UnityEngine;
 
 namespace EGamePlay.Unity
 {
+    /// <summary>当前支撑脚（身前落地脚）。急停 / 急转按此选 L/R 片。</summary>
+    public enum LocomotionFoot : byte
+    {
+        Left = 0,
+        Right = 1,
+    }
+
     /// <summary>移动输入源。</summary>
     public interface IMoveInputProvider
     {
@@ -70,8 +77,8 @@ namespace EGamePlay.Unity
     /// <summary>移动状态回调（地面移动 / 跳跃 / 空中）。</summary>
     public interface ILocomotionStateSink
     {
-        /// <summary>同步地面移动意图。</summary>
-        void SetLocomotionState(bool isMoving, bool isRun, bool isWalk);
+        /// <summary>同步地面移动意图。isPivot 为快跑急转窗口。</summary>
+        void SetLocomotionState(bool isMoving, bool isRun, bool isWalk, bool isPivot = false);
 
         /// <summary>Locomotion 一段跳成功。</summary>
         void NotifyJumpStarted();
@@ -154,6 +161,36 @@ namespace EGamePlay.Unity
         /// <summary>落地顿时的水平移速倍率（0~1）。</summary>
         public float LandSlowScale;
 
+        /// <summary>快跑急转触发角（度）。输入与当前行进方向夹角大于该值才进 Pivot。</summary>
+        public float PivotAngle;
+
+        /// <summary>急转窗口时长（秒）。位移/朝向都在这段里完成，并与 SprintPivot 片对齐。</summary>
+        public float PivotDuration;
+
+        /// <summary>窗口内转到新方向并开始加速的归一化时间（0~1）。前半沿旧方向刹停。</summary>
+        public float PivotCommit;
+
+        /// <summary>急转 commit 后的转向速度（度/秒）。commit 前转向为 0（撑住）。</summary>
+        public float PivotTurnSpeed;
+
+        /// <summary>急转刹停 SmoothDamp 时间。</summary>
+        public float PivotDeceleration;
+
+        /// <summary>急转 commit 后加速 SmoothDamp 时间。</summary>
+        public float PivotAcceleration;
+
+        /// <summary>低于该水平速度不触发急转（避免慢跑拧身）。</summary>
+        public float PivotMinSpeed;
+
+        /// <summary>加在走跑循环 normalizedTime 上的相位偏移，用来把 0 对齐到左脚落地。</summary>
+        public float FootCycleOffset;
+
+        /// <summary>一圈内左/右支撑分界（0~1）。前半为第一只脚，默认 0.5。</summary>
+        public float FootSplit;
+
+        /// <summary>true：周期前半是左脚支撑（Mixamo 常见）；对不上就关掉。</summary>
+        public bool FootLeftInFirstHalf;
+
         /// <summary>与旧 InputMoveComponent 硬编码行为对齐的默认值。</summary>
         public static LocomotionTuning CreateDefault()
         {
@@ -183,6 +220,16 @@ namespace EGamePlay.Unity
                 JumpBufferTime = 0.12f,
                 LandSlowTime = 0.1f,
                 LandSlowScale = 0.55f,
+                PivotAngle = 135f,
+                PivotDuration = 0.36f,
+                PivotCommit = 0.42f,
+                PivotTurnSpeed = 1440f,
+                PivotDeceleration = 0.08f,
+                PivotAcceleration = 0.1f,
+                PivotMinSpeed = 6f,
+                FootCycleOffset = 0f,
+                FootSplit = 0.5f,
+                FootLeftInFirstHalf = true,
             };
         }
     }

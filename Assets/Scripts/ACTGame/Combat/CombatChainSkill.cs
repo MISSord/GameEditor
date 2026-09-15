@@ -1,28 +1,35 @@
 using ACTGameEditor.Combat.Ai;
+using EGamePlay;
 using EGamePlay.Combat;
 using UnityEngine;
 
 namespace ACTGameEditor.Combat
 {
     /// <summary>
-    /// 单人连携：失衡窗内按 K / ButtonA 打 13001。
-    /// 三人轮转 / 喧响不在本切片。
+    /// 连携：失衡窗内按候场 Z 打换入者 Kit.ChainSkillId。
     /// </summary>
     public static class CombatChainSkill
     {
-        /// <summary>连携技 SkillId。</summary>
-        public const int SkillId = 13001;
-
-        /// <summary>13001 轴未导出时暂用普攻 3 的盒与动画。</summary>
-        public const int FallbackTimelineSkillId = 11003;
-
         /// <summary>最远锁定距离（米）。</summary>
         public const float MaxRange = 14f;
 
         const float MaxRangeSq = MaxRange * MaxRange;
 
-        /// <summary>是否为连携技。</summary>
-        public static bool IsChainSkill(int skillId) => skillId == SkillId;
+        /// <summary>是否为连携技（读 SkillCategory，不写死 13001）。</summary>
+        public static bool IsChainSkill(int skillId)
+        {
+            return SkillSettingMgr.Instance != null
+                && SkillSettingMgr.Instance.GetSkillCategory(skillId) == SkillCategory.Chain;
+        }
+
+        /// <summary>换入角色 Kit 的连携轴。0 = 没有连携。</summary>
+        public static int ResolveChainSkillId(CombatEntity actor)
+        {
+            if (actor == null || SkillSettingMgr.Instance == null)
+                return 0;
+            CharacterKitSetting kit = SkillSettingMgr.Instance.GetCharacterKitOrNull(actor.CharacterId);
+            return kit != null ? kit.ChainSkillId : 0;
+        }
 
         /// <summary>目标处于可打连携的失衡窗。</summary>
         public static bool IsValidWindow(CombatEntity target)

@@ -1,4 +1,5 @@
 using ACTGameEditor;
+using EGamePlay.Combat;
 using Flux;
 using System;
 using System.Collections.Generic;
@@ -27,20 +28,26 @@ namespace FluxEditor
             var xce = new XCSkillInputEventData();
             xce.Range = new XCRange(fe.Start, fe.End);
             xce.IsLocalTrueOnly = fe.isLocalTrueOnly;
-            fe.InputList.Sort((a, b) => b.SkillSort.CompareTo(a.SkillSort));
-            var data = new List<ACTGameEditor.SkillInputData>(fe.InputList.Count);
-            for (int i = 0; i < fe.InputList.Count; i++)
+            if (fe.InputList != null && fe.InputList.Count > 1)
             {
+                fe.InputList.Sort((a, b) =>
+                    SkillSortUtil.FromSkillId(b.SkillId).CompareTo(SkillSortUtil.FromSkillId(a.SkillId)));
+            }
+
+            int count = fe.InputList != null ? fe.InputList.Count : 0;
+            var data = new List<ACTGameEditor.SkillInputData>(count);
+            for (int i = 0; i < count; i++)
+            {
+                Flux.SkillInputData src = fe.InputList[i];
+                int skillId = src.SkillId;
                 data.Add(new ACTGameEditor.SkillInputData
                 {
-                    ListernType = fe.InputList[i].ListernType,
-                    PressType = fe.InputList[i].PressType,
-                    InputCallBackType = fe.InputList[i].InputCallBackType,
-                    SkillId = fe.InputList[i].SkillId,
-                    SkillSort = (int)fe.InputList[i].SkillSort + fe.InputList[i].Offset,
-                    RequiredTags = fe.InputList[i].RequiredTags,
-                    BlockedTags = fe.InputList[i].BlockedTags,
-                    InputTimeout = fe.InputList[i].InputTimeout,
+                    ListernType = src.ListernType,
+                    PressType = src.PressType,
+                    InputCallBackType = InputCallBackType.Performed,
+                    SkillId = skillId,
+                    SkillSort = SkillSortUtil.FromSkillId(skillId),
+                    InputTimeout = src.InputTimeout,
                 });
             }
             xce.InputDataList = data;
@@ -49,23 +56,12 @@ namespace FluxEditor
 
         public static Flux.SkillInputData ToFluxSkillInputData(ACTGameEditor.SkillInputData data)
         {
-            var skillSorts = (EGamePlay.Combat.SkillSort[])Enum.GetValues(typeof(EGamePlay.Combat.SkillSort));
-            int baseVal = (int)EGamePlay.Combat.SkillSort.Normal;
-            for (int i = skillSorts.Length - 1; i >= 0; i--)
-            {
-                int v = (int)skillSorts[i];
-                if (data.SkillSort >= v) { baseVal = v; break; }
-            }
             return new Flux.SkillInputData
             {
                 ListernType = data.ListernType,
                 PressType = data.PressType,
-                InputCallBackType = data.InputCallBackType,
+                InputCallBackType = InputCallBackType.Performed,
                 SkillId = data.SkillId,
-                SkillSort = (EGamePlay.Combat.SkillSort)baseVal,
-                Offset = data.SkillSort - baseVal,
-                RequiredTags = data.RequiredTags,
-                BlockedTags = data.BlockedTags,
                 InputTimeout = data.InputTimeout,
             };
         }

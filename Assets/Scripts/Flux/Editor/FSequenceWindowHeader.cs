@@ -85,10 +85,7 @@ namespace FluxEditor
         private Rect _addContainerRect;
         private bool _showAddContainer;
 
-        private GUIContent _openInspectorLabel = new GUIContent(string.Empty, "Open Flux Inspector");
-        private Rect _openInspectorRect;
-
-        private GUIContent _savaDataLabel = new GUIContent(string.Empty, "_savaData");
+        private GUIContent _savaDataLabel = new GUIContent(string.Empty, "保存并导出技能轴");
         private Rect _savaDataRect;
 
         // cached number field style, since we want numbers centered
@@ -99,7 +96,6 @@ namespace FluxEditor
             _sequenceWindow = sequenceWindow;
 
             _addContainerLabel.image = FUtility.GetFluxTexture("AddFolder.png");
-            _openInspectorLabel.image = FUtility.GetFluxTexture("Inspector.png");
             _savaDataLabel.image = FUtility.GetFluxTexture("Save.png");
 
         }
@@ -118,7 +114,6 @@ namespace FluxEditor
 
             SetRectY(0, ref rect);
 
-            _openInspectorRect = rect;
             _savaDataRect = rect;
 
             _updateModeLabelRect = _updateModeFieldRect = rect;
@@ -153,9 +148,7 @@ namespace FluxEditor
 
             _showAddContainer = reminderWidth >= 0;
 
-            _openInspectorRect.xMin = _openInspectorRect.xMax - 22;
-            _savaDataRect.xMax = _openInspectorRect.xMin - 4;
-            _savaDataRect.xMin = _savaDataRect.xMax - 24;
+            _savaDataRect.xMin = _savaDataRect.xMax - 22;
 
 
             _lengthFieldRect.x = rect.xMax - 50 - PADDING - _lengthFieldRect.width -10;
@@ -302,11 +295,6 @@ namespace FluxEditor
             if (FGUI.Button(_savaDataRect, _savaDataLabel))
             {
                 SaveSequenceData.TrySaveCurrentSequence();
-            }
-
-            if (FGUI.Button(_openInspectorRect, _openInspectorLabel))
-            {
-                FInspectorWindow.Open();
             }
 
             EditorGUI.PrefixLabel(_seqSettingLabelRect, _seqSettigLabel);

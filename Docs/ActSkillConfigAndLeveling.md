@@ -180,7 +180,7 @@ SkillDemo（身份，几乎不随等级）
 
 ### 改时间轴（源是预制体）
 
-盒 / 动画 / 位移 / Msg / Tag / 连招窗的 **源** 是 `Assets/Editor/SkillSequences/{SkillId}.prefab`。Flux 保存后覆盖 `Assets/Game/Config/SkillDataScriptable/`（敌人在 `SkillData_Enemy/`）。**不要手改 `.asset`**，下次导出走丢。数字仍走 xlsx。细则与 AI 待办格式：`.cursor/rules/skill-timeline.mdc`。
+盒 / 动画 / 位移 / Msg / Tag / 连招窗的 **源** 是 `Assets/Editor/SkillSequences/` 下对应 SkillId 的预制体（新建默认在根目录，也可能在 `MainPlayer/`、`EmenyPlayer/`）。Flux 保存后覆盖 `Assets/Game/Config/SkillDataScriptable/`（敌人在 `SkillData_Enemy/`）。**不要手改 `.asset`**，下次导出走丢。数字仍走 xlsx。细则与 AI 待办格式：`.cursor/rules/skill-timeline.mdc`。
 
 ---
 

@@ -34,11 +34,15 @@ namespace Flux
 		{
             if (Input.anyKeyDown)
             {
+#if FLUX_DEBUG
                 Debug.Log("yns  anyKeyDown ");
+#endif
             }
             if (Event.current != null)
             {
+#if FLUX_DEBUG
                 Debug.Log("yns  " + Event.current.keyCode);
+#endif
             }
 
 			Track.UpdateEventsEditor( (int)(sequenceTime * Track.Sequence.FrameRate), sequenceTime );

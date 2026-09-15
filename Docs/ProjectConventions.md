@@ -121,7 +121,7 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 
 **数字**（伤害倍率、CD、Tag、`InterruptLevel`、Buff）：只改 `Tools/Config/Datas/*.xlsx`，然后在 `Tools/` 执行 `gen_code_json.bat`（或 Unity **Tools/配置/生成技能配置**）。完整步骤：`.cursor/rules/luban-config.mdc`。
 
-**时间轴**（盒、动画、位移、Msg、GrantTag、连招窗）：只改 `Assets/Editor/SkillSequences/{SkillId}.prefab`，用 Flux 保存导出覆盖 `Assets/Game/Config/SkillDataScriptable/`（敌人在 `SkillData_Enemy/`）。禁止手改 `.asset`。完整步骤与 AI 待办格式：`.cursor/rules/skill-timeline.mdc`。
+**时间轴**（盒、动画、位移、Msg、GrantTag、连招窗）：只改 `Assets/Editor/SkillSequences/` 下对应 SkillId 的预制体（新建默认在根目录，也可在子文件夹），用 Flux 保存导出覆盖 `Assets/Game/Config/SkillDataScriptable/`（敌人在 `SkillData_Enemy/`）。禁止手改 `.asset`。完整步骤与 AI 待办格式：`.cursor/rules/skill-timeline.mdc`。
 
 运行时读表：`SkillSettingMgr` → `Tables`。缺 Id 时部分 Get 会 **回退到表第一行**，测试代码必须校验 `setting.BuffId == 请求Id`。
 
@@ -146,9 +146,11 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 | `Docs/ActTimeEffectsBacklog.md` | 世界/玩家/相机/实体钟，断裂、HitStop、冻结 |
 | `Docs/ActBuffLearningBacklog.md` | Buff 管线、护盾、控制、未做项 |
 | `Docs/ActSkillConfigAndLeveling.md` | 主动技段表与技能组升级 |
+| `Docs/ActSkillKitConfig.md` | 角色招式包收口 Luban：Kit/槽位/被动/号段（阶段 0–3 已接运行时） |
 | `Docs/ActCameraStage2Design.md` | 相机意图 P2：混合构图设计备忘（未排期） |
 | `Docs/ActEnemyAiDesign.md` | 敌人 AI：导演 + HFSM + 效用选招 + XC 轴（后续只看文内 §十二） |
 | `Docs/ActCombatRoadmap.md` | 战斗缺口与改进方案（对照绝区零：失衡/异常/招架/连携，里程碑 M1–M5） |
 | `Docs/ActSquadDesign.md` | 三人小队：换人 / 快速支援 / 极限支援 / 延奏 / 连携轮转 |
 | `Docs/ActCharacterKitTemplate.md` | 角色选型（单手刀/剑）与招式包模板：槽位/段表/轴/表现/验收 |
+| `Docs/ActLocomotionWuWaPlan.md` | 走跑对照鸣潮子集：接线、急停/起步、锁定侧移、动画清单 |
 | `Assets/Scripts/EGamePlay/Combat/Buff/BuffModify/EffectModifyParamSlots.md` | Modify 各类型 Param 槽位 |

@@ -169,6 +169,8 @@ namespace FluxEditor
 			{
 				if( !typeof(FEvent).IsAssignableFrom( t ) )
 					continue;
+				if( t.IsAbstract || !FluxSkillEventCatalog.CanAdd( t ) )
+					continue;
 				
 				object[] attributes = t.GetCustomAttributes(typeof(FEventAttribute), false);
 				if( attributes.Length == 0 || ((FEventAttribute)attributes[0]).menu == null )

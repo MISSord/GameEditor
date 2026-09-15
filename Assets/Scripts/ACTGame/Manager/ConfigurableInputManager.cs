@@ -42,10 +42,10 @@ namespace ACTGameEditor
             InputActionMap map = InputActionsAsset.FindActionMap(_actionMapName);
             if (map == null) return;
 
-            map.FindAction(InputListernType.ButtonX.ToString()).performed += OnButtonXPerform;
-            map.FindAction(InputListernType.ButtonY.ToString()).performed += OnButtonYPerform;
-            map.FindAction(InputListernType.ButtonA.ToString()).performed += OnButtonAPerform;
-            map.FindAction(InputListernType.ButtonB.ToString()).performed += OnButtonBPerform;
+            BindCombatButton(map, InputListernType.ButtonX, OnButtonXStarted, OnButtonXCanceled);
+            BindCombatButton(map, InputListernType.ButtonY, OnButtonYStarted, OnButtonYCanceled);
+            BindCombatButton(map, InputListernType.ButtonA, OnButtonAStarted, OnButtonACanceled);
+            BindCombatButton(map, InputListernType.ButtonB, OnButtonBStarted, OnButtonBCanceled);
 
             InputAction jumpAction = map.FindAction(InputListernType.Jump.ToString());
             if (jumpAction != null)
@@ -57,8 +57,10 @@ namespace ACTGameEditor
             _walkToggleAction?.Enable();
             _sprintAction?.Enable();
 
-            _switch1Action = map.FindAction(InputListernType.Switch1.ToString());
-            _switch2Action = map.FindAction(InputListernType.Switch2.ToString());
+            _switch1Action = map.FindAction(InputListernType.Switch1.ToString())
+                ?? map.FindAction(InputListernType.ButtonZ.ToString());
+            _switch2Action = map.FindAction(InputListernType.Switch2.ToString())
+                ?? map.FindAction(InputListernType.ButtonZ2.ToString());
             if (_switch1Action != null)
             {
                 _switch1Action.performed += OnSwitch1Perform;
@@ -71,6 +73,19 @@ namespace ACTGameEditor
             }
 
             _joyStick = SimpleJoyStick.Instance;
+        }
+
+        static void BindCombatButton(
+            InputActionMap map,
+            InputListernType type,
+            System.Action<InputAction.CallbackContext> started,
+            System.Action<InputAction.CallbackContext> canceled)
+        {
+            InputAction action = map.FindAction(type.ToString());
+            if (action == null)
+                return;
+            action.started += started;
+            action.canceled += canceled;
         }
 
         /// <summary>Ctrl：本帧是否按下（走路/慢跑切换）。读快照，不现场查 InputAction。</summary>
@@ -154,6 +169,37 @@ namespace ACTGameEditor
                 return;
             _curPlayer.AddInputRecord(cmd, type, callBackType);
         }
+
+        void NotifyCombatPress(InputListernType cmd, InputCallBackType phase)
+        {
+            if (_curPlayer == null)
+                return;
+            _curPlayer.NotifyCombatPress(cmd, phase);
+        }
+
+        public void OnButtonXStarted(InputAction.CallbackContext context) =>
+            NotifyCombatPress(InputListernType.ButtonX, InputCallBackType.Started);
+
+        public void OnButtonXCanceled(InputAction.CallbackContext context) =>
+            NotifyCombatPress(InputListernType.ButtonX, InputCallBackType.Canceled);
+
+        public void OnButtonYStarted(InputAction.CallbackContext context) =>
+            NotifyCombatPress(InputListernType.ButtonY, InputCallBackType.Started);
+
+        public void OnButtonYCanceled(InputAction.CallbackContext context) =>
+            NotifyCombatPress(InputListernType.ButtonY, InputCallBackType.Canceled);
+
+        public void OnButtonAStarted(InputAction.CallbackContext context) =>
+            NotifyCombatPress(InputListernType.ButtonA, InputCallBackType.Started);
+
+        public void OnButtonACanceled(InputAction.CallbackContext context) =>
+            NotifyCombatPress(InputListernType.ButtonA, InputCallBackType.Canceled);
+
+        public void OnButtonBStarted(InputAction.CallbackContext context) =>
+            NotifyCombatPress(InputListernType.ButtonB, InputCallBackType.Started);
+
+        public void OnButtonBCanceled(InputAction.CallbackContext context) =>
+            NotifyCombatPress(InputListernType.ButtonB, InputCallBackType.Canceled);
 
         public void OnButtonXPerform(InputAction.CallbackContext context)
         {

@@ -44,6 +44,8 @@ namespace EGamePlay
         Walk,
         Run,
         Jump,
+        /// <summary>快跑急转（表现层）。CurState 仍是 Moving，不占技能槽。</summary>
+        Pivot,
     }
 
     //当前状态

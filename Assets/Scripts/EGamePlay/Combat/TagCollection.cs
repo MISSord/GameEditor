@@ -93,6 +93,7 @@ namespace EGamePlay.Combat
             "Ai.Parryable",
             "Ai.ParryBreak",
             "Combat.ParryWindow",
+            "Combat.SwitchIFrame",
         };
     }
 
@@ -133,5 +134,7 @@ namespace EGamePlay.Combat
         public const string AiParryBreak = "Ai.ParryBreak";
         /// <summary>招架演出 i-frame。成功已在按键成交时结算；有此 Tag 时后续伤害标免疫。</summary>
         public const string CombatParryWindow = "Combat.ParryWindow";
+        /// <summary>红闪回避支援换入无敌。HitResolver 标 Immunity，不走翻滚闪避。</summary>
+        public const string CombatSwitchIFrame = "Combat.SwitchIFrame";
     }
 }

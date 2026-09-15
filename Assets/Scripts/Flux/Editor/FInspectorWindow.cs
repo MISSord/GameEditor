@@ -10,7 +10,7 @@ namespace FluxEditor
 
 		public static FInspectorWindow _instance = null;
 
-		[MenuItem(FSequenceEditorWindow.MENU_PATH+FSequenceEditorWindow.PRODUCT_NAME+"/Open Inspector", false, 1)]
+		[MenuItem(FSequenceEditorWindow.MENU_PATH+FSequenceEditorWindow.PRODUCT_NAME+"/Open Inspector", false, 50)]
 		public static void Open()
 		{
 			_instance = GetWindow<FInspectorWindow>();

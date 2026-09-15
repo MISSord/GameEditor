@@ -73,7 +73,9 @@ namespace FluxEditor
                         state.AddExitTransition(true);
 
                     ischage = true;
+#if FLUX_DEBUG
                     Debug.Log($"anim add {item._animationClip.name}");
+#endif
                 }
                 else
                 {

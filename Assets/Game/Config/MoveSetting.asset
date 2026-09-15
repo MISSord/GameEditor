@@ -39,3 +39,13 @@ MonoBehaviour:
   JumpBufferTime: 0.12
   LandSlowTime: 0.1
   LandSlowScale: 0.55
+  PivotAngle: 135
+  PivotDuration: 0.36
+  PivotCommit: 0.42
+  PivotTurnSpeed: 1440
+  PivotDeceleration: 0.08
+  PivotAcceleration: 0.1
+  PivotMinSpeed: 6
+  FootCycleOffset: 0
+  FootSplit: 0.5
+  FootLeftInFirstHalf: 1

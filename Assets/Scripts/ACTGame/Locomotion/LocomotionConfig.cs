@@ -40,6 +40,24 @@ namespace ACTGameEditor.Locomotion
                 t.LandSlowTime = so.LandSlowTime;
             if (so.LandSlowScale > 0.01f)
                 t.LandSlowScale = so.LandSlowScale;
+            if (so.PivotAngle > 1f)
+                t.PivotAngle = so.PivotAngle;
+            if (so.PivotDuration > 0.05f)
+                t.PivotDuration = so.PivotDuration;
+            if (so.PivotCommit > 0.05f)
+                t.PivotCommit = so.PivotCommit;
+            if (so.PivotTurnSpeed > 1f)
+                t.PivotTurnSpeed = so.PivotTurnSpeed;
+            if (so.PivotDeceleration > 0.001f)
+                t.PivotDeceleration = so.PivotDeceleration;
+            if (so.PivotAcceleration > 0.001f)
+                t.PivotAcceleration = so.PivotAcceleration;
+            if (so.PivotMinSpeed > 0.01f)
+                t.PivotMinSpeed = so.PivotMinSpeed;
+            t.FootCycleOffset = so.FootCycleOffset;
+            if (so.FootSplit > 0.05f && so.FootSplit < 0.95f)
+                t.FootSplit = so.FootSplit;
+            t.FootLeftInFirstHalf = so.FootLeftInFirstHalf;
             return t;
         }
     }

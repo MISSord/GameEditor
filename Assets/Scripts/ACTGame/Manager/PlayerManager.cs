@@ -197,7 +197,7 @@ namespace ACTGameEditor
                 return;
             if (player.Combat.IsPlayerSquad)
             {
-                CombatSquad.Instance?.TrySwitch(player.Combat.SquadSlot, SwitchReason.Manual);
+                CombatSquad.Instance?.TrySwitchTo(player.Combat.SquadSlot);
                 return;
             }
 
@@ -276,7 +276,7 @@ namespace ACTGameEditor
         static void ClearAttackerInput(CombatEntity combat)
         {
             if (combat.AttackPlayer is NormalActPlayer normal)
-                normal.InputBuffer?.Clear();
+                normal.InputRecordsClear();
         }
 
         void IgnoreSquadCollisions(bool ignore)

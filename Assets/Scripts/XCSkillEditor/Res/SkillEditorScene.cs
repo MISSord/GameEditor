@@ -13,7 +13,7 @@ using ACTGameEditor.Combat;
 /// 热键一览：
 ///   F2 刷杂兵 / F3 刷精英 / F4 生成测试小队（4 杂兵 + 2 精英）
 ///   F6 最近敌人打满失衡 / Shift+F6 清空
-///   失衡窗内 K（ButtonA）连携 13001
+///   失衡窗内 Q/E（候场 Z）连携，读 Kit.ChainSkillId
 ///   F7 技能镜头测试 / F8 震屏测试 / F9 时空断裂 / F10 普攻组等级切换
 ///   数字键 5 显现球 / 6 深度视界 / 7 显现锥 / 8 玩家雾
 /// </summary>
@@ -208,7 +208,7 @@ public class SkillEditorScene : MonoBehaviour
             return;
         GUI.Label(
             new Rect(12f, 12f, 520f, 24f),
-            $"[Daze] {meter.Phase}  {meter.CurrentRatio * 100f:0}%  chain={(meter.IsChainWindow ? "K连携" : "no")}");
+            $"[Daze] {meter.Phase}  {meter.CurrentRatio * 100f:0}%  chain={(meter.IsChainWindow ? "Z连携" : "no")}");
     }
 }
 #endif

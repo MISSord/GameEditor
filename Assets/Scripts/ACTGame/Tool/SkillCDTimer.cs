@@ -33,6 +33,22 @@ namespace ACTGameEditor
             }
         }
 
+        /// <summary>按已解析的技能列表预注册冷却。skillId≤0 跳过。</summary>
+        public void InitFromSkillIds(HashSet<int> skillIds)
+        {
+            _skillTimers.Clear();
+            if (skillIds == null || skillIds.Count == 0)
+                return;
+
+            foreach (int skillId in skillIds)
+            {
+                if (skillId <= 0)
+                    continue;
+                XCTimer timer = CreateOrGetTimerInternal(skillId, 0);
+                timer.Pause();
+            }
+        }
+
         /// <summary>
         /// 使用 IdleSkillMapping 的映射列表初始化冷却表（兼容旧逻辑）。
         /// </summary>
@@ -180,7 +196,7 @@ namespace ACTGameEditor
 
         private static float ResolveCooldownDuration(int skillId, float defaultDurationSeconds)
         {
-            var setting = SkillSettingMgr.Instance.GetSkillDemoSetting(skillId);
+            var setting = SkillSettingMgr.Instance.GetSkillDemoSettingOrNull(skillId);
             float durationFromConfig = (setting != null && setting.Cooldown > 0f) ? setting.Cooldown : 0f;
 
             if (durationFromConfig > 0f) return durationFromConfig;

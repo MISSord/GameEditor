@@ -502,7 +502,9 @@ namespace FluxEditor
 
 		private static void ChangeFrameRateFunc( object obj )
 		{
+#if FLUX_DEBUG
 			Debug.Log( (int)obj + " chosen"  );
+#endif
 		}
 
 		public static Color GetAnimationBlendingColor()

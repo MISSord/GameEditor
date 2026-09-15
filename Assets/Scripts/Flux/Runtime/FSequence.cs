@@ -430,7 +430,9 @@ namespace Flux
 			//		}
 			//	}
 			//}
+#if FLUX_DEBUG
             Debug.Log($"yns  DestoryAllcache");
+#endif
 		}
 
 

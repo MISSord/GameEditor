@@ -346,14 +346,18 @@ namespace Flux
                 }
                 else if( _events[i].Start <= t && _events[i].End > t )
                 {
+#if FLUX_DEBUG
                     Debug.Log("yns  _events[i].End > t ");
+#endif
                     return false;
                 }
             }
 
 			if( t >= Sequence.Length - 1 )
             {
+#if FLUX_DEBUG
                 Debug.Log("yns  t >= Sequence.Length - 1  ");
+#endif
                 return false;
             }
 

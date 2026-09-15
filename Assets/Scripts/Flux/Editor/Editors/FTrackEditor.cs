@@ -462,7 +462,7 @@ namespace FluxEditor
 
                 foreach (Type type in allTypes)
                 {
-                    if (type.IsSubclassOf(typeof(FEvent)) && !type.IsAbstract)
+                    if (type.IsSubclassOf(typeof(FEvent)) && !type.IsAbstract && FluxSkillEventCatalog.CanAdd(type))
                     {
                         object[] attributes = type.GetCustomAttributes(typeof(FEventAttribute), false);
                         if (attributes.Length == 1)

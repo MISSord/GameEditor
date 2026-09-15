@@ -6,17 +6,11 @@ using UnityEngine;
 namespace ACTGameEditor.Combat
 {
     /// <summary>
-    /// 黄闪招架（极限支援模型）：窗在来刀上，按键成交并吸附；11005 只播演出。
+    /// 黄闪招架（极限支援模型）：窗在来刀上，候场 Z 成交并吸附；演出轴读 Kit.DefensiveAssistSkillId。
     /// 不问技能名，问 Tag。表现不进 DamageAction。
     /// </summary>
     public static class CombatParry
     {
-        /// <summary>玩家招架演出轴。</summary>
-        public const int PlayerSkillId = 11005;
-
-        /// <summary>11005 轴未导出时借用普攻 1（避免翻滚位移把吸附冲掉）；成交后 ParryWindow 当 i-frame。</summary>
-        public const int PlayerFallbackTimelineSkillId = 11001;
-
         /// <summary>敌人黄闪近劈。</summary>
         public const int EnemyYellowSkillId = 12006;
 
@@ -56,8 +50,21 @@ namespace ACTGameEditor.Combat
 
         static readonly IncomingStrike[] _strikes = new IncomingStrike[Capacity];
 
-        /// <summary>是否为玩家招架演出技。</summary>
-        public static bool IsPlayerParrySkill(int skillId) => skillId == PlayerSkillId;
+        /// <summary>是否为玩家招架 / 防御支援演出技（读 SkillCategory，不写死 11005）。</summary>
+        public static bool IsPlayerParrySkill(int skillId)
+        {
+            return SkillSettingMgr.Instance != null
+                && SkillSettingMgr.Instance.GetSkillCategory(skillId) == SkillCategory.DefensiveAssist;
+        }
+
+        /// <summary>换入角色 Kit 的防御支援轴。0 = 没有招架支援。</summary>
+        public static int ResolveDefensiveAssistSkillId(CombatEntity actor)
+        {
+            if (actor == null || SkillSettingMgr.Instance == null)
+                return 0;
+            CharacterKitSetting kit = SkillSettingMgr.Instance.GetCharacterKitOrNull(actor.CharacterId);
+            return kit != null ? kit.DefensiveAssistSkillId : 0;
+        }
 
         /// <summary>是否为 M2 黄闪敌招（轴缺失时 Session 仍要挂可招架 Tag）。</summary>
         public static bool IsEnemyYellowSkill(int skillId) => skillId == EnemyYellowSkillId;
@@ -256,7 +263,7 @@ namespace ACTGameEditor.Combat
                 : DefaultParryDazeRatio;
             attacker.DazeMeter?.AddDaze(ratio, DazeSource.Parry);
 
-            float playerSeconds = ResolvePlayerParrySeconds();
+            float playerSeconds = ResolvePlayerParrySeconds(defender);
             float enemyStun = playerSeconds + EnemyStunAfterPlayer;
 
             if (breakSkill)
@@ -271,10 +278,11 @@ namespace ACTGameEditor.Combat
             Log($"clash playerAnim={playerSeconds:0.00} enemyStun={enemyStun:0.00} break={breakSkill}");
         }
 
-        /// <summary>11005 轴最长动画轨秒数；缺轴回退设计目标时长。</summary>
-        public static float ResolvePlayerParrySeconds()
+        /// <summary>招架轴最长动画轨秒数；缺轴或 Kit 空列回退设计目标时长。</summary>
+        public static float ResolvePlayerParrySeconds(CombatEntity defender)
         {
-            SkillAllEventData data = ActSkillTimelineLoader.GetOrLoad(PlayerSkillId);
+            int skillId = ResolveDefensiveAssistSkillId(defender);
+            SkillAllEventData data = skillId > 0 ? ActSkillTimelineLoader.GetOrLoad(skillId) : null;
             if (data?.skillAllEventDatas == null || data.skillAllEventDatas.Count == 0)
                 return DefaultPlayerParrySeconds;
 

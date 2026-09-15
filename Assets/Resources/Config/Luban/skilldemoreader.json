@@ -17,7 +17,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 5,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 11001,
@@ -37,7 +40,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 11001,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 1,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 11002,
@@ -57,7 +63,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 11001,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 1,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 11003,
@@ -77,7 +86,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 11001,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 1,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 11004,
@@ -97,7 +109,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 5,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 11005,
@@ -117,7 +132,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 11,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 12001,
@@ -137,7 +155,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 17,
+    "OwnerCharacterId": 2,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 12002,
@@ -157,7 +178,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 17,
+    "OwnerCharacterId": 2,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 12003,
@@ -177,7 +201,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 17,
+    "OwnerCharacterId": 2,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 12004,
@@ -197,7 +224,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 17,
+    "OwnerCharacterId": 2,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 12005,
@@ -217,7 +247,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 17,
+    "OwnerCharacterId": 2,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 12006,
@@ -237,7 +270,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 17,
+    "OwnerCharacterId": 2,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 13001,
@@ -257,7 +293,10 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 13001,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 9,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": []
   },
   {
     "SkillId": 19001,
@@ -277,7 +316,12 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 14,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": [
+      31000
+    ]
   },
   {
     "SkillId": 19002,
@@ -297,6 +341,11 @@
     "CostA": 0,
     "CostB": 0,
     "SkillGroupId": 0,
-    "MaxLevel": 10
+    "MaxLevel": 10,
+    "SkillCategory": 15,
+    "OwnerCharacterId": 1,
+    "PassiveBuffIds": [
+      31010
+    ]
   }
 ]

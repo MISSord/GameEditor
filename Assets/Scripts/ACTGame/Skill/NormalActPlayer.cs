@@ -10,15 +10,15 @@ namespace ACTGameEditor
 {
     public class NormalActPlayer : ActPlayer, IAttackPlayer
     {
-        [Tooltip("槽位定义：输入绑定、默认技能、释放条件")]
+        [Tooltip("槽位定义：只绑 4 战斗键输入。技能 Id 来自 CharacterSlot 表。")]
         public SkillSlotConfig SlotConfig;
-        [Tooltip("角色/武器覆盖：槽位→技能，换角色时加载")]
+        [Tooltip("已废弃：技能 Id 改走 Luban CharacterSlot，可留空。")]
         public CharacterSlotConfig CharacterSlotConfig;
         [Tooltip("形态入口表（明心境、变身等）。空则 Idle 只用槽位表")]
         public List<SkillFormConfig> Forms = new List<SkillFormConfig>();
 
         [Header("被动技能（Buff实现）")]
-        [Tooltip("额外被动技能ID（硬编码/测试用；会按 PassiveSkillBuffMaps 映射为 Buff 常驻挂载）")]
+        [Tooltip("额外被动技能ID（硬编码/测试用；按 SkillDemo.PassiveBuffIds 挂常驻 Buff）")]
         public List<int> ExtraPassiveSkillIds = new List<int>();
 
         [Header("输入缓冲")]
@@ -28,6 +28,9 @@ namespace ACTGameEditor
         [Tooltip("连招窗边预输入寿命（秒）。边上 InputTimeout≤0 时使用。对齐崩3/绝区零：只认窗附近的按键，不认开打瞬间那一下")]
         [Range(0.05f, 1f)]
         public float ComboBufferTimeout = 0.15f;
+        [Tooltip("有 Hold 行时，按下多久算长按（玩家钟）。无 Hold 行不走这段，点按立刻入队。")]
+        [Range(0.15f, 0.8f)]
+        public float HoldThreshold = 0.35f;
 
         /// <summary> 槽位运行时：SlotId → 当前 SkillId </summary>
         public SkillSlotRuntime SlotRuntime { get; private set; }
@@ -40,6 +43,18 @@ namespace ACTGameEditor
 
         // 缓存动画组件，避免每帧 GetComponent
         private AnimComponent _animComponent;
+
+        const int HoldChannelCount = 4;
+
+        struct HoldChannel
+        {
+            public bool Active;
+            public bool HoldFired;
+            public InputListernType Command;
+        }
+
+        readonly HoldChannel[] _holdChannels = new HoldChannel[HoldChannelCount];
+        readonly float[] _holdStartPlayerTime = new float[HoldChannelCount];
 
         protected override void StartCallBack()
         {
@@ -61,8 +76,14 @@ namespace ACTGameEditor
 
             if (SlotConfig != null)
             {
-                SlotRuntime.Load(SlotConfig, CharacterSlotConfig);
-                CDTimer?.InitFromSlotConfig(SlotConfig);
+                int characterId = Combat != null ? Combat.CharacterId : CharacterId;
+                SlotRuntime.LoadFromTable(SlotConfig, characterId);
+                ClearHoldChannels();
+                var attachIds = PoolManager.Instance.TryGet<HashSet<int>>();
+                attachIds.Clear();
+                SlotRuntime.GetAllSkillIdsToAttach(attachIds);
+                CDTimer?.InitFromSkillIds(attachIds);
+                PoolManager.Instance.Return(attachIds);
                 EnsureSlotAbilitiesAttached();
                 SyncPassiveSkillBuffs();
             }
@@ -80,6 +101,7 @@ namespace ACTGameEditor
             CDTimer = null;
             InputBuffer?.Clear();
             InputBuffer = null;
+            ClearHoldChannels();
         }
 
         protected virtual void OnPreSpell(Entity combatAction)
@@ -214,6 +236,8 @@ namespace ACTGameEditor
             // 致死伤已在 ApplyDeath 中处理；断招由 CombatPoiseComponent 按打断/抗打断比大小落地
             if (Combat.IsDead)
                 return;
+
+            CombatSquad.Instance?.NotifyPlayerHit();
         }
 
         static Vector3 ResolveDamageTextWorldPosition(DamageAction damageAction, ICombatUnit fallbackTarget)
@@ -246,7 +270,7 @@ namespace ACTGameEditor
 
         }
 
-        /// <summary>Idle 时按形态×空中解析槽位技能。</summary>
+        /// <summary>Idle 时按槽位行 + Empowered 预检解析入口技能。</summary>
         public int ResolveIdleSkillId(SkillSlotId slotId)
         {
             return SkillResolver.ResolveIdle(Combat, SlotRuntime, slotId);
@@ -269,6 +293,7 @@ namespace ACTGameEditor
         public void TickSkillInput()
         {
             CombatParry.ExpireFinishedStrikes();
+            TickPendingHolds();
             CheckInitialInput();
             _animComponent?.Director?.Tick();
         }
@@ -285,18 +310,11 @@ namespace ACTGameEditor
             bool occupying = Combat.SpellingExecution != null && !Combat.SpellingExecution.IsMainFinish;
             if (occupying)
             {
-                // 占轴：大招仍看 SkillForbid；闪避只看禁移，由 Gate 按 Sort 再判
                 if (!Combat.IsCanSelfCancelSkill && !Combat.IsCanRollSkill && !Combat.IsCanParrySkill)
-                {
-                    if (InputBuffer.HasSlot(SkillSlotId.Parry))
-                        GameLog.CombatError($"[Parry] drop occupying canSelf={Combat.IsCanSelfCancelSkill} canRoll={Combat.IsCanRollSkill} canParry={Combat.IsCanParrySkill} state={Combat.CurState}");
                     return;
-                }
             }
             else if (!Combat.IsCanSpellSkill && !Combat.IsCanRollSkill && !Combat.IsCanParrySkill)
             {
-                if (InputBuffer.HasSlot(SkillSlotId.Parry))
-                    GameLog.CombatError($"[Parry] drop idle canSpell={Combat.IsCanSpellSkill} canRoll={Combat.IsCanRollSkill} canParry={Combat.IsCanParrySkill} state={Combat.CurState}");
                 return;
             }
 
@@ -310,63 +328,49 @@ namespace ACTGameEditor
         void TryCommitFromSlots(bool interruptOnly)
         {
             int currentSort = interruptOnly ? Combat.SpellingExecution.Sort : int.MinValue;
+            int seenMask = 0;
             for (int i = 0; i < SlotConfig.Slots.Count; i++)
             {
                 SkillSlotConfig.SlotEntry entry = SlotConfig.Slots[i];
                 if (entry == null) continue;
-                if (interruptOnly && !SkillCancelService.IsHardInterrupt(currentSort, entry.Sort))
-                {
-                    if (entry.SlotId == SkillSlotId.Parry)
-                        GameLog.CombatError($"[Parry] skip sort current={currentSort} incoming={entry.Sort}");
-                    continue;
-                }
                 if (!InputBuffer.HasSlot(entry.SlotId)) continue;
-                if (!InputBuffer.MatchesSlot(entry.SlotId, entry.InputType, entry.PressType, entry.InputCallBackType))
+                if (!InputBuffer.TryPeek(entry.SlotId, out InputListernType command, out PressType press, out InputCallBackType callback))
+                    continue;
+                if (command != entry.InputType || callback != entry.InputCallBackType)
+                    continue;
+                if ((seenMask & (1 << (int)entry.SlotId)) != 0)
+                    continue;
+                seenMask |= 1 << (int)entry.SlotId;
+
+                int skillId = SkillResolver.ResolveIdle(Combat, SlotRuntime, entry.SlotId, press);
+                if (skillId <= 0)
                 {
-                    if (entry.SlotId == SkillSlotId.Parry)
-                        GameLog.CombatError($"[Parry] skip bind InputType={entry.InputType} Press={entry.PressType} Cb={entry.InputCallBackType}");
+                    InputBuffer.Consume(entry.SlotId);
                     continue;
                 }
 
-                int skillId = SkillResolver.ResolveIdle(Combat, SlotRuntime, entry.SlotId);
+                int sort = ResolveCommitSort(entry, press);
+                if (interruptOnly && !SkillCancelService.IsHardInterrupt(currentSort, sort))
+                    continue;
+
                 CombatEntity targetOverride = null;
-                if (entry.SlotId == SkillSlotId.Chain)
-                {
-                    skillId = CombatChainSkill.SkillId;
-                    if (!CombatChainSkill.TryResolveTarget(Combat, out targetOverride))
-                        continue;
-                }
-                else if (entry.SlotId == SkillSlotId.Parry)
-                {
-                    skillId = CombatParry.PlayerSkillId;
-                    if (!CombatParry.HasIncomingStrike(Combat))
-                    {
-                        GameLog.CombatError($"[Parry] press no-window player={Combat.Id} {CombatParry.FormatWindows(Combat)}");
-                        continue;
-                    }
-                }
-
-                if (skillId <= 0) continue;
-
-                ActivateFail fail = AbilityActivationGate.Evaluate(Combat, skillId, entry.Sort, CDTimer);
+                ActivateFail fail = AbilityActivationGate.Evaluate(Combat, skillId, sort, CDTimer);
                 if (fail != ActivateFail.None)
-                {
-                    if (entry.SlotId == SkillSlotId.Parry)
-                        GameLog.CombatError($"[Parry] gate={fail} skill={skillId} sort={entry.Sort}");
                     continue;
-                }
-
-                if (entry.SlotId == SkillSlotId.Parry
-                    && !CombatParry.TryCommit(Combat, out targetOverride))
-                {
-                    GameLog.CombatError($"[Parry] TryCommit failed {CombatParry.FormatWindows(Combat)}");
-                    continue;
-                }
 
                 InputBuffer.Consume(entry.SlotId);
-                AddSpellInfo(skillId, entry.Sort, targetOverride);
+                AddSpellInfo(skillId, sort, targetOverride);
                 break;
             }
+        }
+
+        int ResolveCommitSort(SkillSlotConfig.SlotEntry entry, PressType press)
+        {
+            if (press != PressType.LongPress || SlotConfig == null)
+                return entry.Sort;
+            SkillSlotConfig.SlotEntry hold = SlotConfig.FindByInput(
+                entry.InputType, PressType.LongPress, entry.InputCallBackType);
+            return hold != null ? hold.Sort : entry.Sort;
         }
 
         /// <summary>确保槽位技能及技能链已 AttachAbility。</summary>
@@ -386,13 +390,20 @@ namespace ACTGameEditor
             }
         }
 
-        /// <summary>切换角色/武器时调用，重新加载槽位技能。</summary>
+        /// <summary>切换角色时按 CharacterId 重载 Luban 槽位。charConfig 不再提供 SkillId。</summary>
         public void LoadCharacterSlots(CharacterSlotConfig charConfig)
         {
             CharacterSlotConfig = charConfig;
             if (SlotRuntime != null && SlotConfig != null)
             {
-                SlotRuntime.LoadCharacter(charConfig);
+                int characterId = Combat != null ? Combat.CharacterId : CharacterId;
+                SlotRuntime.LoadFromTable(SlotConfig, characterId);
+                ClearHoldChannels();
+                var attachIds = PoolManager.Instance.TryGet<HashSet<int>>();
+                attachIds.Clear();
+                SlotRuntime.GetAllSkillIdsToAttach(attachIds);
+                CDTimer?.InitFromSkillIds(attachIds);
+                PoolManager.Instance.Return(attachIds);
                 Combat.FormComponent?.Init(Forms);
                 EnsureSlotAbilitiesAttached();
                 SyncPassiveSkillBuffs();
@@ -434,9 +445,28 @@ namespace ACTGameEditor
         /// 从“角色技能表/学习树系统”收集被动技能ID。
         /// 这里先留空实现，方便你后续把真实系统接进来（例如：角色成长、天赋、装备词条）。
         /// </summary>
+        /// <summary>从 CharacterKit 收集点名被动。空列不加。</summary>
         protected virtual void CollectPassiveSkillIdsFromLearnedTable(List<int> outIds)
         {
+            int characterId = Combat != null ? Combat.CharacterId : CharacterId;
+            CharacterKitSetting kit = SkillSettingMgr.Instance != null
+                ? SkillSettingMgr.Instance.GetCharacterKitOrNull(characterId)
+                : null;
+            if (kit == null)
+                return;
 
+            if (kit.CorePassiveSkillId > 0)
+                outIds.Add(kit.CorePassiveSkillId);
+            if (kit.AdditionalAbilitySkillId > 0)
+                outIds.Add(kit.AdditionalAbilitySkillId);
+            List<int> extra = kit.ExtraPassiveSkillIds;
+            if (extra == null)
+                return;
+            for (int i = 0; i < extra.Count; i++)
+            {
+                if (extra[i] > 0)
+                    outIds.Add(extra[i]);
+            }
         }
 
         private void CollectPassiveSkillIdsFromSlots(List<int> outIds)
@@ -451,7 +481,7 @@ namespace ACTGameEditor
             foreach (int skillId in tmp)
             {
                 if (skillId <= 0) continue;
-                var setting = SkillSettingMgr.Instance.GetSkillDemoSetting(skillId);
+                var setting = SkillSettingMgr.Instance.GetSkillDemoSettingOrNull(skillId);
                 if (setting == null) continue;
                 if (setting.Type == EGamePlay.Combat.AbilityType.PassiveSkill.ToString())
                     outIds.Add(skillId);
@@ -486,26 +516,127 @@ namespace ACTGameEditor
 
         public void AddInputRecord(InputListernType cmd, PressType type, InputCallBackType inputCallBackType = InputCallBackType.Performed)
         {
-            if (InputBuffer == null)
+            if (InputBuffer == null || SlotConfig == null)
                 return;
 
+            NormalizeCombatCommand(ref cmd, ref type);
             float now = PlayerTime;
             InputBuffer.Tick(now);
 
-            SkillSlotConfig.SlotEntry entry = SlotConfig != null
-                ? SlotConfig.FindByInput(cmd, type, inputCallBackType)
-                : null;
+            SkillSlotConfig.SlotEntry entry = SlotConfig.FindBinding(cmd, inputCallBackType)
+                ?? SlotConfig.FindByInput(cmd, type, inputCallBackType);
             if (entry == null)
-            {
-                if (cmd == InputListernType.ButtonB)
-                    GameLog.CombatError($"[Parry] input {cmd} 没有槽位 SlotConfig={(SlotConfig != null)} slots={SlotConfig?.Slots?.Count ?? 0}");
                 return;
-            }
 
             float timeout = entry.InputTimeout > 0 ? entry.InputTimeout : InputTimeout;
             InputBuffer.Set(entry.SlotId, cmd, type, inputCallBackType, now, now + timeout);
-            if (entry.SlotId == SkillSlotId.Parry)
-                GameLog.CombatError($"[Parry] input slot={entry.SlotId} timeout={timeout:0.00} canParry={Combat.IsCanParrySkill} occupying={Combat.SpellingExecution != null && !Combat.SpellingExecution.IsMainFinish} windows={CombatParry.FormatWindows(Combat)}");
+        }
+
+        /// <inheritdoc />
+        public void NotifyCombatPress(InputListernType cmd, InputCallBackType phase)
+        {
+            PressType press = PressType.Click;
+            NormalizeCombatCommand(ref cmd, ref press);
+            int channel = HoldChannelIndex(cmd);
+            if (channel < 0)
+            {
+                if (phase == InputCallBackType.Started)
+                    AddInputRecord(cmd, PressType.Click);
+                return;
+            }
+
+            if (phase == InputCallBackType.Started)
+            {
+                SkillSlotConfig.SlotEntry entry = SlotConfig != null
+                    ? SlotConfig.FindBinding(cmd, InputCallBackType.Performed)
+                    : null;
+                if (entry != null && SlotRuntime != null
+                    && SkillResolver.HasHoldSkill(Combat, SlotRuntime, entry.SlotId))
+                {
+                    _holdChannels[channel] = new HoldChannel
+                    {
+                        Active = true,
+                        HoldFired = false,
+                        Command = cmd,
+                    };
+                    _holdStartPlayerTime[channel] = PlayerTime;
+                    return;
+                }
+
+                AddInputRecord(cmd, PressType.Click);
+                return;
+            }
+
+            if (phase != InputCallBackType.Canceled)
+                return;
+
+            HoldChannel hold = _holdChannels[channel];
+            if (hold.Active && !hold.HoldFired)
+                AddInputRecord(hold.Command, PressType.Click);
+            _holdChannels[channel] = default;
+        }
+
+        void TickPendingHolds()
+        {
+            float now = PlayerTime;
+            float threshold = HoldThreshold > 0.05f ? HoldThreshold : 0.35f;
+            for (int i = 0; i < HoldChannelCount; i++)
+            {
+                HoldChannel hold = _holdChannels[i];
+                if (!hold.Active || hold.HoldFired)
+                    continue;
+                if (now - _holdStartPlayerTime[i] < threshold)
+                    continue;
+
+                _holdChannels[i].HoldFired = true;
+                AddInputRecord(hold.Command, PressType.LongPress);
+            }
+        }
+
+        void ClearHoldChannels()
+        {
+            for (int i = 0; i < HoldChannelCount; i++)
+                _holdChannels[i] = default;
+        }
+
+        static void NormalizeCombatCommand(ref InputListernType cmd, ref PressType press)
+        {
+            switch (cmd)
+            {
+                case InputListernType.LongButtonX:
+                    cmd = InputListernType.ButtonX;
+                    press = PressType.LongPress;
+                    break;
+                case InputListernType.LongButtonY:
+                    cmd = InputListernType.ButtonY;
+                    press = PressType.LongPress;
+                    break;
+                case InputListernType.LongButtonA:
+                    cmd = InputListernType.ButtonA;
+                    press = PressType.LongPress;
+                    break;
+                case InputListernType.LongButtonB:
+                    cmd = InputListernType.ButtonB;
+                    press = PressType.LongPress;
+                    break;
+            }
+        }
+
+        static int HoldChannelIndex(InputListernType cmd)
+        {
+            switch (cmd)
+            {
+                case InputListernType.ButtonX:
+                    return 0;
+                case InputListernType.ButtonY:
+                    return 1;
+                case InputListernType.ButtonA:
+                    return 2;
+                case InputListernType.ButtonB:
+                    return 3;
+                default:
+                    return -1;
+            }
         }
 
         public void ChangeInputMoveState(bool state)
@@ -536,6 +667,7 @@ namespace ACTGameEditor
         public void InputRecordsClear()
         {
             InputBuffer?.Clear();
+            ClearHoldChannels();
         }
 
         public bool IsHadInputRecords()
@@ -547,8 +679,8 @@ namespace ACTGameEditor
         }
 
         /// <summary>
-        /// 连招窗边解析：标签先筛，再按窗边短预输入年龄匹配，Gate 通过后才消费。
-        /// 边上 InputTimeout&gt;0 用边配置，否则用 ComboBufferTimeout（不再无限龄）。
+        /// 连招窗边解析：键 × 按法 × 窗边寿命匹配，打断档和 Tag 读目标 <c>SkillDemo</c>。
+        /// 边上 InputTimeout&gt;0 用边配置，否则用 ComboBufferTimeout。
         /// </summary>
         public bool TryResolveEdges(List<SkillInputData> edges, out int skillId, out int sort)
         {
@@ -567,22 +699,21 @@ namespace ACTGameEditor
                 SkillInputData data = edges[i];
                 if (data == null || data.SkillId <= 0)
                     continue;
-                if (Combat.CanSpellSkillWithTagLists(data.RequiredTags, data.BlockedTags) == false)
-                    continue;
 
                 float maxAge = ResolveEdgeMaxAge(data.InputTimeout);
-                if (!InputBuffer.CanConsume(data.ListernType, data.PressType, data.InputCallBackType, now, maxAge))
+                if (!InputBuffer.CanConsume(data.ListernType, data.PressType, InputCallBackType.Performed, now, maxAge))
                     continue;
 
-                ActivateFail fail = AbilityActivationGate.Evaluate(Combat, data.SkillId, data.SkillSort, CDTimer);
+                int incomingSort = SkillSortUtil.FromSkillId(data.SkillId);
+                ActivateFail fail = AbilityActivationGate.Evaluate(Combat, data.SkillId, incomingSort, CDTimer);
                 if (fail != ActivateFail.None)
                     continue;
 
-                if (!InputBuffer.TryConsume(data.ListernType, data.PressType, data.InputCallBackType, now, maxAge))
+                if (!InputBuffer.TryConsume(data.ListernType, data.PressType, InputCallBackType.Performed, now, maxAge))
                     continue;
 
                 skillId = data.SkillId;
-                sort = data.SkillSort;
+                sort = incomingSort;
                 return true;
             }
 

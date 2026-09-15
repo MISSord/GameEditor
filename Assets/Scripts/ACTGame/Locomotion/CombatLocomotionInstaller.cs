@@ -45,12 +45,13 @@ namespace ACTGameEditor.Locomotion
             // 人机稍后由 EnemyBrain 换成目标朝向；先不要跟玩家 LockSystem。
             motor.SetFacingProvider(localControl ? new CombatLockFacingProvider() : null);
 
-            CombatAnimDirector director = anim?.Director;
             if (anim?.Motion != null)
                 motor.BindMotion(anim.Motion);
 
+            CombatAnimDirector director = anim?.Director;
             if (director != null)
             {
+                motor.BindRootMotion(director.RootMotion);
                 BindMoveIntent(director, localControl, tuning.InputDeadZone);
                 motor.SetAnimParamWriteGate(() => !director.HasSkillOwner);
             }

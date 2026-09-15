@@ -57,6 +57,11 @@ namespace EGamePlay.Unity
                 data.playerSetting);
         }
 
+        public override void OnDisable()
+        {
+            _motor.CancelSprintPivot();
+        }
+
         public override void Update(float deltaTime)
         {
             if (!Enable)
@@ -101,6 +106,18 @@ namespace EGamePlay.Unity
             worldDir.Normalize();
             return true;
         }
+
+        /// <summary>当前支撑脚。急停 / 急转选 L/R 片用。</summary>
+        public LocomotionFoot StanceFoot => _motor.StanceFoot;
+
+        /// <summary>走跑循环相位 0~1。</summary>
+        public float FootCyclePhase => _motor.FootCyclePhase;
+
+        /// <summary>当前支撑脚落地进度：0=刚落地，1=即将换脚。</summary>
+        public float FootPlantProgress => _motor.FootPlantProgress;
+
+        /// <summary>距下一次换脚的秒数。</summary>
+        public float TimeToNextFootPlant => _motor.TimeToNextFootPlant;
 
         public override void OnDestroy()
         {

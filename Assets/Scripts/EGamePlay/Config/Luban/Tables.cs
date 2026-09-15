@@ -21,6 +21,18 @@ public partial class Tables
     public FormulaTypeReader FormulaTypeReader {get; }
     public RoleAttriReader RoleAttriReader {get; }
     public DazeSettingReader DazeSettingReader {get; }
+    /// <summary>
+    /// 角色招式包：被动 + Z 响应技
+    /// </summary>
+    public CharacterKitReader CharacterKitReader {get; }
+    /// <summary>
+    /// 角色 4 战斗键 Idle 入口
+    /// </summary>
+    public CharacterSlotReader CharacterSlotReader {get; }
+    /// <summary>
+    /// 小队换人：支援窗 / 支援点 / i-frame
+    /// </summary>
+    public SquadSettingReader SquadSettingReader {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -31,6 +43,9 @@ public partial class Tables
         FormulaTypeReader = new FormulaTypeReader(loader("formulatypereader"));
         RoleAttriReader = new RoleAttriReader(loader("roleattrireader"));
         DazeSettingReader = new DazeSettingReader(loader("dazesettingreader"));
+        CharacterKitReader = new CharacterKitReader(loader("characterkitreader"));
+        CharacterSlotReader = new CharacterSlotReader(loader("characterslotreader"));
+        SquadSettingReader = new SquadSettingReader(loader("squadsettingreader"));
         ResolveRef();
     }
     
@@ -43,6 +58,9 @@ public partial class Tables
         FormulaTypeReader.ResolveRef(this);
         RoleAttriReader.ResolveRef(this);
         DazeSettingReader.ResolveRef(this);
+        CharacterKitReader.ResolveRef(this);
+        CharacterSlotReader.ResolveRef(this);
+        SquadSettingReader.ResolveRef(this);
     }
 }
 

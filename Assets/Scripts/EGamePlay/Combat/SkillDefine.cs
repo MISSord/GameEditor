@@ -267,5 +267,42 @@ namespace EGamePlay.Combat
         {
             return sort >= (int)SkillSort.Roll && sort < (int)SkillSort.Ultimate;
         }
+
+        /// <summary>
+        /// 按 <see cref="SkillCategory"/> 落到打断档。连招窗不要在 InputData 上再填 Sort。
+        /// </summary>
+        public static int FromCategory(SkillCategory category)
+        {
+            switch (category)
+            {
+                case SkillCategory.Dodge:
+                case SkillCategory.EvasiveAssist:
+                    return (int)SkillSort.Roll;
+                case SkillCategory.DefensiveAssist:
+                    return (int)SkillSort.Parry;
+                case SkillCategory.Ultimate:
+                case SkillCategory.Chain:
+                    return (int)SkillSort.Ultimate;
+                case SkillCategory.Branch:
+                case SkillCategory.Special:
+                case SkillCategory.ExSpecial:
+                case SkillCategory.QuickAssist:
+                case SkillCategory.AssistFollowUp:
+                    return (int)SkillSort.Speical;
+                default:
+                    return (int)SkillSort.Normal;
+            }
+        }
+
+        /// <summary>读目标技能 <c>SkillDemo.SkillCategory</c>。缺行按普攻档。</summary>
+        public static int FromSkillId(int skillId)
+        {
+            if (skillId <= 0)
+                return (int)SkillSort.Normal;
+            SkillCategory cat = SkillSettingMgr.Instance != null
+                ? SkillSettingMgr.Instance.GetSkillCategory(skillId)
+                : SkillCategory.None;
+            return FromCategory(cat);
+        }
     }
 }

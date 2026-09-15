@@ -3,8 +3,8 @@
 namespace EGamePlay.Unity
 {
     /// <summary>
-    /// Animator Root Motion 采样口：仅 Token 占有时向 MotionDirector 提交 RootMotion。
-    /// 挂在与 Animator 同一物体上。
+    /// Animator Root Motion 采样口。
+    /// 技能 Token 走 <see cref="MotionSource.RootMotion"/>；Locomotion 急转借用走 <see cref="MotionSource.Locomotion"/>，不改 Policy、不占 Token。
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Animator))]
@@ -14,6 +14,7 @@ namespace EGamePlay.Unity
         MotionDirector _motion;
 
         bool _tokenOwns;
+        bool _locomotionOwns;
         bool _applyPosition = true;
         bool _applyRotation;
 
@@ -29,6 +30,9 @@ namespace EGamePlay.Unity
         /// <summary>当前是否由技能 Token 允许采样 RM。</summary>
         public bool TokenOwnsMotion => _tokenOwns;
 
+        /// <summary>Locomotion 急转是否正在借用本帧 delta。</summary>
+        public bool LocomotionOwnsMotion => _locomotionOwns;
+
         void Awake()
         {
             _animator = GetComponent<Animator>();
@@ -42,23 +46,45 @@ namespace EGamePlay.Unity
                 _animator = GetComponent<Animator>();
         }
 
-        /// <summary>由 AnimDirector 在 PlaySkill / Release 时调用。</summary>
+        /// <summary>由 AnimDirector 在 PlaySkill / Release 时调用。Token 优先于 Locomotion 借用。</summary>
         public void SetTokenOwnsMotion(bool owns)
         {
             _tokenOwns = owns;
-            if (_animator == null)
-                _animator = GetComponent<Animator>();
-            if (_animator != null)
-                _animator.applyRootMotion = owns;
-            if (!owns)
+            if (owns)
+                _locomotionOwns = false;
+            RefreshApplyRootMotion();
+            if (!owns && !_locomotionOwns)
                 ResetDeltas();
         }
 
-        /// <summary>本段是否应用位移 / 旋转（默认只位移）。</summary>
+        /// <summary>
+        /// Locomotion 急转窗口借用 RM 增量。不切 MotionPolicy，不占技能 Token。
+        /// 技能 Token 占用时调用会被忽略。
+        /// </summary>
+        public void SetLocomotionOwnsMotion(bool owns)
+        {
+            if (owns && _tokenOwns)
+                return;
+
+            _locomotionOwns = owns;
+            RefreshApplyRootMotion();
+            if (!owns && !_tokenOwns)
+                ResetDeltas();
+        }
+
+        /// <summary>本段是否应用位移 / 旋转（默认只位移）。急转需要同时开旋转。</summary>
         public void SetApplyFlags(bool position, bool rotation)
         {
             _applyPosition = position;
             _applyRotation = rotation;
+        }
+
+        void RefreshApplyRootMotion()
+        {
+            if (_animator == null)
+                _animator = GetComponent<Animator>();
+            if (_animator != null)
+                _animator.applyRootMotion = _tokenOwns || _locomotionOwns;
         }
 
         void OnAnimatorMove()
@@ -69,24 +95,34 @@ namespace EGamePlay.Unity
             DeltaPosition = _animator.deltaPosition;
             DeltaRotation = _animator.deltaRotation;
 
-            if (!_tokenOwns || _motion == null)
+            if (_motion == null)
                 return;
 
-            if (_applyPosition)
+            if (_tokenOwns)
             {
-                // 有重力时只吃水平，避免和重力抢 Y；关重力时整段交给 RM
-                bool flattenY = _motion.GravityEnabled;
-                _motion.TryApply(MotionSource.RootMotion, DeltaPosition, flattenY);
+                ApplyMotion(MotionSource.RootMotion);
+                return;
             }
 
-            if (_applyRotation)
+            if (_locomotionOwns)
+                ApplyMotion(MotionSource.Locomotion);
+        }
+
+        void ApplyMotion(MotionSource source)
+        {
+            if (_applyPosition)
             {
-                // 旋转仍写在 Animator 所在层级的父根；无 CC 引用时用 animator 根
-                Transform root = _animator.transform.parent != null
-                    ? _animator.transform.parent
-                    : _animator.transform;
-                root.rotation = DeltaRotation * root.rotation;
+                bool flattenY = _motion.GravityEnabled;
+                _motion.TryApply(source, DeltaPosition, flattenY);
             }
+
+            if (!_applyRotation)
+                return;
+
+            Transform root = _animator.transform.parent != null
+                ? _animator.transform.parent
+                : _animator.transform;
+            root.rotation = DeltaRotation * root.rotation;
         }
 
         /// <summary>清零缓存增量。</summary>

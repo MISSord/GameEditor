@@ -25,6 +25,10 @@ public enum InputListernType
     Sprint,
     Switch1,
     Switch2,
+    /// <summary>候场肖像 +1，与 Switch1 同处理。</summary>
+    ButtonZ,
+    /// <summary>候场肖像 +2，与 Switch2 同处理。</summary>
+    ButtonZ2,
 }
 
 public enum PressType { Click, LongPress }

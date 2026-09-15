@@ -14,6 +14,7 @@ namespace FluxEditor
         Vector2 _listScroll;
         string _filter = "";
         List<SkillEntry> _entries = new List<SkillEntry>();
+        readonly HashSet<string> _expandedFolders = new HashSet<string>();
         double _nextRefreshAt;
         string _newSkillId = "";
         FSeqSetting _newSetting;
@@ -21,11 +22,17 @@ namespace FluxEditor
         bool _createFoldout;
         bool _helpFoldout;
 
+        /// <summary>SkillSequences 根目录下的预制体（新建默认落这里）。</summary>
+        const string RootFolder = "根目录";
+        const string LegacyUncategorizedFolder = "未分类";
+        const string ExpandedPrefsKey = "Flux.SkillWorkbench.ExpandedFolders";
+
         struct SkillEntry
         {
             public string Path;
             public string SkillId;
             public string FileName;
+            public string Folder;
         }
 
         [MenuItem(FSequenceEditorWindow.MENU_PATH + FSequenceEditorWindow.PRODUCT_NAME + "/技能工作台", false, 1)]
@@ -84,6 +91,7 @@ namespace FluxEditor
 
         void OnEnable()
         {
+            LoadExpandedFolders();
             RefreshEntries();
             if (_newSetting == null)
                 _newSetting = SkillWorkbenchSession.GuessSetting(_newSkillId);
@@ -166,6 +174,10 @@ namespace FluxEditor
             string[] templateOptions = BuildTemplateOptions();
             _templateIndex = EditorGUILayout.Popup("模板", Mathf.Clamp(_templateIndex, 0, templateOptions.Length - 1), templateOptions);
 
+            EditorGUILayout.HelpBox(
+                "会保存到 " + SaveSequenceData.SequencePrefabFolder + "/{SkillId}.prefab（根目录）。已整理的轴仍在子文件夹。",
+                MessageType.None);
+
             if (GUILayout.Button("新建并打开", GUILayout.Height(24)))
             {
                 string templatePath = null;
@@ -181,6 +193,8 @@ namespace FluxEditor
                     _newSkillId = string.Empty;
                     _templateIndex = 0;
                     ApplyGuessedSettingIfDefault();
+                    _expandedFolders.Add(RootFolder);
+                    SaveExpandedFolders();
                     RefreshEntries();
                 }
             }
@@ -209,34 +223,122 @@ namespace FluxEditor
 
             _listScroll = EditorGUILayout.BeginScrollView(_listScroll, GUILayout.ExpandHeight(true));
             string filter = _filter != null ? _filter.Trim() : string.Empty;
+            bool filtering = filter.Length > 0;
 
-            for (int i = 0; i < _entries.Count; i++)
+            DrawFolderSection(RootFolder, filter, filtering, alwaysShow: !filtering);
+
+            int i = 0;
+            while (i < _entries.Count)
             {
-                SkillEntry entry = _entries[i];
-                if (!MatchesFilter(entry, filter))
+                string folder = _entries[i].Folder;
+                int start = i;
+                int matchCount = 0;
+                while (i < _entries.Count && string.Equals(_entries[i].Folder, folder, StringComparison.Ordinal))
+                {
+                    if (MatchesFilter(_entries[i], filter))
+                        matchCount++;
+                    i++;
+                }
+
+                if (folder == RootFolder || matchCount == 0)
                     continue;
 
-                bool current = SkillWorkbenchSession.IsEditing
-                    && string.Equals(SkillWorkbenchSession.AssetPath, entry.Path, StringComparison.OrdinalIgnoreCase);
-
-                EditorGUILayout.BeginHorizontal();
-                GUI.backgroundColor = current ? new Color(0.55f, 0.8f, 1f) : Color.white;
-                string label = string.IsNullOrEmpty(entry.SkillId) || entry.SkillId == entry.FileName
-                    ? entry.FileName
-                    : entry.SkillId + "  (" + entry.FileName + ")";
-                if (GUILayout.Button(label, EditorStyles.miniButton))
-                    SkillWorkbenchSession.Open(entry.Path);
-                GUI.backgroundColor = Color.white;
-                if (GUILayout.Button("定位", EditorStyles.miniButton, GUILayout.Width(40)))
-                {
-                    UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath<GameObject>(entry.Path);
-                    EditorGUIUtility.PingObject(asset);
-                    Selection.activeObject = asset;
-                }
-                EditorGUILayout.EndHorizontal();
+                DrawFolderBody(folder, start, i, matchCount, filter, filtering);
             }
 
             EditorGUILayout.EndScrollView();
+        }
+
+        void DrawFolderSection(string folder, string filter, bool filtering, bool alwaysShow)
+        {
+            int matchCount = 0;
+            int start = -1;
+            int end = _entries.Count;
+            for (int k = 0; k < _entries.Count; k++)
+            {
+                if (_entries[k].Folder != folder)
+                {
+                    if (start >= 0)
+                    {
+                        end = k;
+                        break;
+                    }
+                    continue;
+                }
+
+                if (start < 0)
+                    start = k;
+                if (MatchesFilter(_entries[k], filter))
+                    matchCount++;
+            }
+
+            if (matchCount == 0 && !alwaysShow)
+                return;
+
+            DrawFolderBody(folder, start < 0 ? 0 : start, start < 0 ? 0 : end, matchCount, filter, filtering);
+        }
+
+        void DrawFolderBody(string folder, int start, int end, int matchCount, string filter, bool filtering)
+        {
+            bool expanded = filtering || _expandedFolders.Contains(folder);
+            string label = folder == RootFolder ? RootFolder + "（新建默认）" : folder;
+            if (DrawFolderRow(label, matchCount, expanded) && !filtering)
+            {
+                if (expanded)
+                    _expandedFolders.Remove(folder);
+                else
+                    _expandedFolders.Add(folder);
+                SaveExpandedFolders();
+            }
+
+            if (!expanded)
+                return;
+
+            if (matchCount == 0)
+            {
+                EditorGUILayout.LabelField("    空，新建技能会出现在这里", EditorStyles.miniLabel);
+                return;
+            }
+
+            for (int k = start; k < end; k++)
+            {
+                SkillEntry entry = _entries[k];
+                if (entry.Folder != folder || !MatchesFilter(entry, filter))
+                    continue;
+                DrawSkillRow(entry);
+            }
+        }
+
+        static bool DrawFolderRow(string label, int count, bool expanded)
+        {
+            Rect rect = EditorGUILayout.GetControlRect(false, 22f);
+            GUIContent content = new GUIContent(
+                (expanded ? "▼  " : "▶  ") + label + "  (" + count + ")",
+                EditorGUIUtility.IconContent("Folder Icon").image);
+            return GUI.Button(rect, content, EditorStyles.miniButton);
+        }
+
+        void DrawSkillRow(SkillEntry entry)
+        {
+            bool current = SkillWorkbenchSession.IsEditing
+                && string.Equals(SkillWorkbenchSession.AssetPath, entry.Path, StringComparison.OrdinalIgnoreCase);
+
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.Space(16f);
+            GUI.backgroundColor = current ? new Color(0.55f, 0.8f, 1f) : Color.white;
+            string label = string.IsNullOrEmpty(entry.SkillId) || entry.SkillId == entry.FileName
+                ? entry.FileName
+                : entry.SkillId + "  (" + entry.FileName + ")";
+            if (GUILayout.Button(label, EditorStyles.miniButton))
+                SkillWorkbenchSession.Open(entry.Path);
+            GUI.backgroundColor = Color.white;
+            if (GUILayout.Button("定位", EditorStyles.miniButton, GUILayout.Width(40)))
+            {
+                UnityEngine.Object asset = AssetDatabase.LoadAssetAtPath<GameObject>(entry.Path);
+                EditorGUIUtility.PingObject(asset);
+                Selection.activeObject = asset;
+            }
+            EditorGUILayout.EndHorizontal();
         }
 
         void DrawHelp()
@@ -247,7 +349,7 @@ namespace FluxEditor
                 return;
 
             EditorGUILayout.HelpBox(
-                "新建技能、打开技能都在本窗口完成。\n"
+                "列表先显示「根目录」（新建默认落这里），再按子文件夹分组。点文件夹展开 / 收回。\n"
                 + "打开技能会进入 Assets/Scenes/SkillEditor.unity，在 Scene 里预览和拖判定盒。\n"
                 + "关闭工作台会回到进入前的场景（不保存 SkillEditor 里的预览物体）。\n"
                 + "加轨 / 删轨在 Flux。保存会导出 SkillDataScriptable 并写回预制体。\n"
@@ -273,13 +375,81 @@ namespace FluxEditor
                 {
                     Path = path.Replace('\\', '/'),
                     SkillId = sequence.SkillId,
-                    FileName = Path.GetFileNameWithoutExtension(path)
+                    FileName = Path.GetFileNameWithoutExtension(path),
+                    Folder = FolderOf(path)
                 });
             }
 
-            _entries.Sort((a, b) => string.CompareOrdinal(a.FileName, b.FileName));
+            _entries.Sort(CompareEntries);
             _templateIndex = Mathf.Clamp(_templateIndex, 0, _entries.Count);
             Repaint();
+        }
+
+        static int CompareEntries(SkillEntry a, SkillEntry b)
+        {
+            int folder = CompareFolder(a.Folder, b.Folder);
+            if (folder != 0)
+                return folder;
+            return string.CompareOrdinal(a.FileName, b.FileName);
+        }
+
+        static int CompareFolder(string a, string b)
+        {
+            bool aRoot = a == RootFolder;
+            bool bRoot = b == RootFolder;
+            if (aRoot != bRoot)
+                return aRoot ? -1 : 1;
+            return string.CompareOrdinal(a, b);
+        }
+
+        static string FolderOf(string assetPath)
+        {
+            string root = SaveSequenceData.SequencePrefabFolder.Replace('\\', '/').TrimEnd('/');
+            string path = assetPath.Replace('\\', '/');
+            if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                return RootFolder;
+
+            string relative = path.Substring(root.Length).TrimStart('/');
+            int slash = relative.LastIndexOf('/');
+            if (slash < 0)
+                return RootFolder;
+            return relative.Substring(0, slash);
+        }
+
+        void LoadExpandedFolders()
+        {
+            _expandedFolders.Clear();
+            string raw = EditorPrefs.GetString(ExpandedPrefsKey, string.Empty);
+            if (string.IsNullOrEmpty(raw))
+            {
+                _expandedFolders.Add(RootFolder);
+                return;
+            }
+
+            string[] parts = raw.Split('|');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (string.IsNullOrEmpty(parts[i]))
+                    continue;
+                if (parts[i] == LegacyUncategorizedFolder)
+                    _expandedFolders.Add(RootFolder);
+                else
+                    _expandedFolders.Add(parts[i]);
+            }
+        }
+
+        void SaveExpandedFolders()
+        {
+            if (_expandedFolders.Count == 0)
+            {
+                EditorPrefs.DeleteKey(ExpandedPrefsKey);
+                return;
+            }
+
+            var names = new string[_expandedFolders.Count];
+            _expandedFolders.CopyTo(names);
+            Array.Sort(names, StringComparer.Ordinal);
+            EditorPrefs.SetString(ExpandedPrefsKey, string.Join("|", names));
         }
 
         string[] BuildTemplateOptions()
@@ -287,7 +457,7 @@ namespace FluxEditor
             string[] names = new string[_entries.Count + 1];
             names[0] = "空白轴";
             for (int i = 0; i < _entries.Count; i++)
-                names[i + 1] = _entries[i].FileName;
+                names[i + 1] = _entries[i].Folder + "/" + _entries[i].FileName;
             return names;
         }
 
@@ -301,6 +471,8 @@ namespace FluxEditor
         static bool MatchesFilter(SkillEntry entry, string filter)
         {
             if (string.IsNullOrEmpty(filter))
+                return true;
+            if (entry.Folder != null && entry.Folder.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
                 return true;
             return (entry.FileName != null && entry.FileName.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0)
                 || (entry.SkillId != null && entry.SkillId.IndexOf(filter, StringComparison.OrdinalIgnoreCase) >= 0);

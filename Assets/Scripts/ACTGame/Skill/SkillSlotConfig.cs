@@ -5,10 +5,7 @@ using UnityEngine;
 
 namespace ACTGameEditor
 {
-    /// <summary>
-    /// 槽位配置：定义每个槽位的输入绑定、默认技能、释放条件等。
-    /// 输入层与技能层分离，支持多套键位方案。
-    /// </summary>
+    /// <summary>槽位配置：只绑 4 战斗键的输入。技能 Id 来自 CharacterSlot 表。</summary>
     [CreateAssetMenu(fileName = "SkillSlotConfig", menuName = "ACTGame/SkillSlotConfig")]
     public class SkillSlotConfig : ScriptableObject
     {
@@ -22,7 +19,7 @@ namespace ACTGameEditor
             [Header("槽位身份")]
             [Tooltip("槽位 ID")]
             public SkillSlotId SlotId;
-            [Tooltip("默认技能 ID（角色未覆盖时使用）")]
+            [Tooltip("已废弃：技能 Id 只来自 CharacterSlot 表，保持 0。")]
             public int DefaultSkillId;
             [Header("释放优先级")]
             [Tooltip("基础分类（普攻/武器技能/闪避/大招等）")]
@@ -45,7 +42,7 @@ namespace ACTGameEditor
             public float InputTimeout;
 
             [Header("技能链（工具自动生成）")]
-            [Tooltip("从 DefaultSkillId 沿 SkillInputEvents 遍历得到的技能链，用于 AttachAbility")]
+            [Tooltip("已废弃：连招链运行时从轴收集，不必填。")]
             public List<int> ComboSkillIds = new List<int>();
         }
 
@@ -62,6 +59,23 @@ namespace ACTGameEditor
                     return s;
             }
             return null;
+        }
+
+        /// <summary>按硬件键找绑定行。优先 Click 行，用作槽位身份；实际按法写在 InputBuffer。</summary>
+        public SlotEntry FindBinding(InputListernType input, InputCallBackType cb)
+        {
+            SlotEntry fallback = null;
+            for (int i = 0; i < Slots.Count; i++)
+            {
+                SlotEntry s = Slots[i];
+                if (s == null || s.InputType != input || s.InputCallBackType != cb)
+                    continue;
+                if (s.PressType == PressType.Click)
+                    return s;
+                if (fallback == null)
+                    fallback = s;
+            }
+            return fallback;
         }
 
         /// <summary>根据槽位 ID 查找条目。</summary>

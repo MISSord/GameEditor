@@ -731,6 +731,7 @@ namespace ACTGameEditor.Combat.Ai
             _followUpUsed = false;
             CombatTelegraph.PlayFromBrain(_owner, _selected.TelegraphKind, _selected.TelegraphSeconds);
             CombatParry.ArmIncoming(_owner, target, _selected.SkillId, _selected.TelegraphSeconds, _selected.TelegraphKind);
+            CombatEvasiveAssist.ArmIncoming(_owner, target, _selected.SkillId, _selected.TelegraphSeconds, _selected.TelegraphKind);
             Vector3 toTargetLog = target.Position - _owner.Position;
             toTargetLog.y = 0f;
             GameLog.CombatError($"[Parry] enemy enqueue skill={_selected.SkillId} telegraph={_selected.TelegraphKind} sec={_selected.TelegraphSeconds} dist={Mathf.Sqrt(toTargetLog.sqrMagnitude):0.00} target={target.Id}");

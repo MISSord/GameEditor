@@ -28,6 +28,7 @@ namespace Flux
                 { "TimeFracture(F_time)",  PlayEventMsg.TimeFracture },
                 { "PlayFxPackage(id)",  PlayEventMsg.PlayFxPackage },
                 { "AiTelegraph(str kind, F_time)",  PlayEventMsg.AiTelegraph },
+                { "AssistCue(F_time)",  PlayEventMsg.AssistCue },
                 { "SetNoGravityT(F_time)",  PlayEventMsg.SetNoGravityT },
                 { "SetNoBreakTime(F_time)",  PlayEventMsg.SetNoBreakTime },
                 { "PlayAudio(id,volume)",  PlayEventMsg.PlayAudio },
@@ -40,7 +41,9 @@ namespace Flux
 
         private void OnValueChange()
         {
+#if FLUX_DEBUG
             Debug.Log($"yns  Selet " + msgName);
+#endif
         }
 
         protected override void OnTrigger(float timeSinceTrigger)

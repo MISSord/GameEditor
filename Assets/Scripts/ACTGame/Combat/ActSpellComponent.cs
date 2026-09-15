@@ -69,7 +69,7 @@ namespace ACTGameEditor.Combat
                 return;
 
             ActivateFail fail = AbilityActivationGate.Evaluate(
-                Unit, winner.SkillId, winner.Sort, CDTimer);
+                Unit, winner.SkillId, winner.Sort, winner.IgnoreCooldown ? null : CDTimer);
 
             if (fail == ActivateFail.SortBlocked)
             {
@@ -124,6 +124,8 @@ namespace ACTGameEditor.Combat
         public Vector3 Point;
         public int SkillId;
         public int Sort;
+        /// <summary>快速支援等：Gate 跳过 CD 查询。</summary>
+        public bool IgnoreCooldown;
 
         public void Reset()
         {
@@ -131,6 +133,7 @@ namespace ACTGameEditor.Combat
             Point = Vector3.zero;
             SkillId = 0;
             Sort = 0;
+            IgnoreCooldown = false;
         }
     }
 

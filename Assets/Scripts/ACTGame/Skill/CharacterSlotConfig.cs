@@ -5,8 +5,7 @@ using UnityEngine;
 namespace ACTGameEditor
 {
     /// <summary>
-    /// 角色/武器槽位覆盖：SlotId → SkillId。
-    /// 换角色/武器时加载此配置，覆盖 SkillSlotConfig 的默认技能。
+    /// 已废弃：技能 Id 改走 Luban CharacterSlot。预制体字段可留空。
     /// </summary>
     [CreateAssetMenu(fileName = "CharacterSlotConfig", menuName = "ACTGame/CharacterSlotConfig")]
     public class CharacterSlotConfig : ScriptableObject

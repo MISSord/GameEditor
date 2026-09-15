@@ -1,4 +1,5 @@
-﻿using EGamePlay.Combat;
+﻿using System.Collections.Generic;
+using EGamePlay.Combat;
 using SimpleJSON;
 using UnityEngine;
 
@@ -137,6 +138,12 @@ namespace EGamePlay
             return max > 0 ? max : 10;
         }
 
+        /// <summary>小队全局行（Id=1）。缺表返回 null，不回退第一行。</summary>
+        public SquadSetting GetSquadSettingOrNull()
+        {
+            return CurrentTable.SquadSettingReader.GetOrDefault(1);
+        }
+
         /// <summary>失衡档位表。缺 Id 返回 null，不回退第一行。</summary>
         public DazeSetting GetDazeSetting(int id)
         {
@@ -198,6 +205,160 @@ namespace EGamePlay
         public RoleAttriAtLevel GetRoleAttriAtDefaultLevel(int characterId)
         {
             return GetRoleAttriAtLevel(characterId, DefaultRoleLevel);
+        }
+
+        Dictionary<int, CharacterSlotSetting[]> _slotsByCharacter;
+
+        /// <summary>角色招式包。缺行返回 null，不回退 CharacterId=0 或表第一行。</summary>
+        public CharacterKitSetting GetCharacterKitOrNull(int characterId)
+        {
+            if (characterId <= 0)
+                return null;
+            return CurrentTable.CharacterKitReader.GetOrDefault(characterId);
+        }
+
+        /// <summary>技能分类。缺行返回 <see cref="SkillCategory.None"/>。</summary>
+        public SkillCategory GetSkillCategory(int skillId)
+        {
+            SkillDemoSetting config = GetSkillDemoSettingOrNull(skillId);
+            return config != null ? config.SkillCategory : SkillCategory.None;
+        }
+
+        /// <summary>
+        /// Idle 入口行：同键同按法，先精确 FormId 再 FormId=0，Priority 降序。
+        /// 空 RequiredTags 始终可匹配；非空需 <paramref name="actor"/> 持有这些 Tag。
+        /// actor 为空时只匹配无 Tag 行。缺行或 SkillId=0 返回 null。
+        /// </summary>
+        public CharacterSlotSetting GetCharacterSlotRow(
+            int characterId,
+            CombatButton button,
+            CombatPress press,
+            int formId,
+            ICombatUnit actor)
+        {
+            if (characterId <= 0)
+                return null;
+
+            EnsureCharacterSlotCache();
+            if (_slotsByCharacter == null || !_slotsByCharacter.TryGetValue(characterId, out CharacterSlotSetting[] rows) || rows == null)
+                return null;
+
+            CharacterSlotSetting bestForm = null;
+            CharacterSlotSetting bestDefault = null;
+            int bestFormPriority = int.MinValue;
+            int bestDefaultPriority = int.MinValue;
+            for (int i = 0; i < rows.Length; i++)
+            {
+                CharacterSlotSetting row = rows[i];
+                if (row.Button != button || row.Press != press || row.SkillId <= 0)
+                    continue;
+                if (!SlotRowTagsMatch(row, actor))
+                    continue;
+
+                if (row.FormId == formId)
+                {
+                    if (row.Priority >= bestFormPriority)
+                    {
+                        bestFormPriority = row.Priority;
+                        bestForm = row;
+                    }
+                }
+                else if (row.FormId == 0)
+                {
+                    if (row.Priority >= bestDefaultPriority)
+                    {
+                        bestDefaultPriority = row.Priority;
+                        bestDefault = row;
+                    }
+                }
+            }
+
+            return bestForm != null ? bestForm : bestDefault;
+        }
+
+        /// <summary>
+        /// Idle 入口技能 Id（该行 <c>SkillId</c>，不含 Empowered 改写）。
+        /// 不带 actor，只匹配无 Tag 行。缺行返回 0。
+        /// </summary>
+        public int ResolveCharacterSlotSkill(int characterId, CombatButton button, CombatPress press, int formId)
+        {
+            CharacterSlotSetting row = GetCharacterSlotRow(characterId, button, press, formId, actor: null);
+            return row != null ? row.SkillId : 0;
+        }
+
+        static bool SlotRowTagsMatch(CharacterSlotSetting row, ICombatUnit actor)
+        {
+            if (row.RequiredTags == null || row.RequiredTags.Count == 0)
+                return true;
+            if (actor == null || actor.IsDisposed)
+                return false;
+            return actor.CanSpellSkillWithTagLists(row.RequiredTags, blocked: null);
+        }
+
+        /// <summary>该角色 Kit 列 + 槽位入口（含 Empowered）。0 不写入。不扫 Combo。</summary>
+        public void CollectCharacterOwnedSkillIds(int characterId, HashSet<int> outIds)
+        {
+            if (outIds == null || characterId <= 0)
+                return;
+
+            CharacterKitSetting kit = GetCharacterKitOrNull(characterId);
+            if (kit != null)
+            {
+                AddOwnedSkillId(outIds, kit.CorePassiveSkillId);
+                AddOwnedSkillId(outIds, kit.AdditionalAbilitySkillId);
+                List<int> extra = kit.ExtraPassiveSkillIds;
+                if (extra != null)
+                {
+                    for (int i = 0; i < extra.Count; i++)
+                        AddOwnedSkillId(outIds, extra[i]);
+                }
+
+                AddOwnedSkillId(outIds, kit.ChainSkillId);
+                AddOwnedSkillId(outIds, kit.QuickAssistSkillId);
+                AddOwnedSkillId(outIds, kit.DefensiveAssistSkillId);
+                AddOwnedSkillId(outIds, kit.EvasiveAssistSkillId);
+                AddOwnedSkillId(outIds, kit.AssistFollowUpSkillId);
+            }
+
+            EnsureCharacterSlotCache();
+            if (_slotsByCharacter == null || !_slotsByCharacter.TryGetValue(characterId, out CharacterSlotSetting[] rows) || rows == null)
+                return;
+
+            for (int i = 0; i < rows.Length; i++)
+            {
+                AddOwnedSkillId(outIds, rows[i].SkillId);
+                AddOwnedSkillId(outIds, rows[i].EmpoweredSkillId);
+            }
+        }
+
+        static void AddOwnedSkillId(HashSet<int> outIds, int skillId)
+        {
+            if (skillId > 0)
+                outIds.Add(skillId);
+        }
+
+        void EnsureCharacterSlotCache()
+        {
+            if (_slotsByCharacter != null)
+                return;
+
+            List<CharacterSlotSetting> list = CurrentTable.CharacterSlotReader.DataList;
+            var buckets = new Dictionary<int, List<CharacterSlotSetting>>(8);
+            for (int i = 0; i < list.Count; i++)
+            {
+                CharacterSlotSetting row = list[i];
+                if (!buckets.TryGetValue(row.CharacterId, out List<CharacterSlotSetting> bucket))
+                {
+                    bucket = new List<CharacterSlotSetting>(8);
+                    buckets[row.CharacterId] = bucket;
+                }
+
+                bucket.Add(row);
+            }
+
+            _slotsByCharacter = new Dictionary<int, CharacterSlotSetting[]>(buckets.Count);
+            foreach (KeyValuePair<int, List<CharacterSlotSetting>> kv in buckets)
+                _slotsByCharacter[kv.Key] = kv.Value.ToArray();
         }
     }
 }

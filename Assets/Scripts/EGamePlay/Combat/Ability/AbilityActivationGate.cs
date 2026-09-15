@@ -1,6 +1,4 @@
-﻿using EGamePlay;
-
-namespace EGamePlay.Combat
+﻿namespace EGamePlay.Combat
 {
     /// <summary>施法 Gate 失败原因。SortBlocked 表示本帧保留队列，其余为丢弃。</summary>
     public enum ActivateFail : byte
@@ -97,6 +95,31 @@ namespace EGamePlay.Combat
             return ActivateFail.None;
         }
 
+        /// <summary>
+        /// 同行 Empowered 预检：技能 Tag、TriggerFormula、资源。不问 CD / 硬直 / Sort。
+        /// 未 Attach 或预检失败时不要改写，仍打该行 <c>SkillId</c>。
+        /// </summary>
+        public static bool PassesEmpoweredPreview(ICombatUnit actor, int empoweredSkillId)
+        {
+            if (actor == null || actor.IsDisposed || empoweredSkillId <= 0)
+                return false;
+
+            var abilityComp = actor.Entity.GetComponent<AbilityComponent>();
+            if (abilityComp == null
+                || !abilityComp.IdAbilities.TryGetValue(empoweredSkillId, out var ability)
+                || ability == null)
+                return false;
+
+            var config = ability.Definition?.Config;
+            if (config != null && !actor.CanSpellSkillWithTagLists(config.RequiredTags, config.BlockedTags))
+                return false;
+
+            if (!PassesTriggerFormula(config, actor.Entity))
+                return false;
+
+            return CanAfford(actor, ability);
+        }
+
         /// <summary>资源是否足够支付配置消耗。未配置消耗视为足够。</summary>
         public static bool CanAfford(ICombatUnit caster, Ability ability)
         {
@@ -123,7 +146,17 @@ namespace EGamePlay.Combat
             if (ability?.Definition?.Config == null)
                 return true;
 
-            var config = ability.Definition.Config;
+            return TryGetResourceCost(caster, ability.Definition.Config, out need, out attrType);
+        }
+
+        /// <summary>按技能行计算消耗。config 为空返回 false。</summary>
+        public static bool TryGetResourceCost(ICombatUnit caster, SkillDemoSetting config, out int need, out AttributeType attrType)
+        {
+            need = 0;
+            attrType = AttributeType.None;
+
+            if (caster == null || caster.IsDisposed || config == null)
+                return false;
             if (config.CostAttrType <= 0)
                 return true;
 

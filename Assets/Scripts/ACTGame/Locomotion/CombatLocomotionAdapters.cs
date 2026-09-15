@@ -32,11 +32,11 @@ namespace ACTGameEditor.Locomotion
 
         public CombatLocomotionStateSink(CombatEntity entity) => _entity = entity;
 
-        public void SetLocomotionState(bool isMoving, bool isRun, bool isWalk)
+        public void SetLocomotionState(bool isMoving, bool isRun, bool isWalk, bool isPivot = false)
         {
             if (_entity == null)
                 return;
-            _entity.StateDirector?.NotifyLocomotion(isMoving, isRun, isWalk);
+            _entity.StateDirector?.NotifyLocomotion(isMoving, isRun, isWalk, isPivot);
         }
 
         public void NotifyJumpStarted()

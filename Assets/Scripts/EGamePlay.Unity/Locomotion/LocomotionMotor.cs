@@ -16,7 +16,13 @@ namespace EGamePlay.Unity
         static readonly int IdleStateId = Animator.StringToHash("Idle");
         static readonly int RunningStateId = Animator.StringToHash("Running");
         static readonly int WalkStateId = Animator.StringToHash("Walk_Eqip_Front");
+        static readonly int SprintPivotStateId = Animator.StringToHash("SprintPivot");
+        static readonly int SprintPivotLStateId = Animator.StringToHash("SprintPivot_L");
+        static readonly int SprintPivotRStateId = Animator.StringToHash("SprintPivot_R");
         const float GaitCrossFade = 0.08f;
+        const float PivotAnimCrossFade = 0.06f;
+        /// <summary>急转结束后的再触发冷却，避免窗口结束瞬间二次 Pivot。</summary>
+        const float PivotCooldown = 0.18f;
         /// <summary>鸣潮式停步滞回：松开方向后这段时间内仍视为有移动意图，避免换键空帧掉快跑。</summary>
         const float MoveReleaseGrace = 0.15f;
         /// <summary>水平速度低于该值才算真正停步，才允许清快跑。</summary>
@@ -35,6 +41,7 @@ namespace EGamePlay.Unity
         IMoveFacingProvider _facing;
         System.Func<bool> _canWriteAnimParams;
         MotionDirector _motion;
+        RootMotionDriver _rootMotion;
 
         float _currentSpeed;
         float _targetSpeed;
@@ -62,7 +69,23 @@ namespace EGamePlay.Unity
         bool _hasIdleState;
         bool _hasRunningState;
         bool _hasWalkState;
+        bool _hasSprintPivotState;
+        bool _hasSprintPivotLState;
+        bool _hasSprintPivotRState;
+        int _pivotAnimHash;
+        LocomotionFoot _stanceFoot;
+        float _footCyclePhase;
+        float _footPlantProgress;
+        float _timeToNextPlant;
+        float _gaitCycleSeconds;
         Vector3 _airborneMoveDir;
+        Vector3 _travelDir;
+        Vector3 _pivotFrom;
+        Vector3 _pivotTo;
+        float _pivotElapsed;
+        float _pivotDuration;
+        float _pivotCooldownRemain;
+        bool _pivotDurationSynced;
 
         /// <summary>是否处于空中 Locomotion（跳跃/滑落，不含技能浮空）。</summary>
         bool IsAirborneLocomotion => !IsGrounded || _velocity.y > 0.05f;
@@ -79,6 +102,27 @@ namespace EGamePlay.Unity
         /// <summary>是否处于跑步态。</summary>
         public bool IsRun => _isRun;
 
+        /// <summary>快跑急转窗口进行中。</summary>
+        public bool IsPivoting => _pivotDuration > 0.001f && _pivotElapsed < _pivotDuration;
+
+        /// <summary>当前支撑脚（身前落地脚）。走 / 慢跑 / 快跑循环中更新，急停急转按此选片。</summary>
+        public LocomotionFoot StanceFoot => _stanceFoot;
+
+        /// <summary>走跑循环相位 0~1（已加偏移并绕回）。</summary>
+        public float FootCyclePhase => _footCyclePhase;
+
+        /// <summary>当前这只支撑脚的落地进度：0=刚落地，1=即将换另一只脚。</summary>
+        public float FootPlantProgress => _footPlantProgress;
+
+        /// <summary>距下一次换脚落地的秒数（按当前循环片长估算）。</summary>
+        public float TimeToNextFootPlant => _timeToNextPlant;
+
+        /// <summary>当前走跑循环一整圈的秒数。</summary>
+        public float GaitCycleSeconds => _gaitCycleSeconds;
+
+        /// <summary>中断急转并交回代码走跑（技能占轴、电机关闭、跳跃等）。</summary>
+        public void CancelSprintPivot() => AbortSprintPivot();
+
         /// <summary>解绑并清速度，供组件池复用。</summary>
         public void ResetRuntimeState()
         {
@@ -93,7 +137,9 @@ namespace EGamePlay.Unity
             _stateSink = null;
             _facing = null;
             _canWriteAnimParams = null;
+            _rootMotion?.SetLocomotionOwnsMotion(false);
             _motion = null;
+            _rootMotion = null;
             _currentSpeed = 0f;
             _targetSpeed = 0f;
             _velocityXSmoothing = 0f;
@@ -118,6 +164,19 @@ namespace EGamePlay.Unity
             _lastGaitAnimHash = 0;
             _animStatesCached = false;
             _airborneMoveDir = Vector3.zero;
+            _travelDir = Vector3.zero;
+            _pivotFrom = Vector3.zero;
+            _pivotTo = Vector3.zero;
+            _pivotElapsed = 0f;
+            _pivotDuration = 0f;
+            _pivotCooldownRemain = 0f;
+            _pivotDurationSynced = false;
+            _pivotAnimHash = 0;
+            _stanceFoot = LocomotionFoot.Left;
+            _footCyclePhase = 0f;
+            _footPlantProgress = 0f;
+            _timeToNextPlant = 0f;
+            _gaitCycleSeconds = 0.6f;
             IsGrounded = true;
             FaceEnabled = true;
         }
@@ -176,6 +235,9 @@ namespace EGamePlay.Unity
         /// <summary>绑定位移裁决；有则水平/重力均走 MotionDirector。</summary>
         public void BindMotion(MotionDirector motion) => _motion = motion;
 
+        /// <summary>绑定 RM 采样口。急转窗口借用 delta，不占技能 Token。</summary>
+        public void BindRootMotion(RootMotionDriver driver) => _rootMotion = driver;
+
         /// <summary>临时关闭重力（优先交 MotionDirector）。</summary>
         public void SetNoGravityT(float time)
         {
@@ -228,6 +290,7 @@ namespace EGamePlay.Unity
             _jumpBufferRemain = 0f;
             _coyoteRemain = 0f;
             _landSlowRemain = 0f;
+            AbortSprintPivot();
 
             if (_moveDir.sqrMagnitude > 0.0001f)
                 _airborneMoveDir = _moveDir;
@@ -276,11 +339,18 @@ namespace EGamePlay.Unity
 
             SampleMoveIntent(dt);
 
-            if (ResolveMoveWeight() <= 0f)
+            float moveWeight = ResolveMoveWeight();
+            if (moveWeight <= 0f)
+            {
+                AbortSprintPivot();
                 return;
+            }
 
             if (_controller == null || !_controller.enabled)
+            {
+                AbortSprintPivot();
                 return;
+            }
 
             if (IsGrounded)
                 _isFalling = false;
@@ -289,11 +359,25 @@ namespace EGamePlay.Unity
 
             float dead = _tuning.InputDeadZone;
             bool moving = Mathf.Clamp01(_inputDir.magnitude) > dead;
-            bool hasMoveIntent = moving || _noInputTime < MoveReleaseGrace;
+            SampleFootCycle();
+            TickSprintPivot(dt, moving);
 
-            ApplyGaitInput(hasMoveIntent);
+            bool hasMoveIntent = moving || _noInputTime < MoveReleaseGrace || IsPivoting;
+            if (!IsPivoting)
+                ApplyGaitInput(hasMoveIntent);
 
-            if (hasMoveIntent)
+            if (IsPivoting)
+            {
+                if (!_isPerformingStep)
+                {
+                    _isPerformingStep = true;
+                    _stepStartTime = _time != null ? _time.PlayerTime : Time.time;
+                }
+
+                ApplyPivotTargetSpeed();
+                _stateSink?.SetLocomotionState(true, true, false, true);
+            }
+            else if (hasMoveIntent)
             {
                 if (!_isPerformingStep)
                 {
@@ -376,7 +460,8 @@ namespace EGamePlay.Unity
 
             float moveWeight = ResolveMoveWeight();
 
-            if (FaceEnabled)
+            bool codeTurn = FaceEnabled && !(IsPivoting && _rootMotion != null);
+            if (codeTurn)
             {
                 Vector3 faceDir = ResolveFaceDir();
                 if (faceDir.sqrMagnitude > 0.0001f)
@@ -463,8 +548,22 @@ namespace EGamePlay.Unity
 
             Quaternion targetRot = Quaternion.LookRotation(planar.normalized, Vector3.up);
             float delta = _time != null ? _time.FixedPlayerDelta : Time.fixedDeltaTime;
-            float maxDeg = _tuning.MovingTurnSpeed * delta;
+            float maxDeg = ResolveTurnSpeed() * delta;
+            if (maxDeg <= 0f)
+                return;
             _root.rotation = Quaternion.RotateTowards(_root.rotation, targetRot, maxDeg);
+        }
+
+        float ResolveTurnSpeed()
+        {
+            if (!IsPivoting)
+                return _tuning.MovingTurnSpeed;
+
+            // commit 前撑住旧朝向；之后用急转速度拧到新方向
+            if (PivotProgress < ResolvePivotCommit())
+                return 0f;
+
+            return _tuning.PivotTurnSpeed > 1f ? _tuning.PivotTurnSpeed : _tuning.MovingTurnSpeed * 2f;
         }
 
         /// <summary>有锁朝目标；否则朝当前水平移动方向。</summary>
@@ -477,6 +576,9 @@ namespace EGamePlay.Unity
                 if (to.sqrMagnitude >= minLockFacingSqr)
                     return to;
             }
+
+            if (IsPivoting)
+                return ResolvePivotMoveDir();
 
             return ResolveHorizontalMoveDir(IsAirborneLocomotion);
         }
@@ -531,6 +633,9 @@ namespace EGamePlay.Unity
 
         Vector3 ResolveHorizontalMoveDir(bool airborne)
         {
+            if (IsPivoting && !airborne)
+                return ResolvePivotMoveDir();
+
             if (_inputDir.magnitude > _tuning.InputDeadZone && _moveDir.sqrMagnitude > 0.0001f)
             {
                 if (airborne)
@@ -565,6 +670,13 @@ namespace EGamePlay.Unity
                 return;
             }
 
+            if (!airborne && IsPivoting && _rootMotion != null)
+            {
+                SyncPivotSpeedFromRootMotion();
+                ApplyLocomotionAnim(idle: false, airborne: false);
+                return;
+            }
+
             Vector3 worldMoveDir = ResolveHorizontalMoveDir(airborne);
             if (worldMoveDir.sqrMagnitude < 0.0001f && _currentSpeed < 0.01f)
             {
@@ -579,7 +691,7 @@ namespace EGamePlay.Unity
             float targetSpeed = _targetSpeed * moveWeight;
             if (airborne)
                 targetSpeed *= Mathf.Max(0f, _tuning.AirMoveSpeedScale);
-            else if (_landSlowRemain > 0f)
+            else if (_landSlowRemain > 0f && !IsPivoting)
             {
                 float landScale = _tuning.LandSlowScale > 0.01f ? _tuning.LandSlowScale : 0.55f;
                 targetSpeed *= landScale;
@@ -591,6 +703,12 @@ namespace EGamePlay.Unity
             float decelTime = airborne
                 ? _tuning.Deceleration / Mathf.Max(airControl, 0.05f)
                 : _tuning.Deceleration;
+
+            if (!airborne && IsPivoting)
+            {
+                accelTime = _tuning.PivotAcceleration > 0.001f ? _tuning.PivotAcceleration : accelTime;
+                decelTime = _tuning.PivotDeceleration > 0.001f ? _tuning.PivotDeceleration : decelTime;
+            }
 
             _currentSpeed = Mathf.SmoothDamp(
                 _currentSpeed,
@@ -605,6 +723,9 @@ namespace EGamePlay.Unity
                     _motion.TryApply(MotionSource.Locomotion, horizontal, flattenY: true);
                 else
                     _controller.Move(horizontal);
+
+                if (_currentSpeed > StopSpeed)
+                    _travelDir = worldMoveDir.normalized;
             }
 
             ApplyLocomotionAnim(idle: false, airborne: airborne);
@@ -650,9 +771,10 @@ namespace EGamePlay.Unity
             float axisScale = isWalk ? 0.45f : (isRun ? 1f : 0f);
             float mx = 0f;
             float my = 0f;
-            if (axisScale > 0f && _root != null && _moveDir.sqrMagnitude > 0.0001f)
+            Vector3 animDir = IsPivoting ? ResolvePivotMoveDir() : _moveDir;
+            if (axisScale > 0f && _root != null && animDir.sqrMagnitude > 0.0001f)
             {
-                Vector3 local = _root.InverseTransformDirection(_moveDir);
+                Vector3 local = _root.InverseTransformDirection(animDir);
                 mx = local.x * axisScale;
                 my = local.z * axisScale;
             }
@@ -660,7 +782,7 @@ namespace EGamePlay.Unity
             _animator.SetFloat(MoveXId, mx);
             _animator.SetFloat(MoveYId, my);
 
-            if (!airborne)
+            if (!airborne && !IsPivoting)
                 TryCrossFadeGait(isWalk, isRun);
         }
 
@@ -694,7 +816,327 @@ namespace EGamePlay.Unity
             _hasIdleState = _animator.HasState(0, IdleStateId);
             _hasRunningState = _animator.HasState(0, RunningStateId);
             _hasWalkState = _animator.HasState(0, WalkStateId);
+            _hasSprintPivotState = _animator.HasState(0, SprintPivotStateId);
+            _hasSprintPivotLState = _animator.HasState(0, SprintPivotLStateId);
+            _hasSprintPivotRState = _animator.HasState(0, SprintPivotRStateId);
             _animStatesCached = true;
+        }
+
+        float PivotProgress =>
+            _pivotDuration > 0.001f ? Mathf.Clamp01(_pivotElapsed / _pivotDuration) : 1f;
+
+        float ResolvePivotCommit()
+        {
+            float commit = _tuning.PivotCommit;
+            return commit > 0.05f ? Mathf.Clamp01(commit) : 0.42f;
+        }
+
+        Vector3 ResolvePivotMoveDir()
+        {
+            return PivotProgress < ResolvePivotCommit() ? _pivotFrom : _pivotTo;
+        }
+
+        void ApplyPivotTargetSpeed()
+        {
+            float walk = _tuning.WalkMoveSpeed > 0.01f ? _tuning.WalkMoveSpeed : _tuning.RunMoveSpeed * 0.5f;
+            float jog = Mathf.Max(_tuning.RunMoveSpeed, walk);
+            float sprint = _tuning.SprintMoveSpeed > jog ? _tuning.SprintMoveSpeed : jog * 1.5f;
+            _isRun = true;
+            _isWalk = false;
+            if (_rootMotion != null)
+            {
+                _targetSpeed = sprint;
+                return;
+            }
+
+            _targetSpeed = PivotProgress < ResolvePivotCommit() ? 0f : sprint;
+        }
+
+        void TickSprintPivot(float dt, bool stickMoving)
+        {
+            if (_pivotCooldownRemain > 0f)
+                _pivotCooldownRemain = Mathf.Max(0f, _pivotCooldownRemain - dt);
+
+            if (IsPivoting)
+            {
+                if (IsAirborneLocomotion || _walkMode || IsLockFacing()
+                    || (_canWriteAnimParams != null && !_canWriteAnimParams()))
+                {
+                    AbortSprintPivot();
+                    return;
+                }
+
+                TrySyncPivotDurationFromAnim();
+                _pivotElapsed += dt;
+                if (_pivotElapsed >= _pivotDuration)
+                    EndSprintPivot();
+                return;
+            }
+
+            if (stickMoving)
+                TryBeginSprintPivot();
+        }
+
+        void TryBeginSprintPivot()
+        {
+            if (IsPivoting || _walkMode || !_sprintArmed)
+                return;
+            if (_pivotCooldownRemain > 0f || IsAirborneLocomotion)
+                return;
+            if (IsLockFacing())
+                return;
+            if (_canWriteAnimParams != null && !_canWriteAnimParams())
+                return;
+
+            float minSpeed = _tuning.PivotMinSpeed > 0.01f ? _tuning.PivotMinSpeed : 6f;
+            if (_currentSpeed < minSpeed)
+                return;
+
+            Vector3 from = ResolveTravelDir();
+            Vector3 to = Vector3.ProjectOnPlane(_moveDir, Vector3.up);
+            if (from.sqrMagnitude < 0.0001f || to.sqrMagnitude < 0.0001f)
+                return;
+
+            from.Normalize();
+            to.Normalize();
+            float angle = Vector3.Angle(from, to);
+            float need = _tuning.PivotAngle > 1f ? _tuning.PivotAngle : 135f;
+            if (angle < need)
+                return;
+
+            _pivotFrom = from;
+            _pivotTo = to;
+            _pivotElapsed = 0f;
+            _pivotDurationSynced = false;
+            _pivotDuration = _tuning.PivotDuration > 0.05f ? _tuning.PivotDuration : 0.36f;
+            _sprintArmed = true;
+            _isRun = true;
+            _isWalk = false;
+            if (PlaySprintPivotAnim())
+                CapturePivotRootMotion();
+            TrySyncPivotDurationFromAnim();
+        }
+
+        Vector3 ResolveTravelDir()
+        {
+            if (_travelDir.sqrMagnitude > 0.0001f)
+                return Vector3.ProjectOnPlane(_travelDir, Vector3.up);
+
+            if (_root == null)
+                return Vector3.zero;
+
+            return Vector3.ProjectOnPlane(_root.forward, Vector3.up);
+        }
+
+        bool IsLockFacing()
+        {
+            const float minLockFacingSqr = 0.0225f;
+            if (_facing == null || _root == null)
+                return false;
+            if (!_facing.TryGetFacingPoint(out Vector3 point))
+                return false;
+            Vector3 to = Vector3.ProjectOnPlane(point - _root.position, Vector3.up);
+            return to.sqrMagnitude >= minLockFacingSqr;
+        }
+
+        /// <summary>
+        /// 播急转片。按支撑脚选 SprintPivot_L / _R；都没有则回退 SprintPivot。
+        /// 片需保留 Root 位移和 Yaw（不要 Bake Into Pose）。
+        /// </summary>
+        bool PlaySprintPivotAnim()
+        {
+            if (_animator == null)
+                return false;
+            if (_canWriteAnimParams != null && !_canWriteAnimParams())
+                return false;
+
+            EnsureAnimStateCache();
+            int hash = ResolveSprintPivotHash();
+            if (hash == 0)
+                return false;
+
+            _pivotAnimHash = hash;
+            _lastGaitAnimHash = hash;
+            _animator.CrossFadeInFixedTime(hash, PivotAnimCrossFade, 0, 0f);
+            return true;
+        }
+
+        int ResolveSprintPivotHash()
+        {
+            bool wantRight = _stanceFoot == LocomotionFoot.Right;
+            if (wantRight && _hasSprintPivotRState)
+                return SprintPivotRStateId;
+            if (!wantRight && _hasSprintPivotLState)
+                return SprintPivotLStateId;
+            if (wantRight && _hasSprintPivotLState)
+                return SprintPivotLStateId;
+            if (!wantRight && _hasSprintPivotRState)
+                return SprintPivotRStateId;
+            if (_hasSprintPivotState)
+                return SprintPivotStateId;
+            return 0;
+        }
+
+        void CapturePivotRootMotion()
+        {
+            if (_rootMotion == null)
+                return;
+            _rootMotion.SetApplyFlags(true, true);
+            _rootMotion.SetLocomotionOwnsMotion(true);
+        }
+
+        void ReleasePivotRootMotion()
+        {
+            if (_rootMotion == null)
+                return;
+            _rootMotion.SetLocomotionOwnsMotion(false);
+            _rootMotion.SetApplyFlags(true, false);
+        }
+
+        void TrySyncPivotDurationFromAnim()
+        {
+            if (_pivotDurationSynced || _animator == null)
+                return;
+
+            AnimatorStateInfo info = _animator.GetCurrentAnimatorStateInfo(0);
+            if (!IsPivotAnimHash(info.shortNameHash))
+            {
+                if (!_animator.IsInTransition(0))
+                    return;
+                info = _animator.GetNextAnimatorStateInfo(0);
+                if (!IsPivotAnimHash(info.shortNameHash))
+                    return;
+            }
+
+            if (info.length < 0.05f)
+                return;
+
+            float speed = Mathf.Abs(info.speed) > 0.01f ? Mathf.Abs(info.speed) : 1f;
+            _pivotDuration = info.length / speed;
+            _pivotDurationSynced = true;
+        }
+
+        void SyncPivotSpeedFromRootMotion()
+        {
+            if (_rootMotion == null)
+                return;
+
+            Vector3 planar = _rootMotion.DeltaPosition;
+            planar.y = 0f;
+            float dt = _time != null ? _time.PlayerDelta : Time.deltaTime;
+            if (dt > 0.0001f)
+                _currentSpeed = planar.magnitude / dt;
+
+            if (planar.sqrMagnitude > 0.0001f)
+                _travelDir = planar.normalized;
+            else if (_root != null)
+            {
+                Vector3 fwd = Vector3.ProjectOnPlane(_root.forward, Vector3.up);
+                if (fwd.sqrMagnitude > 0.0001f)
+                    _travelDir = fwd.normalized;
+            }
+
+            _velocityXSmoothing = 0f;
+        }
+
+        void FinishPivotFacing()
+        {
+            _moveDir = _pivotTo;
+            if (_root != null)
+            {
+                Vector3 fwd = Vector3.ProjectOnPlane(_root.forward, Vector3.up);
+                _travelDir = fwd.sqrMagnitude > 0.0001f ? fwd.normalized : _pivotTo;
+            }
+            else
+            {
+                _travelDir = _pivotTo;
+            }
+        }
+
+        void EndSprintPivot()
+        {
+            SyncPivotSpeedFromRootMotion();
+            ReleasePivotRootMotion();
+            FinishPivotFacing();
+            _pivotElapsed = 0f;
+            _pivotDuration = 0f;
+            _pivotDurationSynced = false;
+            _pivotCooldownRemain = PivotCooldown;
+            _lastGaitAnimHash = 0;
+            _pivotAnimHash = 0;
+        }
+
+        void AbortSprintPivot()
+        {
+            if (!IsPivoting && _pivotDuration <= 0f)
+                return;
+
+            SyncPivotSpeedFromRootMotion();
+            ReleasePivotRootMotion();
+            _pivotElapsed = 0f;
+            _pivotDuration = 0f;
+            _pivotDurationSynced = false;
+            _pivotCooldownRemain = PivotCooldown;
+            _lastGaitAnimHash = 0;
+            _pivotAnimHash = 0;
+        }
+
+        bool IsPivotAnimHash(int hash)
+        {
+            if (_pivotAnimHash != 0 && hash == _pivotAnimHash)
+                return true;
+            return hash == SprintPivotLStateId
+                || hash == SprintPivotRStateId
+                || hash == SprintPivotStateId;
+        }
+
+        void SampleFootCycle()
+        {
+            if (IsPivoting || _animator == null || !IsGrounded)
+                return;
+            if (_canWriteAnimParams != null && !_canWriteAnimParams())
+                return;
+
+            AnimatorStateInfo info = _animator.GetCurrentAnimatorStateInfo(0);
+            if (!IsGaitCycleState(info.shortNameHash))
+            {
+                if (!_animator.IsInTransition(0))
+                    return;
+                info = _animator.GetNextAnimatorStateInfo(0);
+                if (!IsGaitCycleState(info.shortNameHash))
+                    return;
+            }
+
+            float offset = _tuning.FootCycleOffset;
+            float split = _tuning.FootSplit;
+            if (split < 0.2f || split > 0.8f)
+                split = 0.5f;
+
+            float cycle = info.normalizedTime + offset;
+            cycle -= Mathf.Floor(cycle);
+            _footCyclePhase = cycle;
+
+            bool inFirstHalf = cycle < split;
+            bool firstIsLeft = _tuning.FootLeftInFirstHalf;
+            _stanceFoot = (inFirstHalf == firstIsLeft) ? LocomotionFoot.Left : LocomotionFoot.Right;
+
+            float span = inFirstHalf ? split : 1f - split;
+            float local = inFirstHalf ? cycle : cycle - split;
+            _footPlantProgress = span > 0.001f ? Mathf.Clamp01(local / span) : 0f;
+
+            float cycleSeconds = info.length;
+            float speed = Mathf.Abs(info.speed);
+            if (speed > 0.01f)
+                cycleSeconds /= speed;
+            if (cycleSeconds < 0.05f)
+                cycleSeconds = 0.6f;
+            _gaitCycleSeconds = cycleSeconds;
+            _timeToNextPlant = (1f - _footPlantProgress) * cycleSeconds * span;
+        }
+
+        static bool IsGaitCycleState(int hash)
+        {
+            return hash == RunningStateId || hash == WalkStateId;
         }
 
         void GroundedCheck()

@@ -271,7 +271,7 @@ namespace FluxEditor
             return true;
         }
 
-        /// <summary>规范路径：<c>Assets/Editor/SkillSequences/{SkillId}.prefab</c>。</summary>
+        /// <summary>新建技能的默认路径：<c>Assets/Editor/SkillSequences/{SkillId}.prefab</c>（根目录）。已整理的轴可在子文件夹。</summary>
         public static string GetCanonicalSequencePrefabPath(string skillId)
         {
             return SequencePrefabFolder + "/" + skillId + ".prefab";

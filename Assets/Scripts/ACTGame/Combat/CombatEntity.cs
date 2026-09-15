@@ -34,6 +34,8 @@ namespace ACTGameEditor.Combat
         /// <summary>候场隐藏。非小队恒为 false。</summary>
         public bool IsBench => IsPlayerSquad && SquadPresence == SquadPresence.Bench;
         int _playerCombatClockHold;
+        /// <summary>角色配置 Id，对齐 RoleAttri / CharacterKit。0 表示未配，读不到招式包。</summary>
+        public int CharacterId { get; private set; }
         public AgentTag CurAgent { get; set; }
         public Transform ModelTrans { get; set; }
         public Transform RootTransform { get; set; }
@@ -284,6 +286,7 @@ namespace ACTGameEditor.Combat
 
         void InitializeIdentity(GameObjectData data)
         {
+            CharacterId = data.CharacterId;
             isTruePlayer = data.isTruePlayer;
             IsPlayerSquad = data.IsPlayerSquad;
             SquadSlot = data.SquadSlot;

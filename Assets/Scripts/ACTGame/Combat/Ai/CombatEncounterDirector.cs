@@ -134,6 +134,7 @@ namespace ACTGameEditor.Combat.Ai
             _slotsDirty = false;
             _slots.Clear();
             CombatParry.ClearAll();
+            CombatEvasiveAssist.ClearAll();
         }
 
         /// <inheritdoc />

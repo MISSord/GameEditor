@@ -38,9 +38,17 @@ namespace Flux
                 foreach (var item in dic.Keys)
                 {
 					if(item!=null)
+                    {
+#if FLUX_DEBUG
 						Debug.Log("yns  ClearSnapshot" + item.name);
+#endif
+                    }
 					else
+                    {
+#if FLUX_DEBUG
                         Debug.Log($"yns  clear null");
+#endif
+                    }
 				}
 				dic.Clear();
             }

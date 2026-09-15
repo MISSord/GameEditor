@@ -15,6 +15,8 @@ alwaysApply: true
 | Buff 效果（控制、跳伤、护盾、上 Buff） | 同上 | `EffectModify` |
 | 公式行 | 同上 | `FormulaType` |
 | 技能 / 段伤害 | `Tools/Config/Datas/AbilitySetting.xlsx` | 见 `__tables__.xlsx` |
+| 角色招式包（Kit / 4 键槽） | `Tools/Config/Datas/CharacterSetting.xlsx` | `CharacterKit`、`CharacterSlot` |
+| 小队换人（支援窗 / 支援点 / i-frame） | `Tools/Config/Datas/SquadSetting.xlsx` | `Squad` |
 | 角色基础属性 | `Tools/Config/Datas/RoleAttri.xlsx` | `CharacterAttri` |
 | 表登记 / 枚举 | `Tools/Config/Datas/__tables__.xlsx`、`__enums__.xlsx` | |
 

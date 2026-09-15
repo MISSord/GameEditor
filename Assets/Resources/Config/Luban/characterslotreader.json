@@ -1,0 +1,22 @@
+[
+  {
+    "CharacterId": 1,
+    "Button": 0,
+    "Press": 0,
+    "FormId": 0,
+    "Priority": 0,
+    "RequiredTags": [],
+    "SkillId": 11001,
+    "EmpoweredSkillId": 0
+  },
+  {
+    "CharacterId": 1,
+    "Button": 2,
+    "Press": 0,
+    "FormId": 0,
+    "Priority": 0,
+    "RequiredTags": [],
+    "SkillId": 11000,
+    "EmpoweredSkillId": 0
+  }
+]

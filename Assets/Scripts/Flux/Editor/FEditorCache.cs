@@ -48,7 +48,9 @@ namespace FluxEditor
 
 			if( obj == null )
 			{
+#if FLUX_DEBUG
 				Debug.Log ("obj is null" );
+#endif
 			}
 
 			if( _editorHash.ContainsKey( obj.GetInstanceID() ) )

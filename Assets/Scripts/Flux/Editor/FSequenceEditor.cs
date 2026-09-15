@@ -331,7 +331,9 @@ namespace FluxEditor
 
         private void OnWillChange()
         {
+#if FLUX_DEBUG
             Debug.Log($"OnWillChange !!");
+#endif
             foreach (FContainerEditor container in Editors)
             {
                 List<FTimelineEditor> timelineEditors = container.Editors;

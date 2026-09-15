@@ -72,6 +72,29 @@ namespace ACTGameEditor
             return (uint)index < Capacity && _slots[index].Occupied;
         }
 
+        /// <summary>读槽位当前预输入（不消费）。</summary>
+        public bool TryPeek(
+            SkillSlotId slotId,
+            out InputListernType command,
+            out PressType press,
+            out InputCallBackType callback)
+        {
+            int index = (int)slotId;
+            if ((uint)index >= Capacity || !_slots[index].Occupied)
+            {
+                command = default;
+                press = default;
+                callback = default;
+                return false;
+            }
+
+            Pending p = _slots[index];
+            command = p.Command;
+            press = p.Press;
+            callback = p.Callback;
+            return true;
+        }
+
         /// <summary>预输入是否匹配该槽位的键位绑定。</summary>
         public bool MatchesSlot(
             SkillSlotId slotId,

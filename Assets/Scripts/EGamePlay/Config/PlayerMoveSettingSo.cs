@@ -70,5 +70,31 @@ namespace EGamePlay
         [XCLabel("落地顿移速倍率")]
         [Range(0.2f, 1f)]
         public float LandSlowScale = 0.55f;
+
+        [Header("快跑急转")]
+        [XCLabel("触发夹角(度)")]
+        public float PivotAngle = 135f;
+        [XCLabel("窗口时长(秒)")]
+        public float PivotDuration = 0.36f;
+        [XCLabel("转身加速点(0-1)")]
+        [Range(0.15f, 0.8f)]
+        public float PivotCommit = 0.42f;
+        [XCLabel("急转转向速度(度/秒)")]
+        public float PivotTurnSpeed = 1440f;
+        [XCLabel("急转刹停时间")]
+        public float PivotDeceleration = 0.08f;
+        [XCLabel("急转再加速时间")]
+        public float PivotAcceleration = 0.1f;
+        [XCLabel("触发最低速度")]
+        public float PivotMinSpeed = 6f;
+
+        [Header("脚步相位")]
+        [XCLabel("循环相位偏移")]
+        public float FootCycleOffset = 0f;
+        [XCLabel("左右脚分界(0-1)")]
+        [Range(0.2f, 0.8f)]
+        public float FootSplit = 0.5f;
+        [XCLabel("前半是左脚")]
+        public bool FootLeftInFirstHalf = true;
     }
 }

@@ -146,6 +146,9 @@ namespace EGamePlay.Unity
         /// <summary>SkillLayer&gt;0 时的目标权重。</summary>
         public float SkillLayerWeight { get; set; } = 1f;
 
+        /// <summary>Animator Root Motion 采样口。急转等 Locomotion 可借用，不占技能 Token。</summary>
+        public RootMotionDriver RootMotion => _rootMotion;
+
         /// <summary>回 Locomotion 时读取的移动意图。</summary>
         public Func<Vector2> MoveIntentProvider { get; set; }
 

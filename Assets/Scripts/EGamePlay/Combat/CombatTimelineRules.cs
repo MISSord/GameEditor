@@ -17,6 +17,8 @@ namespace EGamePlay.Combat
         public static string PlayAudio = "PlayAudio";
         /// <summary>敌人出手预警；StrMsg 填 TelegraphKind 名（Dodge/Parry/Jump/Unblockable），FloatMsg 填时长秒（0=默认）。</summary>
         public static string AiTelegraph = "AiTelegraph";
+        /// <summary>开快速支援窗；FloatMsg 填窗长秒（0=SquadSetting.AssistWindow）。</summary>
+        public static string AssistCue = "AssistCue";
     }
 
     /// <summary>技能时间轴消息的表现层落地（动画/移动/渲染等）。</summary>

@@ -1,11 +1,12 @@
 using System.Collections.Generic;
-using ACTGameEditor;
+using EGamePlay;
 
 namespace EGamePlay.Combat
 {
     /// <summary>
     /// 将“被动技能”以常驻 Buff 的形式挂载到实体身上，并负责差量同步（挂载/卸载）。
     /// 只管理自己挂载的 Buff，不影响其它系统添加的 Buff。
+    /// BuffId 只读 <see cref="SkillDemoSetting.PassiveBuffIds"/>，不走映射 SO。
     /// </summary>
     public sealed class PassiveSkillBuffComponent : Component
     {
@@ -24,11 +25,18 @@ namespace EGamePlay.Combat
             _desiredPassiveBuffIds.Clear();
             if (passiveSkillIds != null)
             {
+                SkillSettingMgr mgr = SkillSettingMgr.Instance;
                 foreach (var passiveSkillId in passiveSkillIds)
                 {
                     if (passiveSkillId <= 0) continue;
-                    int buffId = PassiveSkillBuffMapCollection.GetBuffId(passiveSkillId);
-                    if (buffId > 0) _desiredPassiveBuffIds.Add(buffId);
+                    SkillDemoSetting config = mgr != null ? mgr.GetSkillDemoSettingOrNull(passiveSkillId) : null;
+                    List<int> buffIds = config != null ? config.PassiveBuffIds : null;
+                    if (buffIds == null) continue;
+                    for (int i = 0; i < buffIds.Count; i++)
+                    {
+                        int buffId = buffIds[i];
+                        if (buffId > 0) _desiredPassiveBuffIds.Add(buffId);
+                    }
                 }
             }
 
@@ -83,4 +91,3 @@ namespace EGamePlay.Combat
         }
     }
 }
-

@@ -13,9 +13,11 @@ alwaysApply: true
 
 | | 路径 |
 |---|---|
-| 源（改这里） | `Assets/Editor/SkillSequences/{SkillId}.prefab` |
+| 源（改这里） | `Assets/Editor/SkillSequences/` 下的 `{SkillId}.prefab`。**新建默认在根目录**；已整理的轴在 `MainPlayer/`、`EmenyPlayer/` 等子文件夹 |
 | 产物（导出覆盖，勿手改） | 玩家 `Assets/Game/Config/SkillDataScriptable/{id}.asset`；敌人 `.../SkillData_Enemy/{id}.asset` |
-| 导出 | Flux 窗口保存按钮，或 **GameObject/Flux/保存选中Seq技能** |
+| 导出 | 技能工作台或 Flux 保存按钮，或 **GameObject/Flux/保存选中Seq技能** |
+
+找已有预制体用 `Assets/Editor/SkillSequences/**/{SkillId}.prefab`，不要假定一定在根目录。
 
 `GameObject/Flux/从 Asset 同步 Input/Trigger/Effect` 是 SO→预制体的反向同步，不是日常改轴入口。
 
@@ -28,11 +30,11 @@ alwaysApply: true
 ```
 【技能编辑器待改】
 - SkillId:
-- 预制体: Assets/Editor/SkillSequences/{id}.prefab
+- 预制体: Assets/Editor/SkillSequences/**/{id}.prefab（新建在根目录；也可能在 MainPlayer / EmenyPlayer）
 - 导出后产物: Assets/Game/Config/SkillDataScriptable/...
 - 改动（逐条：轨/事件、帧范围、字段名、目标值、为什么）:
   1.
 - 不要改: SkillData Scriptable
 ```
 
-帧按 30fps。Msg 举例：`MsgName=AiTelegraph`，`StrMsg=Dodge|Unblockable`，`FloatdMsg`=时长秒。
+帧按 30fps。Msg 举例：`MsgName=AiTelegraph`，`StrMsg=Dodge|Unblockable`，`FloatdMsg`=时长秒。开快速支援窗：`MsgName=AssistCue`，`FloatdMsg`=窗长秒（0=SquadSetting.AssistWindow）。

@@ -169,19 +169,19 @@ namespace ACTGameEditor
         public List<string> SkillTagList = new List<string>();
     }
 
+    /// <summary>
+    /// 连招窗边运行时。打断档用 <see cref="EGamePlay.Combat.SkillSortUtil.FromSkillId"/>；
+    /// 释放 Tag 走目标技能 Gate。下列隐藏字段仅兼容旧导出。
+    /// </summary>
     [Serializable]
-    //输入信息
     public class SkillInputData 
     {
-        //监听操作类型
         public InputListernType ListernType;
         public PressType PressType;
         public InputCallBackType InputCallBackType;
-        //技能ID
         public int SkillId;
-        //技能优先级
+        /// <summary>已废弃：运行时按目标 SkillCategory 解析。</summary>
         public int SkillSort;
-        //技能释放Buff判断
         public List<string> RequiredTags;
         public List<string> BlockedTags;
         /// <summary>窗边预输入寿命（秒）。≤0 时用 NormalActPlayer.ComboBufferTimeout。</summary>

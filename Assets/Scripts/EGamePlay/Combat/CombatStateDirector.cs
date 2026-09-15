@@ -28,6 +28,7 @@ namespace EGamePlay.Combat
         bool _wantMoving;
         bool _wantRun;
         bool _wantWalk;
+        bool _wantPivot;
 
         bool _airborne;
         bool _jumpAirborne;
@@ -70,6 +71,7 @@ namespace EGamePlay.Combat
             _wantMoving = false;
             _wantRun = false;
             _wantWalk = false;
+            _wantPivot = false;
         }
 
         /// <summary>技能开轴。同槽后写覆盖（连招顶替）。硬控/失衡/死亡中忽略。</summary>
@@ -203,11 +205,12 @@ namespace EGamePlay.Combat
         }
 
         /// <summary>Locomotion 只报意图，不直接写 CurState；地面时才刷新 CurMoveState。</summary>
-        public void NotifyLocomotion(bool isMoving, bool isRun, bool isWalk = false)
+        public void NotifyLocomotion(bool isMoving, bool isRun, bool isWalk = false, bool isPivot = false)
         {
             _wantMoving = isMoving;
-            _wantWalk = isWalk && isMoving;
-            _wantRun = isRun && isMoving && !_wantWalk;
+            _wantPivot = isPivot && isMoving;
+            _wantWalk = isWalk && isMoving && !_wantPivot;
+            _wantRun = isRun && isMoving && !_wantWalk && !_wantPivot;
             if (_owner != null && !_airborne)
                 ApplyGroundMoveState();
 
@@ -255,6 +258,8 @@ namespace EGamePlay.Combat
         {
             if (!_wantMoving)
                 _owner.CurMoveState = MoveTypeEnum.Idle;
+            else if (_wantPivot)
+                _owner.CurMoveState = MoveTypeEnum.Pivot;
             else if (_wantWalk)
                 _owner.CurMoveState = MoveTypeEnum.Walk;
             else
