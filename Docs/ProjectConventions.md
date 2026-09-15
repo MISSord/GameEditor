@@ -6,7 +6,7 @@
 
 ## 这是什么项目
 
-Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGamePlay（自研 Entity/Component，**不是** Unity DOTS）。对照鸣潮 / 绝区零的手感，不用 Unity 全局 `Time.timeScale` 做魔女时间。
+Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGamePlay（自研 Entity/Component，**不是** Unity DOTS）。对照鸣潮 / 绝区零的手感，不用 Unity 全局 `Time.timeScale` 做魔女时间。全景介绍见 [ProjectOverview.md](ProjectOverview.md)。
 
 入口：`EGamePlayInit`（`DefaultExecutionOrder(100)`）创建 ECS 根、`CombatContext`、`CombatSquad`、`ETTimerManager`，再 `PlayerManager.AddTruePlayer()`（同一预制体 ×3）。
 
