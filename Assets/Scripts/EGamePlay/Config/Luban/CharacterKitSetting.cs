@@ -31,6 +31,7 @@ public sealed partial class CharacterKitSetting : Luban.BeanBase
         { if(!_buf["DefensiveAssistSkillId"].IsNumber) { throw new SerializationException(); }  DefensiveAssistSkillId = _buf["DefensiveAssistSkillId"]; }
         { if(!_buf["EvasiveAssistSkillId"].IsNumber) { throw new SerializationException(); }  EvasiveAssistSkillId = _buf["EvasiveAssistSkillId"]; }
         { if(!_buf["AssistFollowUpSkillId"].IsNumber) { throw new SerializationException(); }  AssistFollowUpSkillId = _buf["AssistFollowUpSkillId"]; }
+        { if(!_buf["HarmonyBreakSkillId"].IsNumber) { throw new SerializationException(); }  HarmonyBreakSkillId = _buf["HarmonyBreakSkillId"]; }
     }
 
     public static CharacterKitSetting DeserializeCharacterKitSetting(JSONNode _buf)
@@ -94,6 +95,10 @@ public sealed partial class CharacterKitSetting : Luban.BeanBase
     /// 招架/回避后派生
     /// </summary>
     public readonly int AssistFollowUpSkillId;
+    /// <summary>
+    /// F谐度破坏 SkillId
+    /// </summary>
+    public readonly int HarmonyBreakSkillId;
    
     public const int __ID__ = -828896637;
     public override int GetTypeId() => __ID__;
@@ -119,6 +124,7 @@ public sealed partial class CharacterKitSetting : Luban.BeanBase
         + "DefensiveAssistSkillId:" + DefensiveAssistSkillId + ","
         + "EvasiveAssistSkillId:" + EvasiveAssistSkillId + ","
         + "AssistFollowUpSkillId:" + AssistFollowUpSkillId + ","
+        + "HarmonyBreakSkillId:" + HarmonyBreakSkillId + ","
         + "}";
     }
 }

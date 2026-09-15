@@ -31,6 +31,9 @@ namespace ACTGameEditor
         [Tooltip("有 Hold 行时，按下多久算长按（玩家钟）。无 Hold 行不走这段，点按立刻入队。")]
         [Range(0.15f, 0.8f)]
         public float HoldThreshold = 0.35f;
+        [Tooltip("谐度破坏结束后，Attack×Click 仍走记忆下一发的寿命（秒，玩家钟）。F 期间不递减。")]
+        [Range(0.15f, 1.5f)]
+        public float HarmonyComboMemoryTimeout = 0.45f;
 
         /// <summary> 槽位运行时：SlotId → 当前 SkillId </summary>
         public SkillSlotRuntime SlotRuntime { get; private set; }
@@ -55,6 +58,13 @@ namespace ACTGameEditor
 
         readonly HoldChannel[] _holdChannels = new HoldChannel[HoldChannelCount];
         readonly float[] _holdStartPlayerTime = new float[HoldChannelCount];
+
+        int _lastComboSkillId;
+        float _lastComboValidUntil;
+        int _harmonyComboNextId;
+        float _harmonyComboExpireAt;
+        float _harmonyComboRemain;
+        bool _harmonyComboPaused;
 
         protected override void StartCallBack()
         {
@@ -99,6 +109,7 @@ namespace ACTGameEditor
             Combat.UnListenActionPoint(ActionPointType.PostReceiveStatus, OnReceiveStatus);
 
             CDTimer = null;
+            ClearHarmonyComboMemory();
             InputBuffer?.Clear();
             InputBuffer = null;
             ClearHoldChannels();
@@ -111,9 +122,20 @@ namespace ACTGameEditor
 
             if (SkillSortUtil.IsRoll(spellCtx.Sort))
             {
+                ClearHarmonyComboMemory();
                 ApplyDodgeFacing(spellCtx);
                 Combat.ChangeInputRotateState(false);
                 return;
+            }
+
+            if (SkillTimelineCombo.IsComboContinueSkill(spellCtx.SkillId))
+            {
+                _lastComboSkillId = spellCtx.SkillId;
+                _lastComboValidUntil = PlayerTime + 60f;
+            }
+            else if (!CombatHarmonyBreak.IsHarmonyBreakSkill(spellCtx.SkillId))
+            {
+                ClearHarmonyComboMemory();
             }
 
             Vector3 lookDelta = spellCtx.InputTarget != null
@@ -166,8 +188,21 @@ namespace ACTGameEditor
 
         protected virtual void OnPostSpell(Entity combatAction)
         {
-            if (combatAction is ICombatSpellActionContext spellCtx && SkillSortUtil.IsRoll(spellCtx.Sort))
+            if (combatAction is not ICombatSpellActionContext spellCtx)
+                return;
+
+            if (SkillSortUtil.IsRoll(spellCtx.Sort))
+            {
                 Combat.ChangeInputRotateState(true);
+                return;
+            }
+
+            if (SkillTimelineCombo.IsComboContinueSkill(spellCtx.SkillId)
+                && _lastComboSkillId == spellCtx.SkillId)
+            {
+                float grace = HarmonyComboMemoryTimeout > 0.05f ? HarmonyComboMemoryTimeout : 0.45f;
+                _lastComboValidUntil = PlayerTime + grace;
+            }
         }
 
         protected virtual void OnCauseDamage(Entity combatAction)
@@ -293,6 +328,7 @@ namespace ACTGameEditor
         public void TickSkillInput()
         {
             CombatParry.ExpireFinishedStrikes();
+            TickHarmonyComboMemory();
             TickPendingHolds();
             CheckInitialInput();
             _animComponent?.Director?.Tick();
@@ -343,13 +379,28 @@ namespace ACTGameEditor
                 seenMask |= 1 << (int)entry.SlotId;
 
                 int skillId = SkillResolver.ResolveIdle(Combat, SlotRuntime, entry.SlotId, press);
+                bool usedHarmonyCombo = false;
+                if (press == PressType.Click && entry.SlotId == SkillSlotId.NormalAttack)
+                {
+                    if (_harmonyComboPaused && _harmonyComboNextId > 0)
+                        continue;
+
+                    if (TryPeekHarmonyComboNext(out int comboNext) && comboNext > 0)
+                    {
+                        skillId = comboNext;
+                        usedHarmonyCombo = true;
+                    }
+                }
+
                 if (skillId <= 0)
                 {
                     InputBuffer.Consume(entry.SlotId);
                     continue;
                 }
 
-                int sort = ResolveCommitSort(entry, press);
+                int sort = usedHarmonyCombo
+                    ? SkillSortUtil.FromSkillId(skillId)
+                    : ResolveCommitSort(entry, press);
                 if (interruptOnly && !SkillCancelService.IsHardInterrupt(currentSort, sort))
                     continue;
 
@@ -357,6 +408,9 @@ namespace ACTGameEditor
                 ActivateFail fail = AbilityActivationGate.Evaluate(Combat, skillId, sort, CDTimer);
                 if (fail != ActivateFail.None)
                     continue;
+
+                if (usedHarmonyCombo)
+                    ConsumeHarmonyComboNext();
 
                 InputBuffer.Consume(entry.SlotId);
                 AddSpellInfo(skillId, sort, targetOverride);
@@ -394,6 +448,7 @@ namespace ACTGameEditor
         public void LoadCharacterSlots(CharacterSlotConfig charConfig)
         {
             CharacterSlotConfig = charConfig;
+            ClearHarmonyComboMemory();
             if (SlotRuntime != null && SlotConfig != null)
             {
                 int characterId = Combat != null ? Combat.CharacterId : CharacterId;
@@ -666,8 +721,124 @@ namespace ACTGameEditor
 
         public void InputRecordsClear()
         {
+            ClearHarmonyComboMemory();
             InputBuffer?.Clear();
             ClearHoldChannels();
+        }
+
+        /// <inheritdoc />
+        public void CaptureHarmonyComboMemory()
+        {
+            int from = ResolveHarmonyComboFromSkillId();
+            InputListernType attackCmd = ResolveAttackCommand();
+            int next = SkillTimelineCombo.FindNextAttackClick(from, attackCmd);
+            if (next <= 0)
+            {
+                ConsumeHarmonyComboNext();
+                return;
+            }
+
+            EnsureAbilityAttached(next);
+            float grace = HarmonyComboMemoryTimeout > 0.05f ? HarmonyComboMemoryTimeout : 0.45f;
+            _harmonyComboNextId = next;
+            _harmonyComboExpireAt = PlayerTime + grace;
+            _harmonyComboRemain = grace;
+        }
+
+        /// <inheritdoc />
+        public void SetHarmonyComboPause(bool paused)
+        {
+            float now = PlayerTime;
+            InputBuffer?.SetAgingPaused(paused, now);
+            if (paused == _harmonyComboPaused)
+                return;
+
+            if (paused)
+            {
+                _harmonyComboRemain = _harmonyComboNextId > 0
+                    ? Mathf.Max(0f, _harmonyComboExpireAt - now)
+                    : 0f;
+                _harmonyComboPaused = true;
+                return;
+            }
+
+            _harmonyComboPaused = false;
+            if (_harmonyComboNextId > 0)
+                _harmonyComboExpireAt = now + _harmonyComboRemain;
+        }
+
+        /// <inheritdoc />
+        public void ClearHarmonyComboMemory()
+        {
+            SetHarmonyComboPause(false);
+            _lastComboSkillId = 0;
+            _lastComboValidUntil = 0f;
+            ConsumeHarmonyComboNext();
+        }
+
+        void TickHarmonyComboMemory()
+        {
+            if (_harmonyComboNextId <= 0 || _harmonyComboPaused)
+                return;
+            if (PlayerTime >= _harmonyComboExpireAt)
+                ConsumeHarmonyComboNext();
+        }
+
+        bool TryPeekHarmonyComboNext(out int nextSkillId)
+        {
+            nextSkillId = _harmonyComboNextId;
+            if (nextSkillId <= 0 || _harmonyComboPaused)
+                return false;
+            if (PlayerTime >= _harmonyComboExpireAt)
+            {
+                ConsumeHarmonyComboNext();
+                nextSkillId = 0;
+                return false;
+            }
+
+            return true;
+        }
+
+        void ConsumeHarmonyComboNext()
+        {
+            _harmonyComboNextId = 0;
+            _harmonyComboExpireAt = 0f;
+            _harmonyComboRemain = 0f;
+        }
+
+        int ResolveHarmonyComboFromSkillId()
+        {
+            ActSkillRunner runner = Combat != null ? Combat.SpellingExecution : null;
+            if (runner != null && !runner.IsDisposed && runner.AbilityEntity != null)
+            {
+                int current = runner.AbilityEntity.SkillID;
+                if (SkillTimelineCombo.IsComboContinueSkill(current))
+                    return current;
+            }
+
+            if (_lastComboSkillId > 0 && PlayerTime < _lastComboValidUntil
+                && SkillTimelineCombo.IsComboContinueSkill(_lastComboSkillId))
+                return _lastComboSkillId;
+
+            return 0;
+        }
+
+        InputListernType ResolveAttackCommand()
+        {
+            SkillSlotConfig.SlotEntry entry = SlotConfig != null
+                ? SlotConfig.FindBySlot(SkillSlotId.NormalAttack)
+                : null;
+            return entry != null ? entry.InputType : InputListernType.ButtonX;
+        }
+
+        void EnsureAbilityAttached(int skillId)
+        {
+            if (skillId <= 0 || Combat == null)
+                return;
+            AbilityComponent abilities = Combat.GetComponent<AbilityComponent>();
+            if (abilities == null || abilities.IdAbilities.ContainsKey(skillId))
+                return;
+            abilities.AttachAbility(skillId);
         }
 
         public bool IsHadInputRecords()

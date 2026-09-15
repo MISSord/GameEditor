@@ -112,6 +112,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Execute",
+                    "type": "Button",
+                    "id": "a7c8d9e0-f1a2-4b3c-8d4e-5f60718293b4",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -354,6 +363,17 @@
                     "processors": "",
                     "groups": "Mouse and Keyboard",
                     "action": "Switch2",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c5e6f708-192a-43b4-ce35-f60718293b4c",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Mouse and Keyboard",
+                    "action": "Execute",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

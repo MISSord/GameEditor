@@ -583,6 +583,7 @@ namespace ACTGameEditor.Combat
                 return;
 
             DazeMeter?.OnOwnerDeath();
+            (AttackPlayer as IAttackPlayer)?.ClearHarmonyComboMemory();
             _stateDirector?.EnterDead();
 
             var runner = ActiveExecution;
@@ -612,6 +613,7 @@ namespace ACTGameEditor.Combat
 
             bool exiting = IsPlayerSquad && SquadPresence == SquadPresence.Exiting;
             BreakActiveSkill();
+            (AttackPlayer as IAttackPlayer)?.ClearHarmonyComboMemory();
             if (exiting)
                 return false;
 
@@ -634,6 +636,7 @@ namespace ACTGameEditor.Combat
 
             float stun = durationSeconds > 0.01f ? durationSeconds : 0.55f;
             BreakActiveSkill();
+            (AttackPlayer as IAttackPlayer)?.ClearHarmonyComboMemory();
             _stateDirector?.EnterHit(sourceId, stun);
 
 #if UNITY
@@ -715,6 +718,7 @@ namespace ACTGameEditor.Combat
                 return;
 
             _stateDirector?.EnterControl();
+            (AttackPlayer as IAttackPlayer)?.ClearHarmonyComboMemory();
 
             var runner = ActiveExecution;
             if (runner != null)

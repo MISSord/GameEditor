@@ -245,7 +245,8 @@ namespace ACTGameEditor.Combat
                 && !CombatParry.HasIncomingStrike(outgoing)
                 && !CombatEvasiveAssist.HasIncomingStrike(outgoing)
                 && !HasQuickAssistWindow()
-                && !CombatChainSkill.TryResolveTarget(outgoing, out _))
+                && !(CombatMeterComponent.DazeGameplayEnabled
+                    && CombatChainSkill.TryResolveTarget(outgoing, out _)))
                 return false;
             return true;
         }
@@ -439,7 +440,8 @@ namespace ACTGameEditor.Combat
                 : SkillCategory.None;
             return cat == SkillCategory.QuickAssist
                 || cat == SkillCategory.EvasiveAssist
-                || cat == SkillCategory.AssistFollowUp;
+                || cat == SkillCategory.AssistFollowUp
+                || cat == SkillCategory.HarmonyBreak;
         }
 
         static Vector3 ResolveComboEnterPosition(CombatEntity outgoing)
@@ -459,7 +461,8 @@ namespace ACTGameEditor.Combat
         }
 
         /// <summary>
-        /// 黄闪 → 防御支援；红闪 → 回避支援；失衡窗 → 连携；支援窗 → 快速支援；否则 Manual。
+        /// 黄闪 → 防御支援；红闪 → 回避支援；支援窗 → 快速支援；否则 Manual。
+        /// 失衡连携已屏蔽（<see cref="CombatMeterComponent.DazeGameplayEnabled"/>）。
         /// 窗口要求的 Kit 列为 0，或黄/红没点时失败（不降级 Manual）。
         /// </summary>
         bool TryResolveSwitchIntent(
@@ -500,7 +503,8 @@ namespace ACTGameEditor.Combat
                 return true;
             }
 
-            if (CombatChainSkill.TryResolveTarget(outgoing, out CombatEntity chainTarget))
+            if (CombatMeterComponent.DazeGameplayEnabled
+                && CombatChainSkill.TryResolveTarget(outgoing, out CombatEntity chainTarget))
             {
                 int id = kit != null ? kit.ChainSkillId : 0;
                 if (id <= 0)

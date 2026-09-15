@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace EGamePlay.Combat
@@ -202,12 +202,6 @@ namespace EGamePlay.Combat
                 return null;
             }
             return AttachStatusImmediate(buffId);
-        }
-
-        /// <summary>直挂入口（测试面板 / 被动）。绕过免疫与 PreGive，战斗施加请走 <see cref="AddStatusAction"/>。</summary>
-        public Buff AttachStatus(BuffDemoSetting config)
-        {
-            return AttachStatus(config.BuffId);
         }
 
         /// <summary>卸除指定 Buff。无原因时视为 <see cref="BuffRemoveReason.Manual"/>。</summary>

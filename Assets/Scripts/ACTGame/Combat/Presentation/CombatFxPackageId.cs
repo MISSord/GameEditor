@@ -43,8 +43,10 @@ namespace ACTGameEditor.Combat
         SwitchIn = 400,
         /// <summary>切人退场（延奏）。</summary>
         SwitchOut = 401,
-        /// <summary>连携/Chain Attack 演出。</summary>
+        /// <summary>连携/Chain Attack 演出（失衡已屏蔽，包保留）。</summary>
         ChainAttack = 402,
+        /// <summary>谐度破坏处决：实体钟 HitStop + 目标闪白 + 处决震屏。不走世界钟断裂。</summary>
+        HarmonyBreak = 403,
 
         // ── 大招 / 演出 ──
         /// <summary>终结技短演出：时停 + 背景虚化（时间轴主导）。</summary>

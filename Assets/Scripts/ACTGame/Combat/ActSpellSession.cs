@@ -20,6 +20,7 @@ namespace ACTGameEditor.Combat
         int _sort;
         bool _postProcessed;
         bool _chainHolding;
+        bool _harmonyHolding;
 
         public ICombatUnit Caster => _caster;
         public ICombatUnit InputTarget => _inputTarget;
@@ -67,6 +68,22 @@ namespace ACTGameEditor.Combat
                     session._inputDirection = to.normalized;
                 session._inputPoint = chainTarget.Position;
             }
+            else if (CombatHarmonyBreak.IsHarmonyBreakSkill(session._skillId))
+            {
+                CombatEntity breakTarget = session._inputTarget;
+                if (!CombatHarmonyBreak.IsValidReadyTarget(caster, breakTarget)
+                    && !CombatHarmonyBreak.TryResolveTarget(caster, out breakTarget))
+                {
+                    session.DestroySelf();
+                    return null;
+                }
+
+                session._inputTarget = breakTarget;
+                Vector3 to = breakTarget.Position - caster.Position;
+                if (to.sqrMagnitude > 0.0001f)
+                    session._inputDirection = to.normalized;
+                session._inputPoint = breakTarget.Position;
+            }
 
             session.PreProcess();
             if (!session.TryConsumeResource())
@@ -88,6 +105,17 @@ namespace ACTGameEditor.Combat
                 }
 
                 session._chainHolding = true;
+            }
+            else if (CombatHarmonyBreak.IsHarmonyBreakSkill(session._skillId))
+            {
+                if (!CombatHarmonyBreak.OnSessionStarted(session._caster, session._inputTarget))
+                {
+                    session._runner.BreakSkill();
+                    session.DestroySelf();
+                    return null;
+                }
+
+                session._harmonyHolding = true;
             }
 
             return session;
@@ -223,6 +251,12 @@ namespace ACTGameEditor.Combat
 
         void ReleaseChainHold()
         {
+            if (_harmonyHolding)
+            {
+                _harmonyHolding = false;
+                CombatHarmonyBreak.OnSessionEnded(_caster, _inputTarget);
+            }
+
             if (!_chainHolding)
                 return;
             _chainHolding = false;
@@ -275,6 +309,7 @@ namespace ACTGameEditor.Combat
             _sort = 0;
             _postProcessed = false;
             _chainHolding = false;
+            _harmonyHolding = false;
 
             if (caster != null && !caster.IsDisposed)
                 CombatSquad.Instance?.NotifyExitComplete(caster);
@@ -292,6 +327,7 @@ namespace ACTGameEditor.Combat
             _sort = 0;
             _postProcessed = false;
             _chainHolding = false;
+            _harmonyHolding = false;
         }
 
         void DestroySelf()

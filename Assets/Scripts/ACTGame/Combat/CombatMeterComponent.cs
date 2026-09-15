@@ -6,13 +6,27 @@ using UnityEngine;
 namespace ACTGameEditor.Combat
 {
     /// <summary>
-    /// 失衡计量条：不是 TimeBuff，不进 IdStatuses。
-    /// 技能命中在 PostReceiveDamage 加值；条满由宿主进 Stagger，导演 Punish。
+    /// 敌人计量条：不是 TimeBuff，不进 IdStatuses。
+    /// 偏谐：<see cref="HarmonyBreakEnabled"/> 攒条，满则 Ready，怪不硬直。
+    /// 旧失衡硬直 / 连携窗：<see cref="DazeGameplayEnabled"/>，保持 false。
     /// </summary>
     public sealed class CombatMeterComponent : EGamePlay.Component
     {
+        /// <summary>
+        /// 绝区零失衡硬直与连携窗。不要打开来「临时玩连携」。
+        /// </summary>
+        public const bool DazeGameplayEnabled = false;
+
+        /// <summary>
+        /// 偏谐攒条与失谐 Ready。与 <see cref="DazeGameplayEnabled"/> 不要同时为 true。
+        /// </summary>
+        public const bool HarmonyBreakEnabled = true;
+
         /// <summary>M1 冲击力常量。以后进 RoleAttri 只改这里。</summary>
         public const float DefaultImpact = 100f;
+
+        /// <summary>表 VacuumSeconds≤0 时的真空锁零秒。</summary>
+        public const float DefaultVacuumSeconds = 5f;
 
         const long RecoverTagSourceId = -2101;
 
@@ -36,26 +50,37 @@ namespace ACTGameEditor.Combat
         int _chainCount = 1;
         bool _canDaze = true;
         float _parryDazeRatio = CombatParry.DefaultParryDazeRatio;
+        float _vacuumSeconds = DefaultVacuumSeconds;
 
         float _current;
         float _holdRemain;
         float _recoverRemain;
+        float _vacuumRemain;
         int _chainRemaining;
         DazePhase _phase;
 
         /// <summary>已按档配过表。玩家未 Configure，UI 不画条。</summary>
         public bool IsConfigured => _configured;
 
+        /// <summary>血条下偏谐条。未配档或不可积蓄时不显示。</summary>
+        public bool ShowHarmonyHud => HarmonyBreakEnabled && _configured && _canDaze;
+
+        /// <summary>旧失衡条 HUD。失衡已关，恒为 false。</summary>
+        public bool ShowDazeHud => DazeGameplayEnabled && _configured;
+
+        /// <summary>失谐：条满，可按 F。不进 Stagger。</summary>
+        public bool IsHarmonyReady => HarmonyBreakEnabled && _phase == DazePhase.Ready;
+
         /// <summary>0~1，UI 只读。</summary>
         public float CurrentRatio => _max > 0.0001f ? Mathf.Clamp01(_current / _max) : 0f;
 
-        /// <summary>Opened / Draining：硬直中。</summary>
+        /// <summary>Opened / Draining：旧失衡硬直中。</summary>
         public bool IsOpened => _phase == DazePhase.Opened || _phase == DazePhase.Draining;
 
-        /// <summary>Opened/Draining 且仍有连携次数。</summary>
-        public bool IsChainWindow => IsOpened && _chainRemaining > 0;
+        /// <summary>Opened/Draining 且仍有连携次数。失衡关时恒为 false。</summary>
+        public bool IsChainWindow => DazeGameplayEnabled && IsOpened && _chainRemaining > 0;
 
-        /// <summary>招架成功写入的失衡倍率；走 AddDaze(Parry) 冲击力公式。</summary>
+        /// <summary>招架成功写入的倍率；走 AddDaze(Parry) 冲击力公式。</summary>
         public float ParryDazeRatio => _parryDazeRatio > 0.0001f
             ? _parryDazeRatio
             : CombatParry.DefaultParryDazeRatio;
@@ -94,6 +119,7 @@ namespace ACTGameEditor.Combat
             _chainCount = 1;
             _canDaze = true;
             _parryDazeRatio = CombatParry.DefaultParryDazeRatio;
+            _vacuumSeconds = DefaultVacuumSeconds;
         }
 
         /// <summary>生成时按杂兵/精英/首领档写入。缺表行回退杂兵。</summary>
@@ -121,6 +147,9 @@ namespace ACTGameEditor.Combat
                 _parryDazeRatio = row.ParryDazeRatio > 0.0001f
                     ? row.ParryDazeRatio
                     : CombatParry.DefaultParryDazeRatio;
+                _vacuumSeconds = row.VacuumSeconds > 0.05f
+                    ? row.VacuumSeconds
+                    : DefaultVacuumSeconds;
             }
 
             _configured = true;
@@ -128,35 +157,25 @@ namespace ACTGameEditor.Combat
             _phase = DazePhase.Idle;
             _chainRemaining = 0;
             _drainPaused = false;
+            _vacuumRemain = 0f;
         }
 
         /// <summary>
-        /// 加失衡。Skill 的 raw 是段表 DazeRatio；DirectPct 的 raw 是上限百分比；Debug 的 raw 是绝对点数。
+        /// 加计量。Skill 的 raw 是段表 DazeRatio；DirectPct 的 raw 是上限百分比；Debug 的 raw 是绝对点数。
+        /// 偏谐开启时满条进 Ready；失衡开启时才 Open 硬直。
         /// </summary>
         public void AddDaze(float raw, DazeSource source)
         {
-            if (!_configured || !_canDaze || _owner == null || _owner.IsDead)
+            if (HarmonyBreakEnabled)
+            {
+                AddHarmony(raw, source);
                 return;
-            if (_phase == DazePhase.Opened || _phase == DazePhase.Draining || _phase == DazePhase.Recover)
-                return;
+            }
 
-            float points;
-            if (source == DazeSource.DirectPct)
-                points = _max * raw;
-            else if (source == DazeSource.Debug)
-                points = raw;
-            else
-                points = DefaultImpact * raw * (1f - _resist);
-
-            if (points <= 0f)
+            if (!DazeGameplayEnabled)
                 return;
 
-            if (_phase == DazePhase.Idle)
-                _phase = DazePhase.Charging;
-
-            _current += points;
-            if (_current >= _max)
-                Open();
+            AddLegacyDaze(raw, source);
         }
 
         /// <summary>消耗一次连携次数。次数用尽后仍可普攻压窗。</summary>
@@ -171,9 +190,21 @@ namespace ACTGameEditor.Combat
         /// <summary>连携轴播放期间暂停掉条，避免窗在演出中途关掉。</summary>
         public void SetDrainPaused(bool paused) => _drainPaused = paused;
 
-        /// <summary>调试：直接打满并破衡。</summary>
+        /// <summary>调试：打满。偏谐进 Ready；失衡才破衡。</summary>
         public void DebugFill()
         {
+            if (HarmonyBreakEnabled)
+            {
+                if (!_configured)
+                    Configure(DazeTierId.Grunt);
+                if (!_canDaze || _owner == null || _owner.IsDead)
+                    return;
+                EnterHarmonyReady();
+                return;
+            }
+
+            if (!DazeGameplayEnabled)
+                return;
             if (!_configured)
                 Configure(DazeTierId.Grunt);
             if (!_canDaze || _owner == null || _owner.IsDead)
@@ -186,7 +217,7 @@ namespace ACTGameEditor.Combat
             Open();
         }
 
-        /// <summary>调试：清条并立刻起身（不起身无敌）。</summary>
+        /// <summary>调试：清条。若处于旧失衡硬直则立刻起身（不起身无敌）。</summary>
         public void DebugClear()
         {
             if (!_configured)
@@ -197,6 +228,7 @@ namespace ACTGameEditor.Combat
             _current = 0f;
             _holdRemain = 0f;
             _recoverRemain = 0f;
+            _vacuumRemain = 0f;
             _chainRemaining = 0;
             _drainPaused = false;
             _phase = DazePhase.Idle;
@@ -213,6 +245,7 @@ namespace ACTGameEditor.Combat
             _current = 0f;
             _holdRemain = 0f;
             _recoverRemain = 0f;
+            _vacuumRemain = 0f;
             _chainRemaining = 0;
             _drainPaused = false;
             _phase = DazePhase.Idle;
@@ -223,13 +256,33 @@ namespace ACTGameEditor.Combat
 
         public override void Update(float deltaTime)
         {
-            if (!_configured || _owner == null || _owner.IsDead || deltaTime <= 0f)
+            if (!_configured || _owner == null || _owner.IsDead)
+                return;
+
+            if (_phase == DazePhase.Vacuum)
+            {
+                float world = GameTimeManager.WorldDelta;
+                if (world <= 0f)
+                    return;
+                _vacuumRemain -= world;
+                if (_vacuumRemain > 0f)
+                    return;
+                _vacuumRemain = 0f;
+                _current = 0f;
+                _phase = DazePhase.Idle;
+                return;
+            }
+
+            if (deltaTime <= 0f)
                 return;
 
             switch (_phase)
             {
                 case DazePhase.Charging:
                     TickIdleRegen(deltaTime);
+                    break;
+                case DazePhase.Ready:
+                case DazePhase.Executing:
                     break;
                 case DazePhase.Opened:
                     if (_drainPaused)
@@ -257,6 +310,92 @@ namespace ACTGameEditor.Combat
             }
         }
 
+        void AddHarmony(float raw, DazeSource source)
+        {
+            if (!_configured || !_canDaze || _owner == null || _owner.IsDead)
+                return;
+            if (IsHarmonyLockedPhase())
+                return;
+
+            float points = ResolvePoints(raw, source);
+            if (points <= 0f)
+                return;
+
+            if (_phase == DazePhase.Idle)
+                _phase = DazePhase.Charging;
+
+            _current += points;
+            if (_current >= _max)
+                EnterHarmonyReady();
+        }
+
+        void AddLegacyDaze(float raw, DazeSource source)
+        {
+            if (!_configured || !_canDaze || _owner == null || _owner.IsDead)
+                return;
+            if (_phase == DazePhase.Opened || _phase == DazePhase.Draining || _phase == DazePhase.Recover)
+                return;
+
+            float points = ResolvePoints(raw, source);
+            if (points <= 0f)
+                return;
+
+            if (_phase == DazePhase.Idle)
+                _phase = DazePhase.Charging;
+
+            _current += points;
+            if (_current >= _max)
+                Open();
+        }
+
+        float ResolvePoints(float raw, DazeSource source)
+        {
+            if (source == DazeSource.DirectPct)
+                return _max * raw;
+            if (source == DazeSource.Debug)
+                return raw;
+            return DefaultImpact * raw * (1f - _resist);
+        }
+
+        bool IsHarmonyLockedPhase()
+        {
+            return _phase == DazePhase.Ready
+                || _phase == DazePhase.Executing
+                || _phase == DazePhase.Vacuum
+                || _phase == DazePhase.Opened
+                || _phase == DazePhase.Draining
+                || _phase == DazePhase.Recover;
+        }
+
+        void EnterHarmonyReady()
+        {
+            _current = _max;
+            _phase = DazePhase.Ready;
+            _vacuumRemain = 0f;
+        }
+
+        /// <summary>破坏技开轴：Ready → Executing。失败则条仍停在 Ready。</summary>
+        public bool TryBeginHarmonyExecute()
+        {
+            if (!HarmonyBreakEnabled || _phase != DazePhase.Ready)
+                return false;
+            _phase = DazePhase.Executing;
+            _current = _max;
+            return true;
+        }
+
+        /// <summary>破坏技结束：条锁 0，拒绝加值，到期回 Idle。</summary>
+        public void BeginHarmonyVacuum()
+        {
+            if (!HarmonyBreakEnabled)
+                return;
+            if (_phase != DazePhase.Executing && _phase != DazePhase.Ready)
+                return;
+            _current = 0f;
+            _phase = DazePhase.Vacuum;
+            _vacuumRemain = _vacuumSeconds;
+        }
+
         void TickIdleRegen(float deltaTime)
         {
             if (_idleRegenPerSec <= 0f || _current <= 0f)
@@ -279,6 +418,8 @@ namespace ACTGameEditor.Combat
 
         void Open()
         {
+            if (!DazeGameplayEnabled)
+                return;
             _current = _max;
             _phase = DazePhase.Opened;
             _holdRemain = _holdSeconds;
@@ -370,6 +511,7 @@ namespace ACTGameEditor.Combat
             _current = 0f;
             _holdRemain = 0f;
             _recoverRemain = 0f;
+            _vacuumRemain = 0f;
             _chainRemaining = 0;
             _drainPaused = false;
             _phase = DazePhase.Idle;

@@ -13,6 +13,7 @@
     "QuickAssistSkillId": 0,
     "DefensiveAssistSkillId": 11005,
     "EvasiveAssistSkillId": 0,
-    "AssistFollowUpSkillId": 0
+    "AssistFollowUpSkillId": 0,
+    "HarmonyBreakSkillId": 14001
   }
 ]

@@ -314,6 +314,7 @@ namespace EGamePlay
                 }
 
                 AddOwnedSkillId(outIds, kit.ChainSkillId);
+                AddOwnedSkillId(outIds, kit.HarmonyBreakSkillId);
                 AddOwnedSkillId(outIds, kit.QuickAssistSkillId);
                 AddOwnedSkillId(outIds, kit.DefensiveAssistSkillId);
                 AddOwnedSkillId(outIds, kit.EvasiveAssistSkillId);

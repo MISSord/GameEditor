@@ -1,7 +1,7 @@
 # ACT 走跑方案（对照鸣潮子集）
 
 > 状态：**方案文档，未开工**。按 §四 阶段逐项落地，一次只开一阶段。
-> 走跑 / 移动动画对照**鸣潮**（缩小版 ALS：循环 + 起步/急停/Pivot + 锁敌侧移）。战斗循环（失衡、黄红闪、小队支援、Perfect Dodge）仍对照**绝区零**，见 `ActCombatRoadmap.md` / `ActSquadDesign.md`。
+> 走跑 / 移动动画对照**鸣潮**（缩小版 ALS：循环 + 起步/急停/Pivot + 锁敌侧移）。战斗循环（黄红闪、小队支援、Perfect Dodge）仍对照**绝区零**；敌人高潮改偏谐，见 `ActHarmonyBreakDesign.md`。失衡连携已屏蔽。
 > 关联代码：`LocomotionMotor`、`LocomotionTuning` / `PlayerMoveSettingSo`、`CombatLocomotionInstaller`、`MotionDirector`、`RootMotionDriver`、`CombatAnimDirector`、`CombatStateDirector`。
 > 硬约定沿用 `ProjectConventions.md`：四根钟（走跑/动画走玩家层 × 实体钟）、`CombatStateDirector` 唯一写 `CurState`、技能唯一出招口、水平位移三通道互斥。
 

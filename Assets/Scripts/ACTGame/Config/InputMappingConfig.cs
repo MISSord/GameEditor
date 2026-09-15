@@ -29,6 +29,8 @@ public enum InputListernType
     ButtonZ,
     /// <summary>候场肖像 +2，与 Switch2 同处理。</summary>
     ButtonZ2,
+    /// <summary>谐度破坏（情境键，不进槽位）。</summary>
+    Execute,
 }
 
 public enum PressType { Click, LongPress }

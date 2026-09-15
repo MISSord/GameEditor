@@ -31,9 +31,11 @@ namespace ACTGameEditor.Combat
             return kit != null ? kit.ChainSkillId : 0;
         }
 
-        /// <summary>目标处于可打连携的失衡窗。</summary>
+        /// <summary>目标处于可打连携的失衡窗。失衡玩法已屏蔽时恒为 false。</summary>
         public static bool IsValidWindow(CombatEntity target)
         {
+            if (!CombatMeterComponent.DazeGameplayEnabled)
+                return false;
             if (target == null || target.IsDisposed || target.IsDead)
                 return false;
             CombatMeterComponent meter = target.DazeMeter;

@@ -18,6 +18,8 @@ namespace ACTGameEditor
         }
 
         private readonly Pending[] _slots = new Pending[Capacity];
+        bool _agingPaused;
+        float _agingPausedAt;
 
         /// <summary>写入或覆盖某槽位的预输入。</summary>
         public void Set(
@@ -43,9 +45,41 @@ namespace ACTGameEditor
             };
         }
 
-        /// <summary>丢掉过期项。可每帧多次调用。</summary>
+        /// <summary>
+        /// 暂停或恢复按 PlayerTime 过期。暂停期间 Tick 不丢槽；恢复时把 SetAt/ExpireAt 整体后移，maxAge 也不虚耗。
+        /// </summary>
+        public void SetAgingPaused(bool paused, float now)
+        {
+            if (paused == _agingPaused)
+                return;
+
+            if (paused)
+            {
+                _agingPaused = true;
+                _agingPausedAt = now;
+                return;
+            }
+
+            float dt = now - _agingPausedAt;
+            _agingPaused = false;
+            if (dt <= 0f)
+                return;
+
+            for (int i = 0; i < Capacity; i++)
+            {
+                if (!_slots[i].Occupied)
+                    continue;
+                _slots[i].SetAt += dt;
+                _slots[i].ExpireAt += dt;
+            }
+        }
+
+        /// <summary>丢掉过期项。可每帧多次调用。暂停老化时不处理。</summary>
         public void Tick(float now)
         {
+            if (_agingPaused)
+                return;
+
             for (int i = 0; i < Capacity; i++)
             {
                 if (_slots[i].Occupied && now >= _slots[i].ExpireAt)
@@ -193,6 +227,7 @@ namespace ACTGameEditor
         /// <summary>硬重置（销毁、强制清状态）。出手成功不要走这里。</summary>
         public void Clear()
         {
+            _agingPaused = false;
             for (int i = 0; i < Capacity; i++)
                 _slots[i].Occupied = false;
         }

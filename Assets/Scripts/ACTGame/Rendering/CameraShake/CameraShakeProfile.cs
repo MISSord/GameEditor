@@ -86,6 +86,20 @@ namespace ACTGameEditor
             KickDuration = 0.28f,
         };
 
+        /// <summary>谐度破坏处决：比重大、比破韧轻；FOV 拉一下但不世界减速。</summary>
+        public static CameraShakeProfile HarmonyBreak() => new CameraShakeProfile
+        {
+            Trauma = 0.72f,
+            PositionAmplitude = 0.16f,
+            RotationAmplitude = 2.4f,
+            FovPunch = 4.5f,
+            FovDuration = 0.22f,
+            KickAmplitude = 0.14f,
+            KickDuration = 0.22f,
+            TraumaDecay = 2.0f,
+            Frequency = 13f,
+        };
+
         /// <summary>受击（本地玩家被重击）：镜头向攻击来源方向撞一下。</summary>
         public static CameraShakeProfile HitTaken() => new CameraShakeProfile
         {

@@ -32,6 +32,15 @@ namespace ACTGameEditor
         /// 必须在当帧 Sample 之后、HitPipeline.Flush 之前调用，保证闪避 i-frame 与出招同一帧。
         /// </summary>
         void TickSkillInput();
+
+        /// <summary>谐度破坏入队前：记下当前普攻窗边下一发。破坏技本身不清这项。</summary>
+        void CaptureHarmonyComboMemory();
+
+        /// <summary>F 轴播放期间暂停连招记忆与预输入寿命（玩家钟仍走轴）。</summary>
+        void SetHarmonyComboPause(bool paused);
+
+        /// <summary>闪避、受击进 Hit、硬控、换人、死亡清连招记忆。</summary>
+        void ClearHarmonyComboMemory();
     }
 
     [RequireComponent(typeof(CharacterController))]

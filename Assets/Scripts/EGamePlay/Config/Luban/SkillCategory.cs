@@ -85,6 +85,7 @@ namespace EGamePlay.Combat
         /// 敌人主动技
         /// </summary>
         EnemyActive = 17,
+        HarmonyBreak = 18,
     }
 
 } 

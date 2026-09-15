@@ -252,11 +252,7 @@ namespace XiaoCao
             uiBarDic.Add(netId, newUIBar);
             if (TryGetHp(item, out int hp, out int maxHp))
                 newUIBar.SetFillValue(hp, maxHp);
-            CombatMeterComponent spawnMeter = item.Combat.DazeMeter;
-            if (spawnMeter != null && spawnMeter.IsConfigured)
-                newUIBar.SetDazeFill(spawnMeter.CurrentRatio, true);
-            else
-                newUIBar.SetDazeFill(0f, false);
+            ApplyHarmonyHud(newUIBar, item.Combat, ResolveHarmonyViewer(out int spawnBreakSkillId), spawnBreakSkillId);
             newUIBar.OnUpdate();
 
             AddSwitchViewButton(item);
@@ -284,6 +280,33 @@ namespace XiaoCao
             hp = (int)combat.CurrentVital.GetVitalValue(AttributeType.HealthPoint);
             maxHp = Mathf.Max(1, (int)attr.HealthPointMax.Value);
             return true;
+        }
+
+        /// <summary>血条下偏谐：Ready 且 Kit 有破坏技时提示 F，不提示 Q/E。超距仍显示 F，范围内脉冲更强。</summary>
+        static void ApplyHarmonyHud(UIBar bar, CombatEntity target, CombatEntity viewer, int breakSkillId)
+        {
+            if (bar == null)
+                return;
+
+            CombatMeterComponent meter = target != null ? target.DazeMeter : null;
+            if (meter == null || !meter.ShowHarmonyHud)
+            {
+                bar.SetHarmonyFill(0f, false, DazePhase.Idle, false, false);
+                return;
+            }
+
+            bool prompt = meter.IsHarmonyReady && breakSkillId > 0;
+            bool inRange = prompt && CombatHarmonyBreak.IsValidReadyTarget(viewer, target);
+            bar.SetHarmonyFill(meter.CurrentRatio, true, meter.Phase, prompt, inRange);
+        }
+
+        static CombatEntity ResolveHarmonyViewer(out int breakSkillId)
+        {
+            CombatEntity viewer = PlayerManager.Instance != null
+                ? PlayerManager.Instance.LocalPlayer?.Combat
+                : null;
+            breakSkillId = CombatHarmonyBreak.ResolveSkillId(viewer);
+            return viewer;
         }
 
         /// <summary> 为指定单位创建视角切换按钮，点击后摄像机会跟随该单位。 </summary>
@@ -361,6 +384,8 @@ namespace XiaoCao
 
         public void UpdateUIBars()
         {
+            CombatEntity viewer = ResolveHarmonyViewer(out int breakSkillId);
+
             foreach (var kv in PlayerManager.Instance.MonoAttackerDic)
             {
                 uint netId = kv.Key;
@@ -391,11 +416,7 @@ namespace XiaoCao
                     bar.SetTarget(follow);
                 if (TryGetHp(item, out int hp, out int maxHp))
                     bar.SetFillValue(hp, maxHp);
-                CombatMeterComponent meter = item.Combat.DazeMeter;
-                if (meter != null && meter.IsConfigured)
-                    bar.SetDazeFill(meter.CurrentRatio, true);
-                else
-                    bar.SetDazeFill(0f, false);
+                ApplyHarmonyHud(bar, item.Combat, viewer, breakSkillId);
                 bar.OnUpdate();
             }
         }
@@ -610,7 +631,7 @@ namespace XiaoCao
                 return;
 
             bar.SetTarget(null);
-            bar.SetDazeFill(0f, false);
+            bar.SetHarmonyFill(0f, false, DazePhase.Idle, false, false);
             bar.gameObject.SetActive(false);
         }
 

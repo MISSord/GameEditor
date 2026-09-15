@@ -1,6 +1,6 @@
 # ACT 小队方案（对照绝区零）
 
-> 状态：**M4.0 已落地**；**M4.1 / M4.2 运行时已接**（支援点、红闪窗、受击/AssistCue 快速支援窗、没点/空列失败）。黄闪 / 连携仍读换入者 Kit。现役 CharacterId=1 的 Quick/Evasive 列为 0，红闪与支援窗内 Z 失败是预期，直到填列。延奏 / 喧响仍属 M4.3+。对应路线图 M4 / §四。
+> 状态：**M4.0 已落地**；**M4.1 / M4.2 运行时已接**。黄闪仍读换入者 Kit。**失衡窗连携已屏蔽**（`DazeGameplayEnabled=false`），见 `ActHarmonyBreakDesign.md`。现役 CharacterId=1 的 Quick/Evasive 列为 0，红闪与支援窗内 Z 失败是预期。延奏 / 喧响仍属 M4.3+。
 > 结论：拍 **B 三人小队**。A 单角色切模型只做本方案 §4.2 的子集，不做支援。
 > 关联：`ActCombatRoadmap.md` §四 / §六·3、`ActBuffLearningBacklog.md` §8–9、`ActEnemyAiDesign.md`（导演焦点）、招架 `CombatParry`、连携 `CombatChainSkill`、输入键位 `ActSkillKitConfig.md`（B=战技，Z=换人/招架）。
 > 硬约定沿用 `ProjectConventions.md`：四根钟、`Enqueue→Gate→Session→XC`、`CombatStateDirector` 唯一写态、表现不进 `DamageAction`、数字走 Luban、轴走 Flux、热路径零 GC。
@@ -44,7 +44,7 @@ ZZZ 小队拆成六块，本项目已有挂钩如下。
 | 快速支援 | 被打 / 队友技能 Cue 后换入打入场技 | 支援窗 + `QuickAssist` 轴 | M4.1 |
 | 防御支援（黄闪） | 候场角色入场撞刃 | `CombatParry.TryCommit` 的换人版本 | M4.2 |
 | 回避支援（红闪） | 候场角色入场带 i-frame 闪过 | 新模式，复用闪避 Tag 语义，不走招架成交 | M4.2 |
-| 连携技轮转 | 失衡窗内换人各打一段连携 | `CombatChainSkill` 从写死 13001 改为读槽位 | M4.4 |
+| ~~连携技轮转~~ | 失衡窗内换人各打一段连携 | **已屏蔽**，改场上 F，见 `ActHarmonyBreakDesign.md` | — |
 | 支援点数 | 黄/红支援的次数闸 | 小队计量，**不是 Buff** | M4.2 |
 | 喧响 / 终结技 | 团队大招条 | 小队计量 + 已有 Ultimate 槽 / `UltimateCinematic` | M4.5 |
 | 属性 / 紊乱 | 换人换属性打条 | 依赖路线图 §二，小队只保证「当前出场角色的段表属性」生效 | 不单做 |
@@ -168,7 +168,7 @@ CombatSquad.TrySwitch(slot, SwitchReason) → SwitchGate → 退场 → 入场 �
 | `QuickAssist` | 支援窗内换人 | `QuickAssist` | 免（吃入场轴） | 不耗 |
 | `DefensiveAssist` | 黄闪来刀 + 换人 + 有点 | 换入者 Kit.`DefensiveAssistSkillId`（**空则失败**，不回退 11005）+ `CombatParry.TryCommit` | 免 | 1 |
 | `EvasiveAssist` | 红闪来刀 + 换人 + 有点 | 换入者 Kit.`EvasiveAssistSkillId`（空则失败，不复用闪避轴） | 免 | 1 |
-| `Chain` | 失衡窗内换人或连携键切下一人 | 该角色 Kit.`ChainSkillId`（空则失败，不回退 13001） | 免 | 不耗 |
+| `Chain` | ~~失衡窗内换人~~ **已屏蔽** | 运行时走不到 | — | — |
 | `Death` | 出场阵亡且有活着的候场 | 无攻击轴，落地 Idle | 免 | 不耗 |
 
 **Gate（顺序，失败即停，不降级成别的 Reason）：**
@@ -236,19 +236,13 @@ UI：肖像高亮。不要做自动换人。
 
 黄/红窗内没点时 **不要** 把 Reason 降成 Manual：否则等于用换人吃刀。UI 可闪一下「支援点不足」。
 
-### 5.4 连携轮转
+### 5.4 连携轮转（已屏蔽）
 
-M1 已有：窗内按连携槽打 13001，`ChainCount` 次。
+绝区零失衡窗内 Z 换人打 `ChainSkillId` **不再触发**。运行时 `CombatMeterComponent.DazeGameplayEnabled = false`，`CombatChainSkill.IsValidWindow` 恒为 false。
 
-小队后：
+`Kit.ChainSkillId` / 13001 表和轴先留着。小队高潮改场上 F 谐度破坏，方案见 `ActHarmonyBreakDesign.md`。
 
-- `CombatChainSkill.SkillId` 不再写死，读 **换入角色** Kit.`ChainSkillId`（按 Z 换人连携）。
-- 失衡窗内换人 → `SwitchReason.Chain`（若该角色还没在本窗口打过连携）。
-- 次数仍是敌人 `CombatMeter.TryConsumeChain`，与角色数解耦；三人队把杂兵/精英 `ChainCount` 配成 2–3。
-- 同一窗口同一角色不能连打两次（小队侧记 `chainedMask`）。
-- 连携：**ButtonZ** 在失衡窗内指向未打过的候场角色 → 换入打 Kit.`ChainSkillId`。不再用 ButtonA 当常驻连携键（A 是终结技，见 `ActSkillKitConfig.md`）。
-
-喧响满条终结技仍是 Ultimate 槽，不和连携键混用。
+喧响满条终结技仍是 Ultimate 槽，不和 F、Z 混用。
 
 ### 5.5 阵亡
 
@@ -371,11 +365,11 @@ Manual 切走硬控时：**不要**给换入者长 i-frame。黄闪没点仍按 
 
 | 动作 | 建议键 | 处理 |
 |---|---|---|
-| ButtonZ / ButtonZ2 | Q / E（由 `Switch1/2` 迁入） | `CombatSquad.TrySwitch`，Reason 由当前窗推断。黄闪=防御支援招架，失衡窗=连携，无窗=Manual |
+| ButtonZ / ButtonZ2 | Q / E（由 `Switch1/2` 迁入） | `CombatSquad.TrySwitch`，Reason 由当前窗推断。黄闪=防御支援招架，红闪=回避支援，支援窗=快速支援，无窗=Manual。失衡连携已屏蔽 |
 | Attack / Dodge / Ultimate / Skill | ButtonX / Y / A / **B=战技** | 当前角色 4 战斗键，见 `ActSkillKitConfig.md`。B 不再招架 |
 | 招架 L / ButtonB | **废弃正式入口** | 黄闪只走 Z |
 
-Reason 推断优先级：`DefensiveAssist`（黄窗）> `EvasiveAssist`（红窗）> `Chain`（失衡窗且该角色未打过）> `QuickAssist`（支援窗）> `Manual`。
+Reason 推断优先级：`DefensiveAssist`（黄窗）> `EvasiveAssist`（红窗）> `QuickAssist`（支援窗）> `Manual`。失衡 `Chain` 已屏蔽。
 
 **UI：** 三肖像 + HP + 支援窗描边 + 支援点数。`Exiting` 肖像变灰，不能点回去。没点时黄/红窗内按换人给失败反馈。
 

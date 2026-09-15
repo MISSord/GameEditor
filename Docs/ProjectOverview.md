@@ -1,8 +1,22 @@
 # ACTGameEditor 项目介绍
 
-本地第三人称动作战斗（ACT）编辑器工程：一边打手感，一边把鸣潮 / 绝区零那一套「可读招、有段落、能换人」的战斗循环接到可扩展的运行时上。不是完整网游客户端，也不是通用游戏引擎插件。当前可玩的是 **1 名主控 + 两人候场 + 若干敌人** 的技能编辑场景。
+> 本地 Unity 6 第三人称动作战斗工程：把《绝区零》《鸣潮》的「可读招、有段落、能换人」战斗循环接到可扩展的运行时上。不是完整网游客户端，也不是引擎插件。当前可玩：**1 名主控 + 两人候场 + 若干敌人** 的技能编辑场景。
 
-对照以 **绝区零** 为主（进攻权、黄/红预警、招架与支援、失衡窗、小队换人），走跑电机对照 **鸣潮** 子集。明确不学：Unity 全局 `Time.timeScale` 魔女时间、鸣潮收缩金圈弹刀、双人同屏操作、空战型角色、锁头飞弹。
+**对照基准**：绝区零为主（进攻权、黄/红预警、招架与支援、小队换人）；走跑电机对照鸣潮子集；敌人高潮 = 偏谐 + F 谐度破坏（[已完成/ActHarmonyBreakDesign.md](已完成/ActHarmonyBreakDesign.md)）。**绝区零失衡硬直 / 连携窗已屏蔽。**
+
+**明确不学**：全局 `Time.timeScale` 魔女时间、鸣潮收缩金圈弹刀、双人同屏操作、空战型角色、锁头飞弹。
+
+---
+
+## 〇、快速上手（60 秒）
+
+1. 环境：**Unity 6 + URP**，无第三方 SDK。
+2. 打开 `Assets/Scenes/SkillEditor.unity`，点 Play。
+3. 战斗键：`J` 普攻连段 / `K` 闪避 / `L` 战技 / `I` 大招 / `Q`·`E` 换人·支援·招架 / `F` 谐度破坏（敌人偏谐条满时）/ `Space` 跳。
+4. 调试键（Play 中）：`F2` 刷杂兵 · `F3` 刷精英 · `F4` 测试小队 · `Tab` 锁定 · `F9` 技能组满级。
+5. 两分钟路线：普攻连段 → 极限闪避（时空断裂）→ 黄闪时按 Q 招架撞刃 → 攒满偏谐按 F → 大招时停。
+
+> 键位与招式包规则的权威文档：[ActSkillKitConfig.md](ActSkillKitConfig.md)。
 
 ---
 
@@ -139,7 +153,7 @@ EGamePlayInit.Update
 | Dodge（Y） | K | 闪避（技能轴，不是走跑状态） |
 | Ultimate（A） | I | 只出终结技 |
 | Skill（B） | L | 战技 / EX |
-| Assist1 / Assist2（Z） | Q / E | 换人 / 黄闪招架 / 红闪回避 / 支援 / 连携 |
+| Assist1 / Assist2（Z） | Q / E | 换人 / 黄闪招架 / 红闪回避 / 支援（连携已屏蔽） |
 | Jump | Space | 不进招式包 |
 
 Z **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwitchRelative`。招架不是场上按 L。
@@ -154,7 +168,7 @@ Z **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwit
 
 换人优先级：
 
-`黄闪防御支援 > 红闪回避支援 > 失衡连携 > 支援窗快速支援 > Manual`
+`黄闪防御支援 > 红闪回避支援 > 支援窗快速支援 > Manual`（失衡连携已屏蔽）
 
 | 模式 | 行为 |
 |---|---|
@@ -162,17 +176,19 @@ Z **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwit
 | 快速支援 | 受击或轴上 `AssistCue` 开窗，换入打入场技 |
 | 黄闪 | 来刀开窗，候场 Z 成交吸附，打 Kit 防御支援轴 |
 | 红闪 | 换入带无敌帧闪过，不走招架成交 |
-| 连携 | 失衡窗按 Z，换入者打 Kit `ChainSkillId` |
+| 连携 | **已屏蔽**（原失衡窗 Z）。高潮见偏谐文档 |
 
 团队 **支援点 3 点**：黄/红各耗 1，快速支援不耗。没点则黄/红 Z **整次失败**，不降级成 Manual。点数挂小队实体，开战灌满，惰性回复。
 
 尚未做：延奏 `Buff.Outro` 转移、喧响团队大招条。现役 CharacterId=1 的 Quick/Evasive 列若为 0，红闪与支援窗内 Z 失败是配表预期。
 
-### 6.4 失衡与连携
+### 6.4 偏谐与原失衡
 
-失衡是 **计量条**（`CombatMeterComponent`），不是 TimeBuff，不进状态栏 `IdStatuses`。命中后按段表贡献加值；条满 → 宿主进 Stagger，导演进 **Punish**（其余敌人不抢戏）。窗内可连携，次数与时长走 `DazeSetting` 档位（杂兵 / 精英 / Boss）。招架成功也按倍率打失衡。
+**偏谐步骤 1–4 已接**：命中攒条，满了亮 F；场上按 F 打 `CharacterKit.HarmonyBreakSkillId`（空列不触发）。结束后真空锁零约 5s。普攻连招记忆已接。处决走独立表现包与构图镜头，HUD 只提示 F。见 [已完成/ActHarmonyBreakDesign.md](已完成/ActHarmonyBreakDesign.md)。
 
-属性异常积蓄 → 紊乱 **未做**；计量组件预留了与失衡同构的扩展，不要再写第二套条。
+原失衡硬直仍关（`DazeGameplayEnabled=false`）。Q/E 不因条满连携。表 `DazeSetting` / `DazeRatio` 继续当偏谐数字。
+
+属性异常积蓄 → 紊乱 **未做**；仍计划复用同一计量组件，不要再写第二套条。
 
 ### 6.5 黄红闪与预警
 
@@ -278,8 +294,8 @@ AI / 协作者不要手改巨大预制体 YAML，也不要开 Unity 代点；需
 
 - 普攻连段、闪避、极限闪避断裂、顿帧分轻重
 - 敌人轮流出手，黄刀可招架、红刀必须闪
-- 打满失衡 → 硬直窗 → Z 连携
-- 三人槽换人：手动无斩击；黄闪换人撞刃；合轴退场
+- 三人槽换人：手动无斩击；黄闪换人撞刃；合轴退场（失衡连携已关）
+- 敌人偏谐条可攒满，亮 F；按 F 打 Kit 破坏技，结束后条锁零一会儿
 - 冻结停动作不停跳伤；硬控互斥
 - 技能轴可在编辑器里改并立刻进战斗
 
@@ -296,7 +312,7 @@ AI / 协作者不要手改巨大预制体 YAML，也不要开 Unity 代点；需
 | 养成 UI、多角色分模 | 后置 |
 | 弹道 / 空战 | 明确不做 |
 
-专题进度以各文档文内勾选为准；`ActCombatRoadmap.md` 的总表有滞后，以代码和 `ActSquadDesign` / `ActEnemyAiDesign` / `ActSkillKitConfig` 的状态栏为准。
+专题进度以各文档文内勾选为准；`ActCombatRoadmap.md` 的总表有滞后，以代码和 `ActSquadDesign` / `ActEnemyAiDesign` / `ActSkillKitConfig` 的状态栏为准。**未完成项统一索引：[ActUnfinishedIndex.md](ActUnfinishedIndex.md)**。
 
 ---
 
@@ -305,7 +321,7 @@ AI / 协作者不要手改巨大预制体 YAML，也不要开 Unity 代点；需
 1. 本文（全景）
 2. [ProjectConventions.md](ProjectConventions.md)（硬约定，改代码前必读）
 3. `EGamePlayInit` → `ActPlayer` / `CombatEntity`
-4. [ActTimeEffectsBacklog.md](ActTimeEffectsBacklog.md)（四根钟）
+4. [已完成/ActTimeEffectsBacklog.md](已完成/ActTimeEffectsBacklog.md)（四根钟，已归档；P3 时缓场方案未接）
 5. `ActSpellSession` → HitPipeline → `DamageAction`
 6. 按需求看：[ActSkillKitConfig.md](ActSkillKitConfig.md)、[ActSquadDesign.md](ActSquadDesign.md)、[ActEnemyAiDesign.md](ActEnemyAiDesign.md)、[ActBuffLearningBacklog.md](ActBuffLearningBacklog.md)
 

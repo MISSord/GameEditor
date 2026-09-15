@@ -12,8 +12,7 @@ using ACTGameEditor.Combat;
 ///
 /// 热键一览：
 ///   F2 刷杂兵 / F3 刷精英 / F4 生成测试小队（4 杂兵 + 2 精英）
-///   F6 最近敌人打满失衡 / Shift+F6 清空
-///   失衡窗内 Q/E（候场 Z）连携，读 Kit.ChainSkillId
+///   F6 打满偏谐 Ready / Shift+F6 清空
 ///   F7 技能镜头测试 / F8 震屏测试 / F9 时空断裂 / F10 普攻组等级切换
 ///   数字键 5 显现球 / 6 深度视界 / 7 显现锥 / 8 玩家雾
 /// </summary>
@@ -98,27 +97,32 @@ public class SkillEditorScene : MonoBehaviour
         Debug.Log($"[SkillLevel] 普攻组 lv={applied} ratio 11001={r1} 11002={r21}/{r22} 11003={r3}");
     }
 
-    [Button("最近敌人打满失衡")]
+    [Button("最近敌人打满偏谐")]
     public void DebugFillNearestEnemyDaze()
     {
+        if (!CombatMeterComponent.HarmonyBreakEnabled)
+        {
+            Debug.Log("[Harmony] 偏谐未开启，见 Docs/ActHarmonyBreakDesign.md");
+            return;
+        }
         CombatMeterComponent meter = FindNearestEnemyMeter();
         if (meter == null)
         {
-            Debug.Log("[Daze] 场上没有可失衡的敌人");
+            Debug.Log("[Harmony] 场上没有可积蓄的敌人");
             return;
         }
         meter.DebugFill();
-        Debug.Log($"[Daze] 打满 {meter.Phase} ratio={meter.CurrentRatio:0.00}");
+        Debug.Log($"[Harmony] 打满 {meter.Phase} ratio={meter.CurrentRatio:0.00}");
     }
 
-    [Button("最近敌人清空失衡")]
+    [Button("最近敌人清空偏谐")]
     public void DebugClearNearestEnemyDaze()
     {
         CombatMeterComponent meter = FindNearestEnemyMeter();
         if (meter == null)
             return;
         meter.DebugClear();
-        Debug.Log("[Daze] 已清空");
+        Debug.Log("[Harmony] 已清空");
     }
 
     static CombatMeterComponent FindNearestEnemyMeter()
@@ -204,11 +208,11 @@ public class SkillEditorScene : MonoBehaviour
     void OnGUI()
     {
         CombatMeterComponent meter = FindNearestEnemyMeter();
-        if (meter == null || !meter.IsConfigured)
+        if (meter == null || !meter.ShowHarmonyHud)
             return;
         GUI.Label(
-            new Rect(12f, 12f, 520f, 24f),
-            $"[Daze] {meter.Phase}  {meter.CurrentRatio * 100f:0}%  chain={(meter.IsChainWindow ? "Z连携" : "no")}");
+            new Rect(12f, 12f, 560f, 24f),
+            $"[Harmony] {meter.Phase}  {meter.CurrentRatio * 100f:0}%{(meter.IsHarmonyReady ? "  按F" : "")}");
     }
 }
 #endif

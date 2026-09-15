@@ -33,6 +33,8 @@ namespace ACTGameEditor.Combat
                 _active.ActionPointRules.Clear();
                 _active.FillBuiltInRules();
             }
+
+            _active.EnsureHarmonyBreakPackage();
         }
 
         /// <summary>按 ID 查找包定义。</summary>
@@ -224,13 +226,15 @@ namespace ACTGameEditor.Combat
             {
                 Id = CombatFxPackageId.ChainAttack,
                 DisplayName = "连携",
-                ReferenceNote = "失衡窗连携入场：短 HitStop + 重震屏。",
+                ReferenceNote = "失衡窗连携入场：短 HitStop + 重震屏。偏谐处决用 HarmonyBreak。",
                 Entries =
                 {
                     CombatFxPackageEntry.HitStop(0.12f, 0.12f, camera: true, timePriority: 28),
                     CombatFxPackageEntry.CameraShake(CameraShakeProfile.Heavy()),
                 },
             });
+
+            Packages.Add(CreateHarmonyBreakPackage());
 
             Packages.Add(new CombatFxPackageDefinition
             {
@@ -257,6 +261,34 @@ namespace ACTGameEditor.Combat
                 ReferenceNote = "溶解后 Despawn。",
                 Entries = { CombatFxPackageEntry.DeathDissolve(1.2f) },
             });
+        }
+
+        /// <summary>项目目录若是旧 asset、没有处决包，补一条，避免 F 时静默没表现。</summary>
+        void EnsureHarmonyBreakPackage()
+        {
+            for (int i = 0; i < Packages.Count; i++)
+            {
+                if (Packages[i] != null && Packages[i].Id == CombatFxPackageId.HarmonyBreak)
+                    return;
+            }
+
+            Packages.Add(CreateHarmonyBreakPackage());
+        }
+
+        static CombatFxPackageDefinition CreateHarmonyBreakPackage()
+        {
+            return new CombatFxPackageDefinition
+            {
+                Id = CombatFxPackageId.HarmonyBreak,
+                DisplayName = "谐度破坏",
+                ReferenceNote = "处决：实体钟 HitStop + 目标闪白 + 处决震屏。不走世界钟断裂，不冒充连携。",
+                Entries =
+                {
+                    CombatFxPackageEntry.HitStop(0.16f, 0.08f, camera: true, timePriority: 28),
+                    CombatFxPackageEntry.HitFlash(0.22f),
+                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.HarmonyBreak()),
+                },
+            };
         }
 
         void FillBuiltInRules()

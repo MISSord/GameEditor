@@ -1,7 +1,7 @@
 # ACT 角色选型与招式包模板（单手刀 / 单手剑）
 
 > 状态：**选型结论 + 模板规范，未开工**。做新角色（玩家侧）前先读本文，按 §五 模板逐项填表。
-> 关联：`ActCombatRoadmap.md`（M1 失衡 / M2 招架 / M5 喧响，新角色招式是这些系统的落点）、`ActSkillConfigAndLeveling.md`（段表与升级）、`ActSkillKitConfig.md`（招式包进 Luban：Kit/槽位/被动/号段）、`ActEnemyAiDesign.md`（12000 号段隔离策略）、`ProjectConventions.md`（轴/配表硬约定）。
+> 关联：`ActCombatRoadmap.md` / `ActHarmonyBreakDesign.md`（偏谐高潮；原 M1 失衡连携已屏蔽）、`ActSkillConfigAndLeveling.md`（段表与升级）、`ActSkillKitConfig.md`（招式包进 Luban：Kit/槽位/被动/号段）、`ActEnemyAiDesign.md`（12000 号段隔离策略）、`ProjectConventions.md`（轴/配表硬约定）。
 > 养成（等级/命座/装备）不在本文，按项目约定后置。
 
 ---
@@ -73,7 +73,7 @@
 | EX 特殊技强化 | 段表加段 + 更重表现包 | 段号 ≥ 2 走重顿 |
 | 大招：电刃范围斩 | 大招 + 时停 | 近身范围段 |
 
-**为什么先做她**：招式数最少、全是"段 + 位移 + 大招"三件套，用于跑通 §五 完整流水线；且她是 ZZZ 角色，M1 失衡 / M2 招架落地后她的招式正好当验收样本。
+**为什么先做她**：招式数最少、全是"段 + 位移 + 大招"三件套，用于跑通 §五 完整流水线；且她是 ZZZ 角色，招架与偏谐落地后她的招式正好当验收样本。
 
 ### 3.4 原神·刻晴（位移压测）
 

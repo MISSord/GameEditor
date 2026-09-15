@@ -282,6 +282,7 @@ namespace EGamePlay.Combat
                     return (int)SkillSort.Parry;
                 case SkillCategory.Ultimate:
                 case SkillCategory.Chain:
+                case SkillCategory.HarmonyBreak:
                     return (int)SkillSort.Ultimate;
                 case SkillCategory.Branch:
                 case SkillCategory.Special:

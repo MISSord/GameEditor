@@ -401,6 +401,34 @@ namespace ACTGameEditor.Combat.Ai
             return target != null;
         }
 
+        /// <summary>登记敌人里最近的失谐（Ready）目标。maxRangeSq 为水平距离平方。</summary>
+        public bool TryFindNearestHarmonyReady(CombatEntity from, float maxRangeSq, out CombatEntity target)
+        {
+            target = null;
+            if (from == null || from.IsDisposed)
+                return false;
+
+            float bestSq = maxRangeSq;
+            for (int i = 0; i < _count; i++)
+            {
+                CombatEntity enemy = _enemies[i].Entity;
+                if (enemy == null || enemy.IsDisposed || enemy.IsDead)
+                    continue;
+                CombatMeterComponent meter = enemy.DazeMeter;
+                if (meter == null || !meter.IsHarmonyReady)
+                    continue;
+                Vector3 d = enemy.Position - from.Position;
+                d.y = 0f;
+                float sq = d.sqrMagnitude;
+                if (sq > bestSq)
+                    continue;
+                bestSq = sq;
+                target = enemy;
+            }
+
+            return target != null;
+        }
+
         /// <summary>世界钟 Tick：Tempo、焦点、欲望、竞拍发放、回收、槽位。应在 CombatContext.Update 之前。</summary>
         public void Tick(float worldDelta)
         {

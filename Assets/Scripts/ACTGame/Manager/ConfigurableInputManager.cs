@@ -19,6 +19,7 @@ namespace ACTGameEditor
         private InputAction _sprintAction;
         private InputAction _switch1Action;
         private InputAction _switch2Action;
+        private InputAction _executeAction;
         int _sampledFrame = -1;
         PlayerInputSnapshot _snapshot;
 
@@ -70,6 +71,13 @@ namespace ACTGameEditor
             {
                 _switch2Action.performed += OnSwitch2Perform;
                 _switch2Action.Enable();
+            }
+
+            _executeAction = map.FindAction(InputListernType.Execute.ToString());
+            if (_executeAction != null)
+            {
+                _executeAction.performed += OnExecutePerform;
+                _executeAction.Enable();
             }
 
             _joyStick = SimpleJoyStick.Instance;
@@ -147,6 +155,19 @@ namespace ACTGameEditor
             CombatSquad.Instance?.TrySwitchRelative(2);
         }
 
+        void OnExecutePerform(InputAction.CallbackContext context)
+        {
+            TryExecuteHarmonyBreak();
+        }
+
+        static void TryExecuteHarmonyBreak()
+        {
+            ActPlayer player = PlayerManager.Instance != null ? PlayerManager.Instance.LocalPlayer : null;
+            if (player == null || player.Combat == null)
+                return;
+            CombatHarmonyBreak.TryExecute(player.Combat);
+        }
+
         /// <summary>InputAction 未配到 Q/E 时的键盘兜底，不进技能槽。</summary>
         void PollSwitchFallback()
         {
@@ -157,6 +178,8 @@ namespace ACTGameEditor
                 CombatSquad.Instance?.TrySwitchRelative(1);
             if (_switch2Action == null && keyboard.eKey.wasPressedThisFrame)
                 CombatSquad.Instance?.TrySwitchRelative(2);
+            if (_executeAction == null && keyboard.fKey.wasPressedThisFrame)
+                TryExecuteHarmonyBreak();
         }
 
         /// <summary>键盘 / 屏上技能钮共用：写入当前玩家预输入。</summary>

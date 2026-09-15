@@ -1,9 +1,9 @@
 # ACT 敌人 AI：导演 + HFSM + 效用选招 + XC 轴
 
 > **现状**：A～F、Telegraph 占位、12000 号段、突进/红闪、车轮战/徘徊、杂兵/精英档、连段、Special、假前摇均已落地。杂兵不再挂 12004；12002/12004 走轴上预警；Alert 有占位十字。屏外公平（G）未做。后续只看 **§十二**。
-> 手感对照以**绝区零**为主：进攻权、黄/红预警、闪避空窗、失衡窗。招式表与精英相位可参考，**弹招 / 格挡不学鸣潮弹刀**（无收缩金圈）。调研摘录见文末附录。
+> 手感对照以**绝区零**为主：进攻权、黄/红预警、闪避空窗。招式表与精英相位可参考，**弹招 / 格挡不学鸣潮弹刀**（无收缩金圈）。调研摘录见文末附录。
 > 关联：`CombatEntity`、`CombatStateDirector`、`ActSpellComponent` / `ActSpellSession`、`AbilityActivationGate`、`CombatTimeClock`。
-> 本文只补**决策层**。失衡条见 `Docs/ActBuffLearningBacklog.md`（禁止做成 TimeBuff）。
+> 本文只补**决策层**。敌人高潮改偏谐（`ActHarmonyBreakDesign.md`）；原失衡 Punish / 连携窗已屏蔽。计量条禁止做成 TimeBuff。
 
 ---
 
@@ -29,7 +29,7 @@
 2. **唯一出招口**：`ActSpellComponent.Enqueue` → Gate → Session → XC。禁止直接 `Animator.Play` 或绕过 Gate。
 3. Enqueue 后 Brain 停选招，直到 `ActiveExecution==null`（轴 `IsFinished` 后 Session 清句柄）。这是承诺。
 4. **四根钟不变。** 导演用 `GameTimeManager.WorldDelta`。Brain / 选招 / 敌人 CD 用 `CombatTimeClock.GetDelta(unit)`。实体钟=0 的怪不思考、不走、轴停；导演仍可转牌。禁止第五根钟，禁止 `Time.timeScale`。
-5. 失衡是计量条，满了才进 Stagger / Punish；不要做成 `IdStatuses` 里的 TimeBuff。
+5. 偏谐是计量条（`CombatMeterComponent`），满了可按 F，**不要**满条进 Stagger / Punish。不要做成 `IdStatuses` 里的 TimeBuff。原失衡硬直已屏蔽，见 `ActHarmonyBreakDesign.md`。
 6. 热路径零 GC：固定数组、无 LINQ、无每帧 `GetComponent` / `new List`。导演容量 16。
 7. 流程问 Tag 和门控：`IsCanSpellSkill`、`MoveWeight`、`Buff.MoveForbid`。不要 `if (眩晕)`。
 8. `EGamePlay.Combat` 只认 `ICombatUnit`，不引用 `EnemyBrain`。
@@ -365,12 +365,11 @@ K 未做：黄闪招 + 玩家招架技能。判定用轴上 `Ai.Parryable` Tag�
 
 ---
 
-## 九、计量条（P2，未做）
+## 九、计量条（P2；高潮改偏谐）
 
-`CombatBreakMeter` 挂实体，**不是** Status 列表：
+`CombatMeterComponent` 挂实体，**不是** Status 列表。绝区零「满 → Stagger → Punish → 连携窗」已屏蔽。偏谐方案见 `ActHarmonyBreakDesign.md`：满条只亮 F，导演不要因条满 Punish。
 
-- 按绝区零**失衡条**：满 → `NotifyBreakMeterOpened` → BreakSkill → Stagger → 导演 Punish（连携 / 爆发窗）。
-- AI 可以没有计量条先做完进攻权。爆发窗依赖 Buff 文档，不要堵在 AI 框架里。
+AI 可以没有计量条先做完进攻权。不要堵在 AI 框架里。
 
 ---
 
@@ -461,7 +460,7 @@ Scene 线：持牌者红线、Relax 玩家绿线、槽位短柱、欲望青横�
 | P0 | Telegraph 正式资产 | 特效、提示音（`Shown` 已留） |
 | P0 | 其余招轴上预警 | 12001/12003 仍 Brain 兜底 0.45s |
 | P1 | K 黄闪招架 | `TelegraphKind.Parry` 招 + `Ai.Parryable` + 玩家招架/支援招架。成功打断或重硬直 + Relax；可贡献失衡。无金圈弹刀 |
-| P2 | I 计量条 | `CombatBreakMeter`、Stagger 态、Punish 进入（绝区零失衡窗） |
+| P2 | I 计量条 | 偏谐 Ready + F；导演不因满条 Punish。见 `ActHarmonyBreakDesign.md` |
 | P2 | J 首领 | HP 阈值、Phase 态、过渡轴、不进槽 |
 | P3 | Peak | 临时 Melee+1；避免「越残越难」 |
 | P3 | 威胁表 / Return / Ranged | 多焦点、leash、远程牌 |
@@ -505,10 +504,10 @@ Scene 线：持牌者红线、Relax 玩家绿线、槽位短柱、欲望青横�
 
 资料：机核 / 网易绝区零拆解、丽都创作笔记、NGA 打断论；雷火《多人战斗系统》（知乎 405050234，2021）。
 
-**绝区零（弹招口径）**：无 / 黄 / 红三级预警 + 提示音。黄=可招架（支援招架），红=不可招架必须闪。被闪或被招架 → 进观察把回合让出。失衡条满 → 连携爆发窗。另：三级敌人、招表+用过降权、2+1 Token、屏外指示。打断是整数比大小（玩家拆解有 1～9 / Boss 99，**本项目只学比较，不抄档表**）。
+**绝区零（弹招口径）**：无 / 黄 / 红三级预警 + 提示音。黄=可招架（支援招架），红=不可招架必须闪。被闪或被招架 → 进观察把回合让出。原「失衡条满 → 连携爆发窗」本项目已不学，高潮改偏谐。另：三级敌人、招表+用过降权、2+1 Token、屏外指示。打断是整数比大小（玩家拆解有 1～9 / Boss 99，**本项目只学比较，不抄档表**）。
 
 招式表距离带、Boss 多阶段可旁参其它 ACT，**不引入鸣潮弹刀**（收缩金圈、重合瞬间免伤+削韧）。
 
-骨架（进攻权+空窗+环绕+档位）已有；占位皮肤（十字、突进/红闪）已有。12002/12004 轴上可读。还缺失衡窗、黄闪招架、G。
+骨架（进攻权+空窗+环绕+档位）已有；占位皮肤（十字、突进/红闪）已有。12002/12004 轴上可读。还缺偏谐 F、黄闪招架补完、G。失衡连携已关。
 
 **雷火文**：管理者 / 拍卖周期 / Desire / 竞拍 / 徘徊 / 假攻击已对齐。未做：怪种竞价权值、选点分散与防穿身、RVO、梯度下降、玩家快速移动回收 Token。封闭场地不阻塞。

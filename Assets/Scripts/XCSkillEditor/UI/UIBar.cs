@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using NaughtyAttributes;
 using DG.Tweening;
 using EGamePlay;
+using ACTGameEditor.Combat;
 
 namespace XiaoCao
 {
@@ -43,6 +44,16 @@ namespace XiaoCao
         private Tween _uiTween;
         private int _lastHp = int.MinValue;
         private int _lastMaxHp = int.MinValue;
+        Text _executeHint;
+        bool _hintVisible;
+        bool _hintInRange;
+        Color _harmonyBarColor = new Color(1f, 0.82f, 0.18f, 1f);
+
+        static readonly Color HarmonyChargingColor = new Color(0.32f, 0.78f, 1f, 1f);
+        static readonly Color HarmonyReadyColor = new Color(0.92f, 0.99f, 1f, 1f);
+        static readonly Color HarmonyExecutingColor = new Color(1f, 0.94f, 0.72f, 1f);
+        static readonly Color HarmonyVacuumColor = new Color(0.22f, 0.38f, 0.48f, 1f);
+        static readonly Color ExecuteHintColor = new Color(0.78f, 0.96f, 1f, 1f);
 
         private void Start()
         {
@@ -76,6 +87,7 @@ namespace XiaoCao
 
             followRect.anchoredPosition = localPoint;
             ResetBarChildLocal();
+            TickExecuteHintPulse();
 
             if (autoSize)
             {
@@ -126,7 +138,7 @@ namespace XiaoCao
                 barImg.fillAmount = p;
         }
 
-        /// <summary>血条下失衡条。show=false 时关掉 Image，避免玩家空条。</summary>
+        /// <summary>血条下偏谐条。show=false 时关掉 Image，避免玩家空条。</summary>
         public void SetDazeFill(float ratio, bool show)
         {
             if (barImg_noBreak == null)
@@ -134,6 +146,54 @@ namespace XiaoCao
             barImg_noBreak.enabled = show;
             if (show)
                 barImg_noBreak.fillAmount = Mathf.Clamp01(ratio);
+            else
+                SetExecuteHintVisible(false);
+        }
+
+        /// <summary>
+        /// 偏谐条。Ready 且可处决时在条右侧显示 F；范围内脉冲更明显。真空锁零用暗色空条。不提示 Q/E。
+        /// </summary>
+        public void SetHarmonyFill(float ratio, bool show, DazePhase phase, bool showExecuteHint, bool executeInRange)
+        {
+            SetDazeFill(ratio, show);
+            if (barImg_noBreak == null)
+                return;
+            if (!show)
+            {
+                _hintInRange = false;
+                return;
+            }
+
+            Color target = ResolveHarmonyColor(phase);
+            if (_harmonyBarColor != target)
+            {
+                _harmonyBarColor = target;
+                barImg_noBreak.color = target;
+            }
+
+            _hintInRange = showExecuteHint && executeInRange;
+            SetExecuteHintVisible(showExecuteHint);
+        }
+
+        /// <summary>兼容旧调用：Ready 亮条 + F，其它相位当攒条。</summary>
+        public void SetHarmonyFill(float ratio, bool show, bool ready)
+        {
+            SetHarmonyFill(ratio, show, ready ? DazePhase.Ready : DazePhase.Charging, ready, ready);
+        }
+
+        static Color ResolveHarmonyColor(DazePhase phase)
+        {
+            switch (phase)
+            {
+                case DazePhase.Ready:
+                    return HarmonyReadyColor;
+                case DazePhase.Executing:
+                    return HarmonyExecutingColor;
+                case DazePhase.Vacuum:
+                    return HarmonyVacuumColor;
+                default:
+                    return HarmonyChargingColor;
+            }
         }
 
         public void SetFillValueNoBreak(int value, int count)
@@ -161,6 +221,59 @@ namespace XiaoCao
             _lastHp = int.MinValue;
             _lastMaxHp = int.MinValue;
             ResetBarChildLocal();
+        }
+
+        void SetExecuteHintVisible(bool visible)
+        {
+            if (_hintVisible == visible)
+                return;
+            _hintVisible = visible;
+            if (visible)
+                EnsureExecuteHint();
+            if (_executeHint != null)
+            {
+                _executeHint.gameObject.SetActive(visible);
+                if (!visible)
+                    _executeHint.rectTransform.localScale = Vector3.one;
+            }
+        }
+
+        void EnsureExecuteHint()
+        {
+            if (_executeHint != null || numText == null)
+                return;
+
+            Transform parent = barImgTF != null ? barImgTF : transform;
+            _executeHint = Instantiate(numText, parent);
+            _executeHint.gameObject.name = "HarmonyExecuteHint";
+            _executeHint.text = "F";
+            _executeHint.alignment = TextAnchor.MiddleLeft;
+            _executeHint.raycastTarget = false;
+            _executeHint.fontStyle = FontStyle.Bold;
+            _executeHint.color = ExecuteHintColor;
+            if (_executeHint.fontSize < 22)
+                _executeHint.fontSize = 22;
+            RectTransform rt = _executeHint.rectTransform;
+            rt.anchorMin = new Vector2(1f, 0.5f);
+            rt.anchorMax = new Vector2(1f, 0.5f);
+            rt.pivot = new Vector2(0f, 0.5f);
+            rt.anchoredPosition = new Vector2(10f, 5.6f);
+            rt.localScale = Vector3.one;
+            _executeHint.gameObject.SetActive(false);
+        }
+
+        void TickExecuteHintPulse()
+        {
+            if (!_hintVisible || _executeHint == null || !_executeHint.gameObject.activeSelf)
+                return;
+
+            float speed = _hintInRange ? 6.2f : 3.4f;
+            float wave = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * speed);
+            Color c = ExecuteHintColor;
+            c.a = _hintInRange ? 0.55f + 0.45f * wave : 0.72f + 0.18f * wave;
+            _executeHint.color = c;
+            float s = _hintInRange ? 1f + 0.1f * wave : 1f;
+            _executeHint.rectTransform.localScale = new Vector3(s, s, 1f);
         }
 
         public float scaleRate_Bar = 2;

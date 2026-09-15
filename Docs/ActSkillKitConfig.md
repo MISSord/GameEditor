@@ -1,6 +1,6 @@
 # ACT 角色技能配置收口（对照绝区零）
 
-> 状态：**阶段 0–4 已接运行时**（表 + 4 键 Click/Hold 互斥 + Kit/Z 窗 + 支援点 + 被动 `PassiveBuffIds` + **任意槽位行 Empowered 预检改写**）。闪避反击的极限闪避 Tag 授予未做。**多档蓄力 / 松手结算只是方案（§十），未落地。**
+> 状态：**阶段 0–4 已接运行时**（表 + 4 键 Click/Hold 互斥 + Kit/Z 窗 + 支援点 + 被动 `PassiveBuffIds` + **任意槽位行 Empowered 预检改写**）。闪避反击的极限闪避 Tag 授予未做。**多档蓄力 / 松手结算只是方案（§十），未落地。绝区零失衡硬直 / Z 连携已屏蔽**，高潮改偏谐见 `ActHarmonyBreakDesign.md`。
 > 关联：`ActSkillConfigAndLeveling.md`（段表与升级）、`ActCharacterKitTemplate.md`（新角色填表）、`ActSquadDesign.md`（换人 Reason；**输入以本文为准**）、`ProjectConventions.md`。
 > 养成 UI、命座、驱动盘不在本文。敌人招池仍走 12000 号段 + AI，不进玩家 `CharacterSlot`。
 
@@ -9,7 +9,7 @@
 ## 〇、一句话
 
 当前角色只有 **4 个战斗键**（每键 Click / Hold 互斥），加上候场 **2 个 Z 键**。  
-招式包按「角色 × 键 × 按法」进 Luban；Z 触发的招架 / 连携 / 支援写在 `CharacterKit` 列，**不进** `CharacterSlot`。  
+招式包按「角色 × 键 × 按法」进 Luban；Z 触发的招架 / 支援写在 `CharacterKit` 列，**不进** `CharacterSlot`。连携已屏蔽；场上 F 谐度破坏见 `ActHarmonyBreakDesign.md`。  
 **空就是没有**：缺行、SkillId=0、Kit 列=0 都不回退系统默认。
 
 ---
@@ -19,9 +19,10 @@
 | 项 | 结论 |
 |---|---|
 | 战斗键 | **Attack=ButtonX，Dodge=ButtonY，Ultimate=ButtonA，Skill=ButtonB** |
-| 特殊键 Z | **Switch1 / Switch2（Q/E）即 ButtonZ / ButtonZ2**：两人候场肖像。无窗=Manual 换人；黄闪=防御支援；红闪=回避支援；支援窗=快速支援；失衡窗=连携 |
+| 特殊键 Z | **Switch1 / Switch2（Q/E）即 ButtonZ / ButtonZ2**：两人候场肖像。无窗=Manual 换人；黄闪=防御支援；红闪=回避支援；支援窗=快速支援。~~失衡窗=连携~~ **已屏蔽** |
 | 招架 | **不是面键，不是场上按 L。** 黄闪按某个 Z = 换入该角色并打 `DefensiveAssistSkillId` |
-| 连携 | **不是 A，不是 Ultimate 改写。** 失衡窗按 Z = 换入该角色并打 `ChainSkillId`。A 只出终结技 |
+| 连携 | **已屏蔽。** 原「失衡窗 Z = `ChainSkillId`」不再触发 |
+| 谐度破坏 | 场上 **F**，读 Kit `HarmonyBreakSkillId`。空列这次失败，不换人、不回退 13001 |
 | 槽表主键 | `(CharacterId, Button, Press, FormId, Priority)`。Button **仅** 4 战斗键 |
 | EX / 资源改写 | **任意** `CharacterSlot` 行的 `EmpoweredSkillId`（阶段 4）。能量门写在 **Empowered 那条** `SkillDemo`，不是 Kit 判断方法 |
 | 闪避反击 | Attack×Click + 极限闪避 Tag，不是新键（阶段 5） |
@@ -35,7 +36,9 @@
 
 与 `ActSquadDesign` 冲突时，**输入键位以本文为准**；小队 Reason 优先级不变：
 
-`黄闪 DefensiveAssist > 红闪 EvasiveAssist > 失衡 Chain > 支援窗 QuickAssist > Manual`
+`黄闪 DefensiveAssist > 红闪 EvasiveAssist > 支援窗 QuickAssist > Manual`
+
+（原「失衡 Chain」一档已屏蔽，运行时不会再走到。）
 
 没支援点时黄 / 红 Z **整次失败**（不降级 Manual）。点数挂小队实体，开战灌满，惰性回复。
 
@@ -53,6 +56,7 @@
 | Skill | ButtonB | L / 东 | **战技 / EX**。现役无行则空 |
 | Assist1 | Switch1（即 Z） | Q | 候场相对 +1 |
 | Assist2 | Switch2（即 Z2） | E | 候场相对 +2 |
+| Execute | Execute | F | 谐度破坏。情境键，不进 `CharacterSlot`。Kit 列=0 不触发 |
 | Jump | Jump | Space | 不进招式包 |
 
 Z **不进** `InputBuffer` / `SkillResolver`。`ConfigurableInputManager` 调 `CombatSquad.TrySwitchRelative(1|2)`。
@@ -113,7 +117,8 @@ Switch1 / Switch2（Z）
 | 特殊技 | Skill×Click（B） | Special |
 | EX | 同行 `EmpoweredSkillId`（不限 Skill×Click） | ExSpecial |
 | 终结技 | Ultimate×Click（A） | Ultimate |
-| 连携技 | Z + 失衡窗 → `Kit.ChainSkillId` | Chain |
+| 连携技 | ~~Z + 失衡窗 → `Kit.ChainSkillId`~~ **已屏蔽** | Chain |
+| 谐度破坏 | 场上 F → `Kit.HarmonyBreakSkillId`（0 不触发） | HarmonyBreak |
 | 核心被动 / 额外能力 | 无键，Kit 点名 | CorePassive / AdditionalAbility |
 | 快速支援 | Z + 支援窗 | QuickAssist |
 | 防御支援（招架） | Z + 黄闪 | DefensiveAssist |
@@ -139,7 +144,8 @@ Switch1 / Switch2（Z）
 | CorePassiveSkillId / AdditionalAbilitySkillId / AdditionalCondition | 被动。第一期 Condition=`None` |
 | ExtraPassiveSkillIds | 列表，替代预制体 ExtraPassive |
 | DefaultFormId | 0=无形态 |
-| ChainSkillId | Z + 失衡窗。0=这次 Z 失败 |
+| ChainSkillId | 表仍保留。Z + 失衡窗 **已屏蔽**，运行时不读 |
+| HarmonyBreakSkillId | 场上 F 谐度破坏。**0=这次 F 失败**，不换人、不回退 13001。角色之间可配不同 SkillId |
 | QuickAssistSkillId | Z + 支援窗。0=该窗失败 |
 | DefensiveAssistSkillId | Z + 黄闪。0=没有招架支援。不要再单列 `ParrySkillId` |
 | EvasiveAssistSkillId | Z + 红闪。0=该窗失败 |
@@ -224,6 +230,7 @@ Combo 表、每角色键位表、`LongButton*` 配表、场上 Parry 键表、Ch
 | 11000–11999 | 现役演示。写进格子才生效，不是全局默认 |
 | 12000–12999 | 敌人 |
 | 13000–13099 | 系统连携（13001 已占） |
+| 14000–14099 | 谐度破坏（现役 CharacterId=1 用 14001） |
 | 13100+ | 新角色，每角色 100 号（安比 131xx，漂泊者 132xx） |
 
 块内习惯：x01 普攻入口、x10/x11 特殊/EX、x20 终结、x30 连携、x33 防御支援、x35 闪避反击、x90 核心被动。
@@ -254,6 +261,7 @@ Combo 表、每角色键位表、`LongButton*` 配表、场上 Parry 键表、Ch
 ```
 4 战斗键 → InputBuffer(SkillSlotId) → CharacterSlot 行 → Empowered 预检 → Gate → Enqueue
 Z/Z2     → TrySwitchTo → Manual 不占轴；否则换入者 Kit 列 Enqueue
+F        → CombatHarmonyBreak.TryExecute → 场上角色 Kit.HarmonyBreakSkillId（0 不触发）
 ```
 
 - `ActPlayer.CharacterId` 必须是表里的 Id（现役预制体 **1**）。0 读不到 Kit / Slot，表现为没招。
@@ -274,7 +282,7 @@ Z/Z2     → TrySwitchTo → Manual 不占轴；否则换入者 Kit 列 Enqueue
 
 | 阶段 | 内容 | 验收 |
 |---|---|---|
-| **0** | 表头 + CharacterId=1 迁 X/Y；Kit 显式搬 11005/13001；运行时按 CharacterId 读表；B/A 空；Q/E 按窗推断黄闪/连携 | F9 倍率仍对；X 普攻、Y 闪避；按 B/A 不出招；三人队黄闪 Q/E 打 11005；失衡窗 Q/E 打 13001；单人无候场 Z 失败 |
+| **0** | 表头 + CharacterId=1 迁 X/Y；Kit 显式搬 11005/13001；运行时按 CharacterId 读表；B/A 空；Q/E 按窗推断黄闪/连携 | 当时验收含失衡窗 Q/E 打 13001。**失衡连携现已屏蔽**，该项不再作为回归 |
 | **1** | 枚举补 ButtonZ/Z2 别名；红闪 / 快速支援 / 支援点 | 空列失败；没点失败；不降级 Manual。现役 CharacterId=1 的 Quick/Evasive 仍为 0，红闪/支援窗内 Z 失败是预期 |
 | **2** | 被动改读 `PassiveBuffIds` | 已删 `PassiveSkillBuffMaps` SO；Kit 点名 19001 才挂 31000 |
 | **3** | 接长按 | 无 Hold 行不误放。现役 CharacterId=1 无 Hold 行：点按立刻出 X/Y，长按 J 不会改放 11001 以外的招，也不会把长当点按多放一次 |

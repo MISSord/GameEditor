@@ -69,18 +69,6 @@ namespace EGamePlay.Combat
             return _container != null && _container.CanSpellSkillWithTagLists(required, blocked);
         }
 
-        /// <summary>兼容旧调用：Manual 源 Push。</summary>
-        public void AddTag(string tagName)
-        {
-            _container?.Push(TagSource.Manual(), tagName);
-        }
-
-        /// <summary>兼容旧调用：无源 Remove（防负数）。</summary>
-        public void RemoveTag(string tagName)
-        {
-            _container?.RemoveTag(tagName);
-        }
-
         /// <summary>带来源压入 Tag。</summary>
         public void PushTag(TagSource source, string tagName)
         {

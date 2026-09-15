@@ -29,6 +29,7 @@ public sealed partial class DazeSetting : Luban.BeanBase
         { if(!_buf["IdleRegenPerSec"].IsNumber) { throw new SerializationException(); }  IdleRegenPerSec = _buf["IdleRegenPerSec"]; }
         { if(!_buf["CanDaze"].IsNumber) { throw new SerializationException(); }  CanDaze = _buf["CanDaze"]; }
         { if(!_buf["ParryDazeRatio"].IsNumber) { throw new SerializationException(); }  ParryDazeRatio = _buf["ParryDazeRatio"]; }
+        { if(!_buf["VacuumSeconds"].IsNumber) { throw new SerializationException(); }  VacuumSeconds = _buf["VacuumSeconds"]; }
     }
 
     public static DazeSetting DeserializeDazeSetting(JSONNode _buf)
@@ -84,6 +85,10 @@ public sealed partial class DazeSetting : Luban.BeanBase
     /// 招架失衡倍率
     /// </summary>
     public readonly float ParryDazeRatio;
+    /// <summary>
+    /// 谐度破坏后真空秒
+    /// </summary>
+    public readonly float VacuumSeconds;
    
     public const int __ID__ = -1700882264;
     public override int GetTypeId() => __ID__;
@@ -107,6 +112,7 @@ public sealed partial class DazeSetting : Luban.BeanBase
         + "IdleRegenPerSec:" + IdleRegenPerSec + ","
         + "CanDaze:" + CanDaze + ","
         + "ParryDazeRatio:" + ParryDazeRatio + ","
+        + "VacuumSeconds:" + VacuumSeconds + ","
         + "}";
     }
 }

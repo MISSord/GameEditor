@@ -143,14 +143,14 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 
 | 文档 | 内容 |
 |---|---|
-| `Docs/ActTimeEffectsBacklog.md` | 世界/玩家/相机/实体钟，断裂、HitStop、冻结 |
-| `Docs/ActBuffLearningBacklog.md` | Buff 管线、护盾、控制、未做项 |
-| `Docs/ActSkillConfigAndLeveling.md` | 主动技段表与技能组升级 |
-| `Docs/ActSkillKitConfig.md` | 角色招式包收口 Luban：Kit/槽位/被动/号段（阶段 0–3 已接运行时） |
-| `Docs/ActCameraStage2Design.md` | 相机意图 P2：混合构图设计备忘（未排期） |
+| `Docs/ActUnfinishedIndex.md` | **文档状态总索引**：已完成归档 + 未完成项清单（权威，开工前先看） |
+| `Docs/ActBuffLearningBacklog.md` | Buff 管线、护盾、控制；异常/紊乱/快照未做 |
+| `Docs/ActSkillKitConfig.md` | 角色招式包收口 Luban：Kit/槽位/被动/号段（阶段 0–4 已接） |
 | `Docs/ActEnemyAiDesign.md` | 敌人 AI：导演 + HFSM + 效用选招 + XC 轴（后续只看文内 §十二） |
-| `Docs/ActCombatRoadmap.md` | 战斗缺口与改进方案（对照绝区零：失衡/异常/招架/连携，里程碑 M1–M5） |
-| `Docs/ActSquadDesign.md` | 三人小队：换人 / 快速支援 / 极限支援 / 延奏 / 连携轮转 |
-| `Docs/ActCharacterKitTemplate.md` | 角色选型（单手刀/剑）与招式包模板：槽位/段表/轴/表现/验收 |
-| `Docs/ActLocomotionWuWaPlan.md` | 走跑对照鸣潮子集：接线、急停/起步、锁定侧移、动画清单 |
+| `Docs/ActSquadDesign.md` | 三人小队：换人 / 支援 / 延奏（M4.0–4.2 已接；延奏/喧响未做） |
+| `Docs/ActCombatRoadmap.md` | 战斗缺口（偏谐 / 异常 / 招架 / 小队；原失衡连携已屏蔽；总表滞后以索引为准） |
+| `Docs/ActLocomotionWuWaPlan.md` | 走跑对照鸣潮子集：接线、急停/起步、锁定侧移（未开工） |
+| `Docs/ActCameraStage2Design.md` | 相机意图 P2：混合构图设计备忘（未排期） |
+| `Docs/ActCharacterKitTemplate.md` | 角色选型（单手刀/剑）与招式包模板 |
+| `Docs/已完成/` | **已归档**：`ActTimeEffectsBacklog`（时间钟）、`ActSkillConfigAndLeveling`（段表/升级）、`ActHarmonyBreakDesign`（偏谐 F） |
 | `Assets/Scripts/EGamePlay/Combat/Buff/BuffModify/EffectModifyParamSlots.md` | Modify 各类型 Param 槽位 |
