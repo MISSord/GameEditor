@@ -1,7 +1,6 @@
-using EGamePlay;
+﻿using EGamePlay;
 using EGamePlay.Combat;
 using UnityEngine;
-using ACTGameEditor;
 
 namespace ACTGameEditor.Combat
 {
@@ -13,20 +12,22 @@ namespace ACTGameEditor.Combat
         Bench = 2,
     }
 
-    /// <summary>换人原因。Manual / Death 已落地；黄闪 / 红闪 / 快速支援 / 连携按窗推断。</summary>
+    /// <summary>换人原因。Manual / Death 已落地；黄闪 / 红闪 / 快速支援按窗推断。Chain 已废弃，勿赋值。</summary>
     public enum SwitchReason : byte
     {
         Manual = 0,
         QuickAssist = 1,
         DefensiveAssist = 2,
         EvasiveAssist = 3,
+        /// <summary>已废弃：原失衡连携窗。保留枚举值以免 Death 错位。</summary>
         Chain = 4,
         Death = 5,
     }
 
     /// <summary>
-    /// 三人小队运行时：三槽、Presence、换人 Gate、支援窗、支援点。
+    /// 三人小队运行时：三槽、Presence、换人 Gate、支援窗。
     /// 只持有 <see cref="CombatEntity"/>；显隐 / Warp / 相机 / 输入在 <see cref="PlayerManager"/>。
+    /// 切人无次数、无冷却（绝区零支援点已移除）。
     /// </summary>
     public sealed class CombatSquad : Entity
     {
@@ -37,7 +38,6 @@ namespace ACTGameEditor.Combat
         public const float ComboEnterOffset = 1.7f;
 
         const long SwitchIFrameSourceId = 90001;
-        const float PointEpsilon = 0.0001f;
 
         /// <summary>战局单例；由 <see cref="CombatContext"/> 子实体持有。</summary>
         public static CombatSquad Instance { get; private set; }
@@ -45,16 +45,10 @@ namespace ACTGameEditor.Combat
         readonly CombatEntity[] _members = new CombatEntity[SlotCount];
         int _activeSlot;
 
-        float _assistPoints;
-        float _lastRegenWorldTime;
         float _quickExpireAtWorld;
 
         float _assistWindow = 1.2f;
-        int _assistPointsMax = 3;
-        float _assistRegenPerSec = 0.12f;
         float _switchIFrame = 0.4f;
-        int _defensiveCost = 1;
-        int _evasiveCost = 1;
 
         /// <summary>三槽已绑定。</summary>
         public bool IsBound => _members[0] != null && !_members[0].IsDisposed;
@@ -64,19 +58,6 @@ namespace ACTGameEditor.Combat
 
         /// <summary>当前上场成员。</summary>
         public CombatEntity ActiveMember => IsBound ? _members[_activeSlot] : null;
-
-        /// <summary>当前支援点（惰性回复后）。</summary>
-        public float AssistPoints
-        {
-            get
-            {
-                RegenAssistPoints();
-                return _assistPoints;
-            }
-        }
-
-        /// <summary>支援点上限。</summary>
-        public int AssistPointsMax => _assistPointsMax;
 
         /// <inheritdoc />
         public override void Awake()
@@ -90,13 +71,12 @@ namespace ACTGameEditor.Combat
             for (int i = 0; i < SlotCount; i++)
                 _members[i] = null;
             _activeSlot = 0;
-            _assistPoints = 0f;
             _quickExpireAtWorld = 0f;
             if (Instance == this)
                 Instance = null;
         }
 
-        /// <summary>开战绑定三槽。槽 0 上场，1/2 候场。支援点灌满。</summary>
+        /// <summary>开战绑定三槽。槽 0 上场，1/2 候场。</summary>
         public bool Bind(CombatEntity slot0, CombatEntity slot1, CombatEntity slot2)
         {
             if (slot0 == null || slot1 == null || slot2 == null)
@@ -109,8 +89,6 @@ namespace ACTGameEditor.Combat
             _members[2] = slot2;
             _activeSlot = 0;
             ReloadSquadSettings();
-            _assistPoints = _assistPointsMax;
-            _lastRegenWorldTime = GameTimeManager.WorldTime;
             _quickExpireAtWorld = 0f;
             return true;
         }
@@ -123,7 +101,7 @@ namespace ACTGameEditor.Combat
             return _members[slot];
         }
 
-        /// <summary>Q/E：相对当前槽 +1 / +2。按窗推断 Reason，无窗才 Manual。</summary>
+        /// <summary>相对当前槽偏移后换人。死亡补位等循环用；键盘走 <see cref="TrySwitchTo"/>。</summary>
         public bool TrySwitchRelative(int offset)
         {
             if (!IsBound)
@@ -135,7 +113,7 @@ namespace ACTGameEditor.Combat
             return TrySwitchTo(target);
         }
 
-        /// <summary>肖像键：推断 Reason 后换人。黄/红空列或没点则整次失败，不降级 Manual。</summary>
+        /// <summary>按绝对槽换人。1/2/3 与肖像走这里。目标上一刀未打完则拦截。黄/红 Kit 空列则整次失败，不降级 Manual。无次数、无冷却。</summary>
         public bool TrySwitchTo(int slot)
         {
             if (!IsBound)
@@ -154,7 +132,6 @@ namespace ACTGameEditor.Combat
             {
                 if (!CombatParry.TryCommit(incoming, out CombatEntity attacker))
                     return true;
-                TrySpendAssistPoints(_defensiveCost);
                 EnqueueIncomingSkill(incoming, reason, skillId, attacker, ignoreCooldown: false);
                 return true;
             }
@@ -163,7 +140,6 @@ namespace ACTGameEditor.Combat
             {
                 if (!CombatEvasiveAssist.TryConsume(incoming, out CombatEntity attacker))
                     return true;
-                TrySpendAssistPoints(_evasiveCost);
                 CombatEvasiveAssist.SnapToSide(incoming, attacker);
                 ApplySwitchIFrame(incoming);
                 EnqueueIncomingSkill(incoming, reason, skillId, attacker, ignoreCooldown: false);
@@ -196,7 +172,7 @@ namespace ACTGameEditor.Combat
                 return false;
             if (outgoing == null || outgoing.IsDisposed)
                 return false;
-            if (incoming.SquadPresence == SquadPresence.Exiting)
+            if (HasUnfinishedExitSkill(incoming))
                 return false;
 
             if (reason != SwitchReason.Death)
@@ -224,7 +200,7 @@ namespace ACTGameEditor.Combat
             return true;
         }
 
-        /// <summary>肖像是否可点：存活候场、无人 Exiting；占轴时仅黄/红/连携/快速支援窗可点。</summary>
+        /// <summary>肖像是否可点：存活候场、目标上一刀已打完；占轴时仅黄/红/快速支援窗可点。</summary>
         public bool CanSwitchTo(int slot)
         {
             if (!IsBound)
@@ -235,7 +211,7 @@ namespace ACTGameEditor.Combat
             CombatEntity incoming = _members[slot];
             if (incoming == null || incoming.IsDisposed || incoming.IsDead)
                 return false;
-            if (incoming.SquadPresence == SquadPresence.Exiting)
+            if (HasUnfinishedExitSkill(incoming))
                 return false;
             if (FindExitingSlot() >= 0)
                 return false;
@@ -244,9 +220,7 @@ namespace ACTGameEditor.Combat
             if (outgoing != null && !outgoing.IsDisposed && IsSwitchBlockedBySkill(outgoing)
                 && !CombatParry.HasIncomingStrike(outgoing)
                 && !CombatEvasiveAssist.HasIncomingStrike(outgoing)
-                && !HasQuickAssistWindow()
-                && !(CombatMeterComponent.DazeGameplayEnabled
-                    && CombatChainSkill.TryResolveTarget(outgoing, out _)))
+                && !HasQuickAssistWindow())
                 return false;
             return true;
         }
@@ -331,39 +305,7 @@ namespace ACTGameEditor.Combat
                 return;
 
             _assistWindow = row.AssistWindow;
-            _assistPointsMax = row.AssistPointsMax > 0 ? row.AssistPointsMax : 3;
-            _assistRegenPerSec = row.AssistPointRegenPerSec;
             _switchIFrame = row.SwitchIFrame;
-            _defensiveCost = row.AssistPointDefensiveCost;
-            _evasiveCost = row.AssistPointEvasiveCost;
-        }
-
-        void RegenAssistPoints()
-        {
-            float now = GameTimeManager.WorldTime;
-            float dt = now - _lastRegenWorldTime;
-            _lastRegenWorldTime = now;
-            if (dt <= 0f || _assistPoints >= _assistPointsMax)
-                return;
-            _assistPoints = Mathf.Min(_assistPointsMax, _assistPoints + dt * _assistRegenPerSec);
-        }
-
-        bool HasAssistPoints(int cost)
-        {
-            if (cost <= 0)
-                return true;
-            RegenAssistPoints();
-            return _assistPoints + PointEpsilon >= cost;
-        }
-
-        bool TrySpendAssistPoints(int cost)
-        {
-            if (cost <= 0)
-                return true;
-            if (!HasAssistPoints(cost))
-                return false;
-            _assistPoints = Mathf.Max(0f, _assistPoints - cost);
-            return true;
         }
 
         void ApplySwitchIFrame(CombatEntity incoming)
@@ -395,7 +337,7 @@ namespace ACTGameEditor.Combat
                 CombatEntity member = _members[slot];
                 if (member == null || member.IsDisposed || member.IsDead)
                     continue;
-                if (member.SquadPresence == SquadPresence.Exiting)
+                if (HasUnfinishedExitSkill(member))
                     continue;
                 return slot;
             }
@@ -412,6 +354,14 @@ namespace ACTGameEditor.Combat
                 || state == PlayerStateEnum.Stagger || state == PlayerStateEnum.Dead)
                 return false;
             return HasOccupyingSkill(outgoing);
+        }
+
+        /// <summary>目标还在打切走前那一刀：合轴 Exiting，或轴还没结束（误进 Bench 仍占轴）。</summary>
+        static bool HasUnfinishedExitSkill(CombatEntity unit)
+        {
+            if (unit.SquadPresence == SquadPresence.Exiting)
+                return true;
+            return HasOccupyingSkill(unit);
         }
 
         static bool HasOccupyingSkill(CombatEntity unit)
@@ -433,15 +383,14 @@ namespace ACTGameEditor.Combat
             Ability ability = runner != null ? runner.AbilityEntity : null;
             if (ability == null)
                 return false;
-            if (CombatChainSkill.IsChainSkill(ability.SkillID))
-                return true;
             SkillCategory cat = SkillSettingMgr.Instance != null
                 ? SkillSettingMgr.Instance.GetSkillCategory(ability.SkillID)
                 : SkillCategory.None;
             return cat == SkillCategory.QuickAssist
                 || cat == SkillCategory.EvasiveAssist
                 || cat == SkillCategory.AssistFollowUp
-                || cat == SkillCategory.HarmonyBreak;
+                || cat == SkillCategory.HarmonyBreak
+                || cat == SkillCategory.Chain;
         }
 
         static Vector3 ResolveComboEnterPosition(CombatEntity outgoing)
@@ -462,8 +411,7 @@ namespace ACTGameEditor.Combat
 
         /// <summary>
         /// 黄闪 → 防御支援；红闪 → 回避支援；支援窗 → 快速支援；否则 Manual。
-        /// 失衡连携已屏蔽（<see cref="CombatMeterComponent.DazeGameplayEnabled"/>）。
-        /// 窗口要求的 Kit 列为 0，或黄/红没点时失败（不降级 Manual）。
+        /// 窗口要求的 Kit 列为 0 时失败（不降级 Manual）。切人无次数闸。
         /// </summary>
         bool TryResolveSwitchIntent(
             CombatEntity outgoing,
@@ -486,7 +434,7 @@ namespace ACTGameEditor.Combat
             if (CombatParry.HasIncomingStrike(outgoing))
             {
                 int id = kit != null ? kit.DefensiveAssistSkillId : 0;
-                if (id <= 0 || !HasAssistPoints(_defensiveCost))
+                if (id <= 0)
                     return false;
                 reason = SwitchReason.DefensiveAssist;
                 skillId = id;
@@ -496,22 +444,10 @@ namespace ACTGameEditor.Combat
             if (CombatEvasiveAssist.HasIncomingStrike(outgoing))
             {
                 int id = kit != null ? kit.EvasiveAssistSkillId : 0;
-                if (id <= 0 || !HasAssistPoints(_evasiveCost))
+                if (id <= 0)
                     return false;
                 reason = SwitchReason.EvasiveAssist;
                 skillId = id;
-                return true;
-            }
-
-            if (CombatMeterComponent.DazeGameplayEnabled
-                && CombatChainSkill.TryResolveTarget(outgoing, out CombatEntity chainTarget))
-            {
-                int id = kit != null ? kit.ChainSkillId : 0;
-                if (id <= 0)
-                    return false;
-                reason = SwitchReason.Chain;
-                skillId = id;
-                skillTarget = chainTarget;
                 return true;
             }
 

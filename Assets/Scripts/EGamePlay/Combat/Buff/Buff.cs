@@ -38,7 +38,7 @@ namespace EGamePlay.Combat
 
     /// <summary>
     /// Buff 结束条件。可组合：Duration 与其它同时成立时，谁先到谁卸。
-    /// 配在 <c>BuffTag</c>：<see cref="CombatTags.BuffBindSkill"/> 等。
+    /// 配在表列 <c>BuffTag</c>（Asset），不要写入 <c>GrantedTags</c>。
     /// </summary>
     [Flags]
     public enum BuffExpirePolicy : byte
@@ -55,17 +55,41 @@ namespace EGamePlay.Combat
         SkillRunner = 8,
         /// <summary>直到持有者离开施加时的形态。</summary>
         Form = 16,
-        /// <summary>切人退场。尚未挂钩。</summary>
+        /// <summary>切人退场。表 BuffTag 配 <see cref="CombatTags.BuffBindSwitchOut"/>。卸挂钩见小队 M4.3。</summary>
         OnSwitchOut = 32,
     }
 
     /// <summary>
-    /// BuffDemoSetting 的扩展，提供对 RepeatedAddition 的强类型封装。
+    /// BuffDemoSetting 的扩展。表两列 Tag 对齐 GAS GameplayEffect：
+    /// <list type="bullet">
+    /// <item><see cref="BuffTag"/> = Asset Tags，前缀 <c>Buff.</c>。描述这条 Buff（极性、Bind、Caster、Outro）。净化 / 生命周期读这里，不要 Push 到角色。</item>
+    /// <item><see cref="GrantedTags"/> = Granted Tags，前缀 <c>State.</c>。Buff 存活时 Push 进角色容器。HasTag 认运行时容器。</item>
+    /// </list>
+    /// 眩晕：Asset 可写 <c>Buff.Debuff</c>，Granted 写 <c>State.Dizziness</c>。不要两列都用 Buff. 开头。
     /// </summary>
     public sealed partial class BuffDemoSetting
     {
         /// <summary>Buff 重复添加时的规则（从 RepeatedAddition 转换而来）。</summary>
         public BuffReApplyRule ReApplyRule => (BuffReApplyRule)RepeatedAddition;
+
+        /// <summary>Asset 列是否含 tag。查 Buff 定义，不查角色容器。</summary>
+        public bool HasAssetTag(string tag) => ContainsTag(BuffTag, tag);
+
+        /// <summary>Granted 列是否含 tag。角色是否真拥有该状态，以运行时容器为准。</summary>
+        public bool HasGrantedTagOnSheet(string tag) => ContainsTag(GrantedTags, tag);
+
+        static bool ContainsTag(System.Collections.Generic.List<string> tags, string tag)
+        {
+            if (tags == null || string.IsNullOrEmpty(tag))
+                return false;
+            for (int i = 0; i < tags.Count; i++)
+            {
+                if (tags[i] == tag)
+                    return true;
+            }
+
+            return false;
+        }
     }
 
     /// <summary>
@@ -73,7 +97,8 @@ namespace EGamePlay.Combat
     /// </summary>
     public class Buff : AbilityBase
     {
-        public Entity Caster; // 施法者
+        /// <summary>施加者实体。跳伤 / 击杀只认这个，不回退主控或持有者。ReApply 默认后上覆盖，见 <see cref="AssignCasterOnReApply"/>。</summary>
+        public Entity Caster;
         // 承受者由基类 OwnerEntity 提供
 
         // Buff 静态数据
@@ -89,6 +114,8 @@ namespace EGamePlay.Combat
         public TickStackPolicy TickStackPolicy { get; private set; }
         /// <summary>结束条件（表 Tag 解析）。刷新同 Id 不重绑 Runner/Form。</summary>
         public BuffExpirePolicy ExpirePolicy { get; private set; }
+        /// <summary>表打了 <see cref="CombatTags.BuffCasterKeepFirst"/> 时，ReApply 不改仍活着的原 Caster。</summary>
+        public bool KeepFirstCaster { get; private set; }
         /// <summary>SkillRunner 绑定的轴 Id；0 表示未绑。</summary>
         public long BoundRunnerId { get; private set; }
         /// <summary>Form 绑定的形态 Id（0 为默认槽位）。</summary>
@@ -130,6 +157,7 @@ namespace EGamePlay.Combat
 
             TickStackPolicy = ResolveTickStackPolicy(Setting);
             ExpirePolicy = ResolveExpirePolicy(Setting);
+            KeepFirstCaster = HasSettingTag(Setting, CombatTags.BuffCasterKeepFirst);
 
             // 时间处理组件：ETTimerManager 按世界钟调度，不乘实体 TimeScale
             if (Setting.BuffType.HasFlag(BuffType.TimeBuff) || Setting.BuffType.HasFlag(BuffType.CDBuff))
@@ -232,24 +260,42 @@ namespace EGamePlay.Combat
             base.OnActivate();
             if (_status == null) _status = Parent?.GetComponent<StatusComponent>();
             BindLifetimeIfNeeded();
-            var tags = Setting?.BuffTag;
-            if (_status == null || tags == null) return;
-            var src = TagSource.Buff(Id);
-            for (int i = 0; i < tags.Count; i++)
-                _status.TagContainer.Push(src, tags[i]);
+            ApplyGrantedTags(add: true);
         }
 
         protected override void OnDeactivate()
         {
             if (_status == null) _status = Parent?.GetComponent<StatusComponent>();
-            var tags = Setting?.BuffTag;
-            if (_status != null && tags != null)
-            {
-                var src = TagSource.Buff(Id);
-                for (int i = 0; i < tags.Count; i++)
-                    _status.TagContainer.Pop(src, tags[i]);
-            }
+            ApplyGrantedTags(add: false);
             base.OnDeactivate();
+        }
+
+        /// <summary>
+        /// 只推 <see cref="BuffDemoSetting.GrantedTags"/>（<c>State.*</c>）。误写 <c>Buff.*</c> 时跳过并打错误。
+        /// </summary>
+        void ApplyGrantedTags(bool add)
+        {
+            if (_status == null) _status = Parent?.GetComponent<StatusComponent>();
+            var tags = Setting?.GrantedTags;
+            if (_status == null || tags == null)
+                return;
+            var src = TagSource.Buff(Id);
+            for (int i = 0; i < tags.Count; i++)
+            {
+                string tag = tags[i];
+                if (string.IsNullOrEmpty(tag))
+                    continue;
+                if (tag.StartsWith("Buff.", StringComparison.Ordinal))
+                {
+                    GameLog.CombatError($"BuffId={BuffID} GrantedTags '{tag}' 应改为 State.*（Asset 才用 Buff. 开头）。已跳过。");
+                    continue;
+                }
+
+                if (add)
+                    _status.TagContainer.Push(src, tag);
+                else
+                    _status.TagContainer.Pop(src, tag);
+            }
         }
 
         /// <summary>激活 Buff（与 IAbility.Activate 统一，对外保留原名便于语义区分）。</summary>
@@ -328,7 +374,9 @@ namespace EGamePlay.Combat
 
             if ((ExpirePolicy & BuffExpirePolicy.SkillRunner) != 0)
             {
-                ICombatUnit caster = Caster as ICombatUnit ?? OwnerEntity;
+                ICombatUnit caster = Caster as ICombatUnit;
+                if (caster == null || caster.IsDisposed)
+                    caster = OwnerEntity;
                 ISkillExecutionHandle runner = caster?.ActiveExecution;
                 if (runner != null && !runner.IsDisposed)
                     BoundRunnerId = runner.Id;
@@ -356,20 +404,14 @@ namespace EGamePlay.Combat
                 policy |= BuffExpirePolicy.HitsTaken;
             if (HasSettingTag(setting, CombatTags.BuffBindHitsDealt))
                 policy |= BuffExpirePolicy.HitsDealt;
+            if (HasSettingTag(setting, CombatTags.BuffBindSwitchOut))
+                policy |= BuffExpirePolicy.OnSwitchOut;
             return policy;
         }
 
         static bool HasSettingTag(BuffDemoSetting setting, string tag)
         {
-            if (setting?.BuffTag == null || string.IsNullOrEmpty(tag))
-                return false;
-            var tags = setting.BuffTag;
-            for (int i = 0; i < tags.Count; i++)
-            {
-                if (tags[i] == tag)
-                    return true;
-            }
-            return false;
+            return setting != null && setting.HasAssetTag(tag);
         }
 
         /// <summary>由 <see cref="StatusComponent"/> 在统一卸入口标记，防止重入。</summary>
@@ -396,7 +438,30 @@ namespace EGamePlay.Combat
         }
 
         /// <summary>
-        /// 可叠层时返回当前层数（可为 0）；不可叠层视为 1，供粘性 PlayerModify 按层缩放。
+        /// 仍活着的施加者。已销毁或从未写入则 null；跳伤不要回退 <see cref="OwnerEntity"/> / 主控。
+        /// </summary>
+        public ICombatUnit GetLiveCaster()
+        {
+            if (Caster is ICombatUnit unit && !unit.IsDisposed)
+                return unit;
+            return null;
+        }
+
+        /// <summary>
+        /// ReApply 写归属。默认后上覆盖；KeepFirst 且原 Caster 仍活着则不动。incoming 空/已销毁不擦旧值。
+        /// Exclusive 由调用方跳过本方法。不重绑 SkillRunner / Form。
+        /// </summary>
+        public void AssignCasterOnReApply(ICombatUnit incoming)
+        {
+            if (incoming == null || incoming.IsDisposed)
+                return;
+            if (KeepFirstCaster && GetLiveCaster() != null)
+                return;
+            Caster = incoming.Entity;
+        }
+
+        /// <summary>
+        /// 可叠层时返回当前层数（可为 0）；不可叠层视为 1，供粘性 PlayerModify / 跳伤按层缩放。
         /// </summary>
         public float GetStackCount()
         {
@@ -404,6 +469,26 @@ namespace EGamePlay.Combat
                 return 1f;
             var property = _attributes.GetNumeric(AttributeType.BuffMaxStacks);
             return property != null ? property.CurrentValue : 1f;
+        }
+
+        /// <summary>
+        /// 扣层。 <paramref name="stacks"/> ≤ 0 表示扣光。不可叠层时整段视为 1 层（不改 Numeric）。
+        /// 层数到 0 后由调用方 <see cref="StatusComponent.TryConsume"/> 卸除，这里不 Remove。
+        /// </summary>
+        public float ConsumeStacks(float stacks)
+        {
+            float before = GetStackCount();
+            if (before <= 0f)
+                return 0f;
+            float want = stacks <= 0f ? before : stacks;
+            float take = want < before ? want : before;
+            if (IsCanStack && _attributes != null)
+            {
+                BuffProperty property = _attributes.GetNumeric(AttributeType.BuffMaxStacks);
+                if (property != null)
+                    property.CurrentValue = before - take;
+            }
+            return take;
         }
 
         //由时间触发（OnStart：挂上立刻跳一次，不掉层）

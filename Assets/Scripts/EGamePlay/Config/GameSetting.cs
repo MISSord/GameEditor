@@ -1,4 +1,4 @@
-namespace EGamePlay
+﻿namespace EGamePlay
 {
 
     [EnumLabel("CameraMode")]
@@ -52,9 +52,21 @@ namespace EGamePlay
     public enum PlayerStateEnum
     {
         Idle,
-        Moving, //这里是指角色处于如跑步，飞行等移动状态中
+        /// <summary>
+        /// 普通移动状态，如跑步，游泳，跳跃。释放技能导致的移动，属于释放技能中
+        /// </summary>
+        Moving,
+        /// <summary>
+        /// 释放技能中
+        /// </summary>
         PlayerSkill, //闪避属于释放技能，闪避技能
+        /// <summary>
+        /// 受击
+        /// </summary>
         Hit,
+        /// <summary>
+        /// 死亡
+        /// </summary>
         Dead,
         /// <summary>硬控（眩晕等），时长跟 MoveForbid Tag，不是短硬直。</summary>
         Control,

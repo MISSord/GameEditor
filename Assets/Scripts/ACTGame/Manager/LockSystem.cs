@@ -179,6 +179,80 @@ namespace ACTGameEditor
             return combat == null || (!combat.IsDisposed && !combat.IsDead);
         }
 
+        /// <summary>
+        /// 构图目标：已锁用锁定目标（可在身后）；无锁则取相机前方最近的有效敌人。
+        /// 锥外 / 身后不入选，避免跑图甩镜。
+        /// </summary>
+        public ICameraTarget FindFramingTarget(float maxAngle)
+        {
+            if (IsLocked && IsValidLockCandidate(LockedTarget))
+                return LockedTarget;
+
+            return FindNearestInFront(maxAngle);
+        }
+
+        /// <summary>当前目标是否仍可作为构图源（锁定目标始终合格；否则须在相机前方锥内）。</summary>
+        public bool IsEligibleFramingTarget(ICameraTarget target, float maxAngle)
+        {
+            if (!IsValidLockCandidate(target))
+                return false;
+            if (IsLocked && target == LockedTarget)
+                return true;
+            return IsInFrontCone(target, maxAngle);
+        }
+
+        ICameraTarget FindNearestInFront(float maxAngle)
+        {
+            var cam = CameraManager.Instance;
+            if (cam == null || cam.CurrentTarget == null)
+                return null;
+
+            Vector3 playerPos = cam.CurrentTarget.GetPlayerPos();
+            int count = Physics.OverlapSphereNonAlloc(playerPos, searchRadius, s_overlapBuffer, enemyLayer);
+
+            ICameraTarget best = null;
+            float bestDistSq = float.MaxValue;
+            Vector3 camForward = cam.MainCamera != null ? cam.MainCamera.forward : Vector3.forward;
+
+            for (int i = 0; i < count; i++)
+            {
+                var col = s_overlapBuffer[i];
+                if (col == null)
+                    continue;
+                if (!col.TryGetComponent<ICameraTarget>(out var candidate))
+                    continue;
+                if (!IsValidLockCandidate(candidate))
+                    continue;
+                if (!IsInFrontCone(candidate, maxAngle, camForward, playerPos))
+                    continue;
+
+                float distSq = (candidate.GetPlayerPos() - playerPos).sqrMagnitude;
+                if (distSq < bestDistSq)
+                {
+                    bestDistSq = distSq;
+                    best = candidate;
+                }
+            }
+
+            return best;
+        }
+
+        bool IsInFrontCone(ICameraTarget target, float maxAngle)
+        {
+            var cam = CameraManager.Instance;
+            if (cam == null || cam.CurrentTarget == null || cam.MainCamera == null)
+                return false;
+            return IsInFrontCone(target, maxAngle, cam.MainCamera.forward, cam.CurrentTarget.GetPlayerPos());
+        }
+
+        static bool IsInFrontCone(ICameraTarget target, float maxAngle, Vector3 camForward, Vector3 playerPos)
+        {
+            Vector3 dir = target.GetPlayerPos() - playerPos;
+            if (dir.sqrMagnitude < 0.0001f)
+                return false;
+            return Vector3.Angle(camForward, dir) <= maxAngle;
+        }
+
         /// <summary>寻找最佳目标（角度+距离加权）</summary>
         public ICameraTarget FindBestTarget()
         {

@@ -81,6 +81,15 @@ namespace ACTGameEditor
             }
         }
 
+        /// <summary>
+        /// 把轨道角对齐到干净朝向。解锁时把混合结果写回基准，避免镜头甩回锁定前的旧角度。
+        /// </summary>
+        public void RebaseOrbit(Quaternion rotation)
+        {
+            SyncOrbitAngles(rotation);
+            lookRotation = Quaternion.Euler(orbitAngles);
+        }
+
         /// <summary>把干净朝向转回 orbitAngles（pitch 归一到 [-180,180)，yaw 由 ConstrainAngles 归一到 [0,360)）。</summary>
         void SyncOrbitAngles(Quaternion rotation)
         {
@@ -215,12 +224,9 @@ namespace ACTGameEditor
         public override CameraEnumState GetCameraState() => CameraEnumState.FreeLook;
     }
 
-    // 锁定视角状态（崩坏3风格，逻辑委托给 LockSystem）
+    // 锁定视角：不再独占状态机，只作为混合层的朝向提议源（Q/E 与目标校验仍走这里）。
     public class LockOnState : CameraState
     {
-        [Tooltip("镜头转向目标的平滑时间")]
-        public float lockSmoothTime = 0.1f;
-
         public LockOnState(CameraManager machine) : base(machine) { }
 
         public override void OnEnter(CameraState oldCameraState) { }
@@ -238,26 +244,31 @@ namespace ACTGameEditor
             ls.ValidateLockedTarget();
         }
 
-        public override void OnLateUpdate()
+        public override void OnLateUpdate() { }
+
+        /// <summary>
+        /// 提出锁定朝向（玩家根位置 → 目标相机点）。不写基准，失败表示当前无有效锁。
+        /// </summary>
+        public bool TryProposeLook(out float pitch, out float yaw)
         {
-            if (LockSystem.Instance == null || !LockSystem.Instance.IsLocked) return;
+            pitch = 0f;
+            yaw = 0f;
+            var ls = LockSystem.Instance;
+            if (ls == null || !ls.IsLocked)
+                return false;
 
-            var target = LockSystem.Instance.LockedTarget;
-            if (target == null) return;
+            var target = ls.LockedTarget;
+            if (target == null || machine.CurrentTarget == null)
+                return false;
 
-            HandleCameraLockRotation(target);
-        }
+            Vector3 dirToTarget = target.GetCameraTargetPos() - machine.CurrentTarget.GetPlayerPos();
+            if (dirToTarget.sqrMagnitude < 0.0001f)
+                return false;
 
-        void HandleCameraLockRotation(ICameraTarget currentTarget)
-        {
-            if (machine.CurrentTarget == null) return;
-
-            Vector3 playerPos = machine.CurrentTarget.GetPlayerPos();
-            Vector3 dirToTarget = (currentTarget.GetCameraTargetPos() - playerPos).normalized;
-
-            lookPosition = -dirToTarget * machine.Distance + playerPos;
-            Quaternion targetLook = Quaternion.LookRotation(dirToTarget);
-            lookRotation = Quaternion.Slerp(machine.CleanLookRotation, targetLook, GameTimeManager.CameraDelta * (1f / lockSmoothTime));
+            Vector3 euler = Quaternion.LookRotation(dirToTarget.normalized, Vector3.up).eulerAngles;
+            pitch = euler.x > 180f ? euler.x - 360f : euler.x;
+            yaw = euler.y;
+            return true;
         }
 
         public override CameraEnumState GetCameraState() => CameraEnumState.LockLook;

@@ -91,8 +91,8 @@
 - HitStop 全局层保持 1，只给攻击者 + 受击者写实体 `TimeScale`（`CombatTimeClock.HitStopSourceId`）。周围单位不跟着爬。
 - 同类型只留一份：新 Priority 更低则拒绝；否则替换并刷新时长。连打不会 `min` 叠到接近 0。
 - 段表 `HitReaction`：`Light` → `HitCausedLight`；`Heavy` → `HitCausedHeavy`；暴击另走 `HitCausedCrit`，受击闪白走 Heavy。不要用段号当轻重档。
-- 极限闪避：翻滚带 `Buff.Roll` 时 `CombatHitResolver` 把伤害标成 Dodge，本地玩家 `PostReceiveDamage` 自动播 `DodgeTimeFracture`（0.5s 世界 0.3）。轴上不必再摆 Msg。**P3 要把这条从 `WorldScale` 改成遭遇时缓场**；改之前这条仍是全局世界钟。
-- **未做**：`StaggerBreak` 没有削韧条，不会自动播。
+- 极限闪避：翻滚带 `State.Roll` 时 `CombatHitResolver` 把伤害标成 Dodge，本地玩家 `PostReceiveDamage` 自动播 `DodgeTimeFracture`（0.5s 世界 0.3）。轴上不必再摆 Msg。**P3 要把这条从 `WorldScale` 改成遭遇时缓场**；改之前这条仍是全局世界钟。
+- **已接**：削韧破韧由 `ApplyVibrationBreak` 自动播 `StaggerBreak`（强 HitStop + 闪白 + 重震），不进 `DamageAction`。见 `ActVibrationDesign.md` 第 4 步。
 - 若 `EGamePlayInit` 挂了自定义 Catalog 且 ActionPoint 规则超过 2 条，不会自动覆盖；需要的话在资源上 `Reset To Built-In Defaults`。
 
 ---
@@ -109,8 +109,8 @@
 
 实现要点：
 
-- `Buff.Freeze` 叶子 Tag 0→1：实体 `TimeScale` 写 0（`CombatTimeClock.FreezeSourceId`），`CharacterRenderFX.SetFreeze(1)` 出冰壳。点燃 / Buff 计时仍走 `WorldDelta`。
-- Demo Buff `20601` 冻结 3 秒 / `20602` 长冻结 8 秒（Modify `24`）：`MoveForbid` + `SkillForbid` + `Buff.Freeze`。`20301` 是普通灼烧，不要复用。
+- `State.Freeze` 叶子 Tag 0→1：实体 `TimeScale` 写 0（`CombatTimeClock.FreezeSourceId`），`CharacterRenderFX.SetFreeze(1)` 出冰壳。点燃 / Buff 计时仍走 `WorldDelta`。
+- Demo Buff `20601` 冻结 3 秒 / `20602` 长冻结 8 秒（Modify `24`）：`MoveForbid` + `SkillForbid` + `State.Freeze`。`20301` 是普通灼烧，不要复用。
 - 测试用：`20701` 霜蚀（冻结中仍跳冰伤）、`20801` 测试护盾、`21001` 对冻结目标 +50%（挂攻击者）、`31011` 点燃。
 - 电机 `CombatUnitLocomotionTimeSource` 与技能轴粒子乘实体钟；闪白走**层 delta**（不含实体），冻结时仍能播完。
 - 极限闪避包 `DodgeTimeFracture` 现含断裂 + 灰屏 + 残影。灰屏计时 unscaled，与 TimeFracture 对齐。

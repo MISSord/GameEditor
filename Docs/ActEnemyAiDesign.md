@@ -31,7 +31,7 @@
 4. **四根钟不变。** 导演用 `GameTimeManager.WorldDelta`。Brain / 选招 / 敌人 CD 用 `CombatTimeClock.GetDelta(unit)`。实体钟=0 的怪不思考、不走、轴停；导演仍可转牌。禁止第五根钟，禁止 `Time.timeScale`。
 5. 偏谐是计量条（`CombatMeterComponent`），满了可按 F，**不要**满条进 Stagger / Punish。不要做成 `IdStatuses` 里的 TimeBuff。原失衡硬直已屏蔽，见 `ActHarmonyBreakDesign.md`。
 6. 热路径零 GC：固定数组、无 LINQ、无每帧 `GetComponent` / `new List`。导演容量 16。
-7. 流程问 Tag 和门控：`IsCanSpellSkill`、`MoveWeight`、`Buff.MoveForbid`。不要 `if (眩晕)`。
+7. 流程问 Tag 和门控：`IsCanSpellSkill`、`MoveWeight`、`State.MoveForbid`。不要 `if (眩晕)`。
 8. `EGamePlay.Combat` 只认 `ICombatUnit`，不引用 `EnemyBrain`。
 9. **难度只改预算、冷却、拍卖周期**（`EncounterDirectorProfile`），不改伤害表。
 
@@ -188,8 +188,7 @@ Register / Unregister
 Tempo / FocusTarget
 TryAcquireToken / ReleaseToken / HasToken
 TryGetOrbitAnchor / IsOnScreen
-NotifyPlayerDodge / NotifyAttackWhiff
-NotifyBreakMeterOpened   // 草图，无人调用
+NotifyPlayerDodge / NotifyAttackWhiff / NotifyPlayerParry
 ```
 
 `IsOnScreen`：`Camera.main` 视口 5%～95%。G 阶段应对齐相机 Stage2 真机画幅。
@@ -308,7 +307,7 @@ score = BaseWeight * Distance * Token * Cd * Gate * Phase * Repeat * Screen(内 
 
 K 未做：黄闪招 + 玩家招架技能。判定用轴上 `Ai.Parryable` Tag（GrantTag 推入判定窗），招架命中该盒才算成功。不做鸣潮收缩金圈、不做帧精确「重合弹刀」。
 
-断招（已落地，学绝区零比大小，不抄 1～8 表）：段表 `InterruptLevel` ≥ 目标抗打断才 `BreakSkill` 进 Hit。站立抗打断杂兵 1 / 精英 3 / 玩家 1；轴上 `Buff.UnStopped` 只 **+3**，不是免疫。`HitReaction` 只管闪白/顿帧。硬控（`MoveForbid` / 冻结）仍直接进 Control，不比抗打断。初值：Light=0，Heavy 回退=3，**玩家 11003=5**（能破杂兵霸体窗 1+3=4），12004=5。精英出招窗抗打断 6，11003 仍打不破。
+断招（已落地，学绝区零比大小，不抄 1～8 表）：段表 `InterruptLevel` ≥ 目标抗打断才 `BreakSkill` 进 Hit。站立抗打断杂兵 1 / 精英 3 / 玩家 1；轴上 `State.UnStopped` 只 **+3**，不是免疫。`HitReaction` 只管闪白/顿帧。硬控（`MoveForbid` / 冻结）仍直接进 Control，不比抗打断。初值：Light=0，Heavy 回退=3，**玩家 11003=5**（能破杂兵霸体窗 1+3=4），12004=5。精英出招窗抗打断 6，11003 仍打不破。
 
 技能中位移：沿用轴上 RootMotion / 曲线。Brain 在 Skill 输出 Stop，避免和位移抢。`MotionDirector` 水平通道**互斥**：`UseRootMotion=1` 时 SkillCurve 会被拒绝。带曲线的招必须 `UseRootMotion: 0`。
 
@@ -335,7 +334,7 @@ K 未做：黄闪招 + 玩家招架技能。判定用轴上 `Ai.Parryable` Tag�
 ### 7.2 招式身份（占位轴）
 
 - **12002 突进**：MoveEvent 前冲 2～16 帧、3.2m、OutCubic；方向=开轴朝向。必须 `UseRootMotion: 0`。轴上 `AiTelegraph` Dodge。技能编辑器重导出会覆盖位移轨与消息轨。
-- **12004 红闪**：轴上 Unblockable；挥击段 6～40 帧 `Buff.UnStopped`（抗打断 +3）；`InterruptLevel` 5；单段 Heavy、高倍率；低权重 + 复读惩罚。精英 `TokenKind=Special`。
+- **12004 红闪**：轴上 Unblockable；挥击段 6～40 帧 `State.UnStopped`（抗打断 +3）；`InterruptLevel` 5；单段 Heavy、高倍率；低权重 + 复读惩罚。精英 `TokenKind=Special`。
 - **12005 假前摇**：12001 去盒。精英 Orbit、别人真打时按 `FeintInterval` 3s 播（首次 Id 哈希散布）。无闪光、不进选招、不触发落空 Relax。
 
 动画仍借用玩家剪辑，动作与位移不完全对位。

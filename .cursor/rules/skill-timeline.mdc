@@ -37,4 +37,4 @@ alwaysApply: true
 - 不要改: SkillData Scriptable
 ```
 
-帧按 30fps。Msg 举例：`MsgName=AiTelegraph`，`StrMsg=Dodge|Unblockable`，`FloatdMsg`=时长秒。开快速支援窗：`MsgName=AssistCue`，`FloatdMsg`=窗长秒（0=SquadSetting.AssistWindow）。
+帧按 30fps。Msg 举例：`MsgName=AiTelegraph`，`StrMsg=Dodge|Unblockable`，`FloatdMsg`=时长秒。开快速支援窗：`MsgName=AssistCue`，`FloatdMsg`=窗长秒（0=SquadSetting.AssistWindow）。大招构图：`MsgName=SkillCamera`，`StrMsg=HeroThreeQuarter|OverShoulder|CloseImpact`，`FloatdMsg`=BlendTime 秒（0=默认）；片段结束会取消。

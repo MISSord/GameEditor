@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using EGamePlay;
 using EGamePlay.Combat;
 using EGamePlay.Unity;

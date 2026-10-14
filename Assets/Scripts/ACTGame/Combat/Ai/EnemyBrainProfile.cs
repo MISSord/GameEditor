@@ -9,7 +9,7 @@ namespace ACTGameEditor.Combat.Ai
     {
         public const string ResourcePath = "Config/Ai/DefaultGruntBrain";
 
-        /// <summary>精英档路径（EnemyA 模型位）。</summary>
+        /// <summary>精英档路径（Monster.Rank Elite/Boss；缺表行时 EnemyA 模型位）。</summary>
         public const string EliteResourcePath = "Config/Ai/DefaultEliteBrain";
 
         public float AggroRadius = 20f;
@@ -29,7 +29,7 @@ namespace ACTGameEditor.Combat.Ai
 
         [Tooltip("站立抗打断。杂兵 1，精英 3。0 = 按档位默认")]
         public int AntiInterruptBase = 1;
-        [Tooltip("有 Buff.UnStopped 时叠加的抗打断，不是布尔免疫")]
+        [Tooltip("有 State.UnStopped 时叠加的抗打断，不是布尔免疫")]
         public int SuperArmorBonus = 3;
 
         [Tooltip("欲望增速额外项（/秒）。精英拉开车轮战权重，杂兵保持 0")]

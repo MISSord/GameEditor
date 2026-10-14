@@ -48,6 +48,16 @@ namespace XiaoCao
         bool _hintVisible;
         bool _hintInRange;
         Color _harmonyBarColor = new Color(1f, 0.82f, 0.18f, 1f);
+        Image _vibrationImg;
+        bool _harmonyPosCached;
+        Vector2 _harmonyAnchored;
+        bool _vibrationShown;
+        bool _vibrationYellow;
+        float _vibrationRatio = -1f;
+
+        const float ExtraBarFallbackY = -4.1f;
+        static readonly Color VibrationIntactColor = new Color(0.93f, 0.95f, 0.98f, 1f);
+        static readonly Color VibrationImmobilizedColor = new Color(1f, 0.72f, 0.12f, 1f);
 
         static readonly Color HarmonyChargingColor = new Color(0.32f, 0.78f, 1f, 1f);
         static readonly Color HarmonyReadyColor = new Color(0.92f, 0.99f, 1f, 1f);
@@ -136,6 +146,85 @@ namespace XiaoCao
             }, from, p, tweenDuration);
             if (barImg != null)
                 barImg.fillAmount = p;
+        }
+
+        /// <summary>
+        /// 血条与偏谐之间的共振度。Intact 白条，Immobilized 黄条倒计时；Recover / 无条不画。
+        /// 运行时克隆偏谐 Image，不改 prefab YAML。
+        /// </summary>
+        public void SetVibrationFill(float ratio, bool show, bool yellow)
+        {
+            if (!show)
+            {
+                if (_vibrationShown || _vibrationImg != null)
+                {
+                    if (_vibrationImg != null)
+                        _vibrationImg.enabled = false;
+                    LayoutExtraBars(false);
+                }
+                _vibrationShown = false;
+                _vibrationYellow = false;
+                _vibrationRatio = -1f;
+                return;
+            }
+
+            EnsureVibrationBar();
+            if (_vibrationImg == null)
+                return;
+
+            if (!_vibrationShown)
+                LayoutExtraBars(true);
+
+            float clamped = Mathf.Clamp01(ratio);
+            if (_vibrationShown
+                && _vibrationYellow == yellow
+                && Mathf.Abs(_vibrationRatio - clamped) < 0.0005f)
+                return;
+
+            _vibrationShown = true;
+            _vibrationYellow = yellow;
+            _vibrationRatio = clamped;
+            _vibrationImg.enabled = true;
+            _vibrationImg.fillAmount = clamped;
+            _vibrationImg.color = yellow ? VibrationImmobilizedColor : VibrationIntactColor;
+        }
+
+        void EnsureVibrationBar()
+        {
+            if (_vibrationImg != null || barImg_noBreak == null)
+                return;
+
+            CacheHarmonyAnchor();
+            _vibrationImg = Instantiate(barImg_noBreak, barImg_noBreak.transform.parent);
+            _vibrationImg.gameObject.name = "VibrationBar";
+            _vibrationImg.raycastTarget = false;
+            _vibrationImg.enabled = false;
+            RectTransform src = barImg_noBreak.rectTransform;
+            RectTransform rt = _vibrationImg.rectTransform;
+            rt.SetSiblingIndex(src.GetSiblingIndex());
+            rt.anchoredPosition = _harmonyAnchored;
+        }
+
+        void CacheHarmonyAnchor()
+        {
+            if (_harmonyPosCached || barImg_noBreak == null)
+                return;
+            _harmonyAnchored = barImg_noBreak.rectTransform.anchoredPosition;
+            _harmonyPosCached = true;
+        }
+
+        void LayoutExtraBars(bool vibrationVisible)
+        {
+            if (barImg_noBreak == null)
+                return;
+
+            CacheHarmonyAnchor();
+            float step = Mathf.Abs(_harmonyAnchored.y) > 0.01f ? _harmonyAnchored.y : ExtraBarFallbackY;
+            barImg_noBreak.rectTransform.anchoredPosition = vibrationVisible
+                ? _harmonyAnchored + new Vector2(0f, step)
+                : _harmonyAnchored;
+            if (_vibrationImg != null)
+                _vibrationImg.rectTransform.anchoredPosition = _harmonyAnchored;
         }
 
         /// <summary>血条下偏谐条。show=false 时关掉 Image，避免玩家空条。</summary>

@@ -16,7 +16,7 @@ namespace ACTGameEditor
         Skill3 = 3,
         Ultimate = 4,
         Dodge = 5,
-        /// <summary>已废弃：连携走 Kit.ChainSkillId + Z。</summary>
+        /// <summary>已废弃：原 Kit.ChainSkillId 连携槽，运行时不再挂技能。</summary>
         Chain = 6,
         /// <summary>已废弃：招架走 Kit.DefensiveAssistSkillId + Z。</summary>
         Parry = 7,

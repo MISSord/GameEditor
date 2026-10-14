@@ -7,7 +7,7 @@ namespace ACTGameEditor
     /// <summary>
     /// 战斗形态入口表：Idle 时按地面/空中解析槽位 → 技能。
     /// 不配或未 SetForm 时，Resolver 回退 SkillSlotRuntime。
-    /// GrantedTags 必须已在 TagCollection.AllTags 中注册。
+    /// GrantedTags 必须能 intern（写在 TagCollection.AllTags，或其父路径已被叶子登记）。
     /// </summary>
     [CreateAssetMenu(fileName = "SkillFormConfig", menuName = "ACTGame/SkillFormConfig")]
     public class SkillFormConfig : ScriptableObject

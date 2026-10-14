@@ -98,4 +98,4 @@ MonoBehaviour:
         NormalEffectIds: []
         SkillEffectIds: []
         SkillTagList:
-        - Buff.UnStopped
+        - State.UnStopped

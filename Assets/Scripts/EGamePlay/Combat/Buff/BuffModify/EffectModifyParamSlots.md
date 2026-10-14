@@ -18,17 +18,18 @@
 | ParamFloat1 | skillRate | 仅非段表路径使用，>0 时用，否则 1 |
 | ParamFloat2 | 预留 | 暂未使用 |
 
-### BuffHpDamage (11) — Buff HP 伤害
+### BuffHpDamage (10) — Buff HP 伤害
 
 槽位含义与 **SkillHpDamage** 相同，另：
 
 | 槽位 | 含义 | 说明 |
 |------|------|------|
-| ParamFloat2 | TickStackPolicy | 仅 TimeBuff 周期跳（OnTick）成功后生效。0=不掉层 1=减1层 2=层数减半向下取整 3=清层。OnStart 首次触发不掉层。已有表全是 0，行为不变。 |
+| ParamFloat1 | skillRate | **单层**倍率/固定值。`triggerSource` 是 Buff 时运行时 × `GetStackCount()`（不可叠层视为 1）。点燃等旧表 CanStack=0，伤害不变。 |
+| ParamFloat2 | TickStackPolicy | 仅 TimeBuff 周期跳（OnTick）成功后生效。0=不掉层（风蚀）1=减1层（光噪）2=层数减半向下取整（电磁）3=清层。OnStart 首次触发不掉层。 |
 
 ---
 
-### SkillResource (12) — 技能资源变动
+### SkillResource (11) — 技能资源变动
 
 目标由外部（技能/触发器）选定后传入，本效果不参与目标选择。
 
@@ -40,7 +41,7 @@
 | ParamFloat1 | A | 公式主系数 |
 | ParamFloat2 | B | 公式附加值（可选） |
 
-### BuffResource (13) — Buff 资源变动
+### BuffResource (12) — Buff 资源变动
 
 目标由外部（Buff 触发逻辑）选定后传入，本效果不参与目标选择。槽位含义与 **SkillResource** 相同。
 
@@ -62,30 +63,41 @@
 
 | 槽位 | 含义 | 说明 |
 |------|------|------|
-| ParamString1 | 标签列表 | 添加/移除的 Tag。冻结配 `Buff.MoveForbid` + `Buff.SkillForbid` + `Buff.Freeze`（`Buff.Freeze` 会把实体 TimeScale 打到 0 并出冰壳）。 |
+| ParamString1 | 标签列表 | 添加/移除的 Tag。冻结配 `State.MoveForbid` + `State.SkillForbid` + `State.Freeze`（`State.Freeze` 会把实体 TimeScale 打到 0 并出冰壳）。 |
 
 ### PreRemoveStatus（行动点 65536）— 卸 Buff 前开火
 
 不是新 Modify 类型。死亡爆炸 / 卸时跳伤：该 Buff 配 `TriggerBuff` + `ActionPointType` 含 `PreRemoveStatus`，效果仍用已有 `BuffHpDamage` / `BuffAddStatus`。
 
-`StatusComponent.RemoveStatus` 只对**正在卸的那条**调用 `OnEvent`，不全表 Dispatch。上下文是 `RemoveStatusAction`（`Reason` / `BuffId`）。到期、净化、死亡都会走到这里；只要死亡才爆，需后续用 TriggerFormula 滤 `Reason`。
+`StatusComponent.RemoveStatus` 只对**正在卸的那条**调用 `OnEvent`，不全表 Dispatch。上下文是 `RemoveStatusAction`（`Reason` / `BuffId`）。到期、净化、死亡都会走到这里。
+
+只要某种原因才开火：`TriggerFormula` 配 `#IsRemoveReasonDeath` / `#IsRemoveReasonExpired` / `#IsRemoveReasonConsumed` / `#IsRemoveReasonDispelled`。周期跳把持有者当 target，这些方法返回 false，不会在跳伤时误爆。
+
+试玩：`32100` 死亡爆炸，到期卸不跳、打死才跳 80 点火伤。
 
 实体 `OnDestroy` 回收不清回调，避免误爆。
 
-### BuffExpirePolicy — 生命周期绑定（表 Tag，不是新 Modify）
+### BuffExpirePolicy — 生命周期绑定（表 **BuffTag / Asset**，不是 Granted，也不是新 Modify）
 
 时间只是一种结束条件。可与 Duration 同时成立，谁先到谁走 `RemoveStatus(Expired)`。刷新同 BuffId 不重绑 Runner/Form。
 
-| BuffTag | 策略 | 参数 | 挂钩 |
+**不要**把这些策略 Tag 写入 `GrantedTags`，否则会泄漏进角色 `HasTag`（运行时也会跳过并打错误）。
+
+| BuffTag（Asset） | 策略 | 参数 | 挂钩 |
 |---|---|---|---|
 | （TimeBuff） | Duration | `BaseDuration` | 现有计时器 |
 | `Buff.Bind.Skill` | SkillRunner | 施加时 Caster 的 `ActiveExecution.Id` | 轴 `Finish` / Session 销毁（全场单位） |
 | `Buff.Bind.Form` | Form | 施加时持有者 `ActiveFormId` | `SetForm` / `ClearForm` 离开该形态 |
 | `Buff.Bind.HitsTaken` | HitsTaken | `BaseTimes`（≤0 当 1） | 实际扣血后，闪避/免疫不计 |
 | `Buff.Bind.HitsDealt` | HitsDealt | 同上 | 持有者打出实际扣血 |
+| `Buff.Caster.KeepFirst` | Caster 归属 | — | ReApply **保持**原施法者。不打此 Tag 则后上覆盖。跳伤 / 击杀只用 `Buff.Caster`，Caster 已销毁则不出手，不抓当前主控 |
+| `Buff.Debuff` / `Buff.Buff` | 净化极性 | — | `RemoveStatuses(..., DebuffOnly/BuffOnly)` 认 Asset 列，不认容器 |
+| `Buff.Outro` / `Buff.Bind.SwitchOut` | 延奏 / 退场卸 | — | 只写 Asset。M4.3 挂钩；不要 Granted |
 | — | OnSwitchOut | — | 未挂钩（第 9 条） |
 
-轴上 `RemoveTriggerEffectList` 仍是 `Manual`。完美闪避窗继续短 Duration + `Buff.Roll`，不要绑 Runner。
+`GrantedTags` 才进角色容器，前缀 `State.`：`State.Freeze`、`State.Fire.*`、`State.Spectro.Frazzle` 等。技能 Required/Blocked 与 `HasTag` 认运行时容器。`PlayerControll.ParamString1` 仍是另一路 Granted（Forbid / Freeze）。
+
+轴上 `RemoveTriggerEffectList` 仍是 `Manual`。完美闪避窗继续短 Duration + `State.Roll`，不要绑 Runner。
 
 ### AddShield (16) — 护盾吸收层
 

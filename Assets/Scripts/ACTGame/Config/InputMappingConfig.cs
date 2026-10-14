@@ -25,12 +25,14 @@ public enum InputListernType
     Sprint,
     Switch1,
     Switch2,
-    /// <summary>候场肖像 +1，与 Switch1 同处理。</summary>
+    /// <summary>槽 0 别名，与 Switch1 同处理。</summary>
     ButtonZ,
-    /// <summary>候场肖像 +2，与 Switch2 同处理。</summary>
+    /// <summary>槽 1 别名，与 Switch2 同处理。</summary>
     ButtonZ2,
     /// <summary>谐度破坏（情境键，不进槽位）。</summary>
     Execute,
+    /// <summary>小队槽 2。须先在 InputActionAsset 里加 Switch3。</summary>
+    Switch3,
 }
 
 public enum PressType { Click, LongPress }

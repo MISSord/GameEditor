@@ -379,7 +379,7 @@ namespace EGamePlay.Combat
         /// </summary>
         static void ApplyFireAndForget(ModifyRegistration reg, Buff buff, Entity target)
         {
-            var caster = buff.Caster as ICombatUnit;
+            var caster = buff.GetLiveCaster();
             var creator = caster ?? buff.OwnerEntity;
             if (reg.Config.EffectModifyType == EffectModifyType.BuffAddStatus)
             {
@@ -387,6 +387,7 @@ namespace EGamePlay.Combat
             }
             else if (caster == null)
             {
+                // 跳伤 / 资源：Caster 没了就不出手，不要把伤害算给持有者或当前主控。
                 return;
             }
 

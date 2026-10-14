@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -59,7 +59,7 @@ namespace EGamePlay
 
     /// <summary>
     /// 时间流速效果管理器。统一管理 Pause、时空断裂、HitStop、技能时停 等效果。
-    /// 效果计时使用 unscaledDeltaTime，暂停（IsGameplayPaused）时 delta=0，计时冻结，符合崩坏3表现。
+    /// 效果计时使用 unscaledDeltaTime，暂停（IsGameplayPaused）时 delta=0，计时冻结。
     /// 同类型只保留一份（低 Priority 无法覆盖高 Priority）；不同类型按各层取 min。
     /// HitStop 的全局 scale 应为 1，顿帧打在实体 TimeScale 上，避免连打把整场叠死。
     /// </summary>

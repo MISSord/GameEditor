@@ -19,6 +19,8 @@ namespace EGamePlay.Combat
         public static string AiTelegraph = "AiTelegraph";
         /// <summary>开快速支援窗；FloatMsg 填窗长秒（0=SquadSetting.AssistWindow）。</summary>
         public static string AssistCue = "AssistCue";
+        /// <summary>大招构图；StrMsg 填 CameraShotPreset 名，FloatMsg 填 BlendTime 秒（0=默认）。</summary>
+        public static string SkillCamera = "SkillCamera";
     }
 
     /// <summary>技能时间轴消息的表现层落地（动画/移动/渲染等）。</summary>
@@ -31,6 +33,9 @@ namespace EGamePlay.Combat
             bool boolMsg,
             string strMsg = null,
             TagSource? timelineSource = null);
+
+        /// <summary>时间轴片段结束或被打断时回收表现（构图镜头等）。</summary>
+        void EndPresentationMessage(string msgName, string strMsg = null);
     }
 
     /// <summary>时间轴消息中的战斗规则落地（Tag/状态等，不含 Unity 表现）。</summary>

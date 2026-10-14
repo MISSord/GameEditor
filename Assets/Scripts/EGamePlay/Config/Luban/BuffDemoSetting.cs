@@ -23,6 +23,7 @@ public sealed partial class BuffDemoSetting : Luban.BeanBase
         { if(!_buf["BigBuffType"].IsNumber) { throw new SerializationException(); }  BigBuffType = _buf["BigBuffType"]; }
         { if(!_buf["SmallBuffType"].IsNumber) { throw new SerializationException(); }  SmallBuffType = _buf["SmallBuffType"]; }
         { var __json0 = _buf["BuffTag"]; if(!__json0.IsArray) { throw new SerializationException(); } BuffTag = new System.Collections.Generic.List<string>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { string __v0;  { if(!__e0.IsString) { throw new SerializationException(); }  __v0 = __e0; }  BuffTag.Add(__v0); }   }
+        { var __json0 = _buf["GrantedTags"]; if(!__json0.IsArray) { throw new SerializationException(); } GrantedTags = new System.Collections.Generic.List<string>(__json0.Count); foreach(JSONNode __e0 in __json0.Children) { string __v0;  { if(!__e0.IsString) { throw new SerializationException(); }  __v0 = __e0; }  GrantedTags.Add(__v0); }   }
         { if(!_buf["Description"].IsString) { throw new SerializationException(); }  Description = _buf["Description"]; }
         { if(!_buf["StatusSlot"].IsNumber) { throw new SerializationException(); }  StatusSlot = _buf["StatusSlot"]; }
         { if(!_buf["CanStack"].IsNumber) { throw new SerializationException(); }  CanStack = _buf["CanStack"]; }
@@ -67,9 +68,13 @@ public sealed partial class BuffDemoSetting : Luban.BeanBase
     /// </summary>
     public readonly int SmallBuffType;
     /// <summary>
-    /// Buff标签
+    /// Asset标签（描述这条Buff）
     /// </summary>
     public readonly System.Collections.Generic.List<string> BuffTag;
+    /// <summary>
+    /// Granted标签（角色状态 State.*）
+    /// </summary>
+    public readonly System.Collections.Generic.List<string> GrantedTags;
     /// <summary>
     /// Buff描述
     /// </summary>
@@ -151,6 +156,7 @@ public sealed partial class BuffDemoSetting : Luban.BeanBase
         + "BigBuffType:" + BigBuffType + ","
         + "SmallBuffType:" + SmallBuffType + ","
         + "BuffTag:" + Luban.StringUtil.CollectionToString(BuffTag) + ","
+        + "GrantedTags:" + Luban.StringUtil.CollectionToString(GrantedTags) + ","
         + "Description:" + Description + ","
         + "StatusSlot:" + StatusSlot + ","
         + "CanStack:" + CanStack + ","

@@ -44,15 +44,14 @@ public class EGamePlayInit : MonoBehaviour
 
         FastStaticExecutor.Initialize<SkillMethod>();
         BuffStateCheck.Initialize();
+        TagCollection.Instance.Initialize();
     }
 
     private void Start()
     {
         //输入系统注册
         ConfigurableInputManager.Instance.Start();
-        ConfigurableInputManager.Instance.InitListener();        
-        //标签系统初始化
-        TagCollection.Instance.Initialize();
+        ConfigurableInputManager.Instance.InitListener();
         //创建角色
         PlayerManager.Instance.AddTruePlayer();
         //绑定角色

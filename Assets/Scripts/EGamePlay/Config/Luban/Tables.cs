@@ -33,6 +33,18 @@ public partial class Tables
     /// 小队换人：支援窗 / 支援点 / i-frame
     /// </summary>
     public SquadSettingReader SquadSettingReader {get; }
+    /// <summary>
+    /// 怪物身份列表，主键 MonsterId
+    /// </summary>
+    public MonsterReader MonsterReader {get; }
+    /// <summary>
+    /// 共振度按怪物；缺行=无条，不回退
+    /// </summary>
+    public VibrationSettingReader VibrationSettingReader {get; }
+    /// <summary>
+    /// 招架/谐度破坏削韧全局一行 Id=1
+    /// </summary>
+    public VibrationRuleReader VibrationRuleReader {get; }
 
     public Tables(System.Func<string, JSONNode> loader)
     {
@@ -46,6 +58,9 @@ public partial class Tables
         CharacterKitReader = new CharacterKitReader(loader("characterkitreader"));
         CharacterSlotReader = new CharacterSlotReader(loader("characterslotreader"));
         SquadSettingReader = new SquadSettingReader(loader("squadsettingreader"));
+        MonsterReader = new MonsterReader(loader("monsterreader"));
+        VibrationSettingReader = new VibrationSettingReader(loader("vibrationsettingreader"));
+        VibrationRuleReader = new VibrationRuleReader(loader("vibrationrulereader"));
         ResolveRef();
     }
     
@@ -61,6 +76,9 @@ public partial class Tables
         CharacterKitReader.ResolveRef(this);
         CharacterSlotReader.ResolveRef(this);
         SquadSettingReader.ResolveRef(this);
+        MonsterReader.ResolveRef(this);
+        VibrationSettingReader.ResolveRef(this);
+        VibrationRuleReader.ResolveRef(this);
     }
 }
 

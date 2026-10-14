@@ -17,7 +17,7 @@ namespace ACTGameEditor.Combat
         /// <summary>12006 轴未导出时借用 12001 盒；Session 入轴仍登记来刀。</summary>
         public const int EnemyFallbackTimelineSkillId = 12001;
 
-        /// <summary>表缺列时的失衡倍率（Impact 100 → 35 点）。</summary>
+        /// <summary>表缺列时的偏谐倍率（Impact 100 → 35 点）。</summary>
         public const float DefaultParryDazeRatio = 0.35f;
 
         /// <summary>吸附后与攻击者的水平间距（米）。</summary>
@@ -184,7 +184,7 @@ namespace ACTGameEditor.Combat
         }
 
         /// <summary>
-        /// 成交：吸附到刀路、加失衡、可选断轴。成功后调用方再播 11005 演出。
+        /// 成交：吸附到刀路、加偏谐、按全局比例削韧、可选断轴。成功后调用方再播防御支援演出。
         /// </summary>
         public static bool TryCommit(CombatEntity defender, out CombatEntity attacker)
         {
@@ -252,7 +252,7 @@ namespace ACTGameEditor.Combat
             return false;
         }
 
-        /// <summary>招架成功：加失衡；有 <see cref="CombatTags.AiParryBreak"/> 才断轴。</summary>
+        /// <summary>招架成功：加偏谐；全局比例削韧（缺条或 CanBreak=0 则只结算硬直 / 偏谐）；有 <see cref="CombatTags.AiParryBreak"/> 才断轴。</summary>
         public static void ApplySuccess(CombatEntity defender, CombatEntity attacker, bool breakSkill)
         {
             if (attacker == null || attacker.IsDisposed)
@@ -262,6 +262,7 @@ namespace ACTGameEditor.Combat
                 ? attacker.DazeMeter.ParryDazeRatio
                 : DefaultParryDazeRatio;
             attacker.DazeMeter?.AddDaze(ratio, DazeSource.Parry);
+            attacker.Vibration?.ApplyParryCut();
 
             float playerSeconds = ResolvePlayerParrySeconds(defender);
             float enemyStun = playerSeconds + EnemyStunAfterPlayer;

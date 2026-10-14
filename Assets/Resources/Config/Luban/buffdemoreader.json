@@ -5,8 +5,9 @@
     "BuffType": 1,
     "BigBuffType": 1,
     "SmallBuffType": 1,
-    "BuffTag": [
-      "Buff.Dizziness"
+    "BuffTag": [],
+    "GrantedTags": [
+      "State.Dizziness"
     ],
     "Description": "",
     "StatusSlot": 0,
@@ -33,8 +34,9 @@
     "BuffType": 1,
     "BigBuffType": 2,
     "SmallBuffType": 1,
-    "BuffTag": [
-      "Buff.Silence"
+    "BuffTag": [],
+    "GrantedTags": [
+      "State.Silence"
     ],
     "Description": "",
     "StatusSlot": 0,
@@ -61,8 +63,9 @@
     "BuffType": 1,
     "BigBuffType": 3,
     "SmallBuffType": 1,
-    "BuffTag": [
-      "Buff.Weak"
+    "BuffTag": [],
+    "GrantedTags": [
+      "State.Weak"
     ],
     "Description": "",
     "StatusSlot": 0,
@@ -89,8 +92,9 @@
     "BuffType": 1,
     "BigBuffType": 4,
     "SmallBuffType": 1,
-    "BuffTag": [
-      "Buff.Fire.Normal"
+    "BuffTag": [],
+    "GrantedTags": [
+      "State.Fire.Normal"
     ],
     "Description": "",
     "StatusSlot": 0,
@@ -117,8 +121,9 @@
     "BuffType": 1,
     "BigBuffType": 4,
     "SmallBuffType": 2,
-    "BuffTag": [
-      "Buff.Fire.Hight"
+    "BuffTag": [],
+    "GrantedTags": [
+      "State.Fire.Hight"
     ],
     "Description": "",
     "StatusSlot": 0,
@@ -146,6 +151,7 @@
     "BigBuffType": 5,
     "SmallBuffType": 1,
     "BuffTag": [],
+    "GrantedTags": [],
     "Description": "",
     "StatusSlot": 0,
     "CanStack": 1,
@@ -172,6 +178,7 @@
     "BigBuffType": 5,
     "SmallBuffType": 10,
     "BuffTag": [],
+    "GrantedTags": [],
     "Description": "造成灼烧与中毒效果",
     "StatusSlot": 1,
     "CanStack": 0,
@@ -199,6 +206,7 @@
     "BigBuffType": 10,
     "SmallBuffType": 1,
     "BuffTag": [],
+    "GrantedTags": [],
     "Description": "",
     "StatusSlot": 1,
     "CanStack": 0,
@@ -225,6 +233,7 @@
     "BigBuffType": 15,
     "SmallBuffType": 1,
     "BuffTag": [],
+    "GrantedTags": [],
     "Description": "下一次普通攻击最终伤害提升",
     "StatusSlot": 1,
     "CanStack": 0,
@@ -251,6 +260,7 @@
     "BigBuffType": 20,
     "SmallBuffType": 1,
     "BuffTag": [],
+    "GrantedTags": [],
     "Description": "全伤害提升",
     "StatusSlot": 1,
     "CanStack": 0,
@@ -277,6 +287,7 @@
     "BigBuffType": 21,
     "SmallBuffType": 1,
     "BuffTag": [],
+    "GrantedTags": [],
     "Description": "普攻或大招主轴结束后给自己挂 5 秒加攻；被动伤害不会走施法点",
     "StatusSlot": 0,
     "CanStack": 0,
@@ -303,6 +314,7 @@
     "BigBuffType": 21,
     "SmallBuffType": 2,
     "BuffTag": [],
+    "GrantedTags": [],
     "Description": "攻击力提升 20%，持续 5 秒，重复获得时刷新时间",
     "StatusSlot": 1,
     "CanStack": 0,
@@ -329,6 +341,7 @@
     "BigBuffType": 22,
     "SmallBuffType": 1,
     "BuffTag": [],
+    "GrantedTags": [],
     "Description": "主动技能真实命中后给敌方挂点燃；Buff 伤害不会触发",
     "StatusSlot": 0,
     "CanStack": 0,
@@ -354,8 +367,9 @@
     "BuffType": 1,
     "BigBuffType": 4,
     "SmallBuffType": 3,
-    "BuffTag": [
-      "Buff.Fire.Ignite"
+    "BuffTag": [],
+    "GrantedTags": [
+      "State.Fire.Ignite"
     ],
     "Description": "每秒造成 50 点火属性伤害，持续 5 秒，重复施加刷新时间",
     "StatusSlot": 1,
@@ -383,8 +397,10 @@
     "BigBuffType": 6,
     "SmallBuffType": 1,
     "BuffTag": [
-      "Buff.Freeze",
       "Buff.Debuff"
+    ],
+    "GrantedTags": [
+      "State.Freeze"
     ],
     "Description": "停动画与位移（实体钟=0），点燃跳伤仍走世界钟",
     "StatusSlot": 1,
@@ -412,8 +428,10 @@
     "BigBuffType": 6,
     "SmallBuffType": 2,
     "BuffTag": [
-      "Buff.Freeze",
       "Buff.Debuff"
+    ],
+    "GrantedTags": [
+      "State.Freeze"
     ],
     "Description": "8 秒冻结，方便看冰壳；点燃/霜蚀仍走世界钟",
     "StatusSlot": 1,
@@ -443,6 +461,7 @@
     "BuffTag": [
       "Buff.Debuff"
     ],
+    "GrantedTags": [],
     "Description": "每秒 40 点冰伤，持续 6 秒。冻结中应继续跳（世界钟）",
     "StatusSlot": 1,
     "CanStack": 0,
@@ -471,6 +490,7 @@
     "BuffTag": [
       "Buff.Buff"
     ],
+    "GrantedTags": [],
     "Description": "吸收 400 点伤害，持续 10 秒。可与冻结叠测",
     "StatusSlot": 1,
     "CanStack": 0,
@@ -499,7 +519,8 @@
     "BuffTag": [
       "Buff.Buff"
     ],
-    "Description": "挂在攻击者：打带 Buff.Freeze 的目标最终伤害 +50%，持续 15 秒",
+    "GrantedTags": [],
+    "Description": "挂在攻击者：打带 State.Freeze 的目标最终伤害 +50%，持续 15 秒",
     "StatusSlot": 1,
     "CanStack": 0,
     "MaxLevel": 0,
@@ -515,6 +536,185 @@
     "DelayTime": 0,
     "IntervalTime": 0,
     "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 32001,
+    "Name": "光噪",
+    "BuffType": 1,
+    "BigBuffType": 30,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Debuff"
+    ],
+    "GrantedTags": [
+      "State.Spectro.Frazzle"
+    ],
+    "Description": "每秒按层跳冰伤（单层20），跳完减1层。重复施加叠层并刷新。外部打爆走 TryConsume。",
+    "StatusSlot": 1,
+    "CanStack": 1,
+    "MaxLevel": 10,
+    "RepeatedAddition": 3,
+    "BuffModifyList": [
+      28
+    ],
+    "BaseDuration": 8,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 1,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 32002,
+    "Name": "风蚀",
+    "BuffType": 1,
+    "BigBuffType": 31,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Debuff"
+    ],
+    "GrantedTags": [
+      "State.Aero.Erosion"
+    ],
+    "Description": "每秒按层跳物理伤（单层15），跳伤不掉层。重复施加叠层并刷新。",
+    "StatusSlot": 1,
+    "CanStack": 1,
+    "MaxLevel": 10,
+    "RepeatedAddition": 3,
+    "BuffModifyList": [
+      29
+    ],
+    "BaseDuration": 8,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 1,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 32003,
+    "Name": "电磁",
+    "BuffType": 1,
+    "BigBuffType": 32,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Debuff"
+    ],
+    "GrantedTags": [
+      "State.Electro.Flare"
+    ],
+    "Description": "每秒按层跳电伤（单层10），跳完层数减半；期间按层减攻5%。重复施加叠层并刷新。",
+    "StatusSlot": 1,
+    "CanStack": 1,
+    "MaxLevel": 10,
+    "RepeatedAddition": 3,
+    "BuffModifyList": [
+      30,
+      31
+    ],
+    "BaseDuration": 8,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 1,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 32010,
+    "Name": "命中上光噪-触发器",
+    "BuffType": 4,
+    "BigBuffType": 30,
+    "SmallBuffType": 2,
+    "BuffTag": [],
+    "GrantedTags": [],
+    "Description": "主动技能真实命中后给敌方挂光噪；Buff 伤害不会触发",
+    "StatusSlot": 0,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 4,
+    "BuffModifyList": [
+      32
+    ],
+    "BaseDuration": 0,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 8,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "#IsActiveSkillHit",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 32020,
+    "Name": "对光噪增伤",
+    "BuffType": 1,
+    "BigBuffType": 16,
+    "SmallBuffType": 2,
+    "BuffTag": [
+      "Buff.Buff"
+    ],
+    "GrantedTags": [],
+    "Description": "挂在攻击者：打带 State.Spectro.Frazzle 的目标最终伤害 +50%，持续 15 秒",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 2,
+    "BuffModifyList": [
+      33
+    ],
+    "BaseDuration": 15,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 0,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "",
+    "RemoveActionPointType": 0,
+    "Priority": 0
+  },
+  {
+    "BuffId": 32100,
+    "Name": "死亡爆炸",
+    "BuffType": 5,
+    "BigBuffType": 33,
+    "SmallBuffType": 1,
+    "BuffTag": [
+      "Buff.Debuff"
+    ],
+    "GrantedTags": [],
+    "Description": "到期/手动卸不跳。持有者死亡时跳 80 点火伤。公式 #IsRemoveReasonDeath。",
+    "StatusSlot": 1,
+    "CanStack": 0,
+    "MaxLevel": 0,
+    "RepeatedAddition": 2,
+    "BuffModifyList": [
+      34
+    ],
+    "BaseDuration": 8,
+    "BaseTimes": 0,
+    "IsAddPoint": 0,
+    "ActionPointType": 65536,
+    "CDTime": 0,
+    "DelayTime": 0,
+    "IntervalTime": 0,
+    "TriggerFormula": "#IsRemoveReasonDeath",
     "RemoveActionPointType": 0,
     "Priority": 0
   }

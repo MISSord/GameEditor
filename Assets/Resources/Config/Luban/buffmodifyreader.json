@@ -8,8 +8,8 @@
     "ParamFloat1": 0,
     "ParamFloat2": 0,
     "ParamString1": [
-      "Buff.MoveForbid",
-      "Buff.SkillForbid"
+      "State.MoveForbid",
+      "State.SkillForbid"
     ]
   },
   {
@@ -21,7 +21,7 @@
     "ParamFloat1": 0,
     "ParamFloat2": 0,
     "ParamString1": [
-      "Buff.SkillForbid"
+      "State.SkillForbid"
     ]
   },
   {
@@ -173,9 +173,9 @@
     "ParamFloat1": 0,
     "ParamFloat2": 0,
     "ParamString1": [
-      "Buff.MoveForbid",
-      "Buff.SkillForbid",
-      "Buff.Freeze"
+      "State.MoveForbid",
+      "State.SkillForbid",
+      "State.Freeze"
     ]
   },
   {
@@ -207,7 +207,79 @@
     "ParamFloat1": 50,
     "ParamFloat2": 0,
     "ParamString1": [
-      "Buff.Freeze"
+      "State.Freeze"
     ]
+  },
+  {
+    "EffectModifyID": 28,
+    "EffectModifyType": 10,
+    "ParamInt1": 2,
+    "ParamInt2": 2,
+    "ParamInt3": 0,
+    "ParamFloat1": 20,
+    "ParamFloat2": 1,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 29,
+    "EffectModifyType": 10,
+    "ParamInt1": 2,
+    "ParamInt2": 0,
+    "ParamInt3": 0,
+    "ParamFloat1": 15,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 30,
+    "EffectModifyType": 10,
+    "ParamInt1": 2,
+    "ParamInt2": 3,
+    "ParamInt3": 0,
+    "ParamFloat1": 10,
+    "ParamFloat2": 2,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 31,
+    "EffectModifyType": 1,
+    "ParamInt1": 1001,
+    "ParamInt2": 2,
+    "ParamInt3": 0,
+    "ParamFloat1": -5,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 32,
+    "EffectModifyType": 14,
+    "ParamInt1": 32001,
+    "ParamInt2": 0,
+    "ParamInt3": 0,
+    "ParamFloat1": 0,
+    "ParamFloat2": 0,
+    "ParamString1": []
+  },
+  {
+    "EffectModifyID": 33,
+    "EffectModifyType": 6,
+    "ParamInt1": 5,
+    "ParamInt2": 0,
+    "ParamInt3": 1,
+    "ParamFloat1": 50,
+    "ParamFloat2": 0,
+    "ParamString1": [
+      "State.Spectro.Frazzle"
+    ]
+  },
+  {
+    "EffectModifyID": 34,
+    "EffectModifyType": 10,
+    "ParamInt1": 2,
+    "ParamInt2": 1,
+    "ParamInt3": 0,
+    "ParamFloat1": 80,
+    "ParamFloat2": 0,
+    "ParamString1": []
   }
 ]

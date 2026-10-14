@@ -119,7 +119,7 @@
 
 ### 5.2 槽位表（目标：`CharacterKit` + `CharacterSlot` Luban）
 
-> 技能 Id 走 `CharacterKit` + `CharacterSlot` Luban。`SkillSlotConfig` 只绑 4 战斗键输入。收口见 `ActSkillKitConfig.md`：X 普攻 / Y 闪避 / A 终结 / **B 战技**；**Q/E（Z）** 是换人+黄闪招架+连携。不要为招架另做面键。空列不继承系统 11000。
+> 技能 Id 走 `CharacterKit` + `CharacterSlot` Luban。`SkillSlotConfig` 只绑 4 战斗键输入。收口见 `ActSkillKitConfig.md`：X 普攻 / Y 闪避 / A 终结 / **B 战技**；**1/2/3** 是换人+黄闪招架+支援。不要为招架另做面键。空列不继承系统 11000。
 
 ### 5.2.1 槽位清单（`SkillSlotConfig` / `SkillFormConfig`）
 
@@ -140,7 +140,7 @@
 | `DamageType / FormulaType / CanCrit` | 按招定 |
 | `RatioByLevel` | `1.0\|1.08\|...` 逐级数组，短了用最后一档 |
 | `HitReactionType` | 轻 / 重 / 失衡分级（§六·4 路线图） |
-| 未来列 | `DazeValue`（失衡贡献，M1）、`AnomalyType/Value`（异常积蓄，M3）——现在留空 |
+| 未来列 | 偏谐贡献已用现成 `DazeRatio`；不要加 `AnomalyType/Value` 积蓄列（异常走 Buff 叠层） |
 
 ### 5.4 技能轴结构（每个轴的必备轨）
 
@@ -149,7 +149,7 @@
 | 动画轨 | 攻击 / 前摇 / 后摇 | 新角色先借用现有剪辑对位 |
 | 位移轨 | MoveEvent / 曲线位移 | 带曲线的招必须 `UseRootMotion: 0`（`MotionDirector` 水平通道互斥） |
 | Trigger 轨 | 段号 ≥ 1、HitGroup（一刀多盒同段同组） | 空 EffectIds = 只出该段伤害 |
-| Tag 轨 | 霸体段推 `Buff.UnStopped`（+3，不是免疫） | 玩家出招窗抗打断按 §5.7 配 |
+| Tag 轨 | 霸体段推 `State.UnStopped`（+3，不是免疫） | 玩家出招窗抗打断按 §5.7 配 |
 | 表现消息轨 | `HitCaused*` 包、音效、相机意图（`CameraIntent(SkillCamera)` 演出） | 大招推时停包 |
 | 收招轨 | 连招窗 / `IsMainFinish` | 连段追加点 |
 
@@ -170,7 +170,7 @@
 
 ### 5.7 打断 / 抗打断（`CombatInterrupt` + `CombatPoiseComponent`）
 
-- 玩家站立抗打断 1；出招段可推 `Buff.UnStopped`（+3）；
+- 玩家站立抗打断 1；出招段可推 `State.UnStopped`（+3）；
 - 段表 `InterruptLevel`：Light=0、Heavy 回退=3、大招段可按 5 配（能破杂兵霸体 1+3=4，破不了精英出招窗 6）；
 - 硬控无视抗打断（沿用现有约定）。
 

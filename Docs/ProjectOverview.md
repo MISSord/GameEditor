@@ -2,7 +2,7 @@
 
 > 本地 Unity 6 第三人称动作战斗工程：把《绝区零》《鸣潮》的「可读招、有段落、能换人」战斗循环接到可扩展的运行时上。不是完整网游客户端，也不是引擎插件。当前可玩：**1 名主控 + 两人候场 + 若干敌人** 的技能编辑场景。
 
-**对照基准**：绝区零为主（进攻权、黄/红预警、招架与支援、小队换人）；走跑电机对照鸣潮子集；敌人高潮 = 偏谐 + F 谐度破坏（[已完成/ActHarmonyBreakDesign.md](已完成/ActHarmonyBreakDesign.md)）。**绝区零失衡硬直 / 连携窗已屏蔽。**
+**对照基准**：绝区零为主（进攻权、黄/红预警、招架与支援、小队换人）；走跑电机对照鸣潮子集；敌人高潮 = 偏谐 + F 谐度破坏（[已完成/ActHarmonyBreakDesign.md](已完成/ActHarmonyBreakDesign.md)）。**绝区零失衡硬直 / 连携窗运行时已删除。**
 
 **明确不学**：全局 `Time.timeScale` 魔女时间、鸣潮收缩金圈弹刀、双人同屏操作、空战型角色、锁头飞弹。
 
@@ -12,9 +12,9 @@
 
 1. 环境：**Unity 6 + URP**，无第三方 SDK。
 2. 打开 `Assets/Scenes/SkillEditor.unity`，点 Play。
-3. 战斗键：`J` 普攻连段 / `K` 闪避 / `L` 战技 / `I` 大招 / `Q`·`E` 换人·支援·招架 / `F` 谐度破坏（敌人偏谐条满时）/ `Space` 跳。
+3. 战斗键：`J` 普攻连段 / `K` 闪避 / `L` 战技 / `I` 大招 / `1`·`2`·`3` 换人·支援·招架 / `F` 谐度破坏（敌人偏谐条满时）/ `Space` 跳。
 4. 调试键（Play 中）：`F2` 刷杂兵 · `F3` 刷精英 · `F4` 测试小队 · `Tab` 锁定 · `F9` 技能组满级。
-5. 两分钟路线：普攻连段 → 极限闪避（时空断裂）→ 黄闪时按 Q 招架撞刃 → 攒满偏谐按 F → 大招时停。
+5. 两分钟路线：普攻连段 → 极限闪避（时空断裂）→ 黄闪时按要换入角色的数字招架撞刃 → 攒满偏谐按 F → 大招时停。
 
 > 键位与招式包规则的权威文档：[ActSkillKitConfig.md](ActSkillKitConfig.md)。
 
@@ -58,7 +58,7 @@
 |---|---|
 | `Assets/Scripts/EGamePlay/` | Entity、Action、Buff、伤害乘区、Tag、四根钟接口 |
 | `Assets/Scripts/EGamePlay.Unity/` | 动画、电机等对 Unity 的适配 |
-| `Assets/Scripts/ACTGame/` | `CombatEntity`、技能轴会话、小队、招架、失衡、导演 AI、Locomotion、相机、渲染 |
+| `Assets/Scripts/ACTGame/` | `CombatEntity`、技能轴会话、小队、招架、偏谐、导演 AI、Locomotion、相机、渲染 |
 | `Assets/Scripts/XCSkillEditor/` | XC 轴运行时与部分编辑器 UI |
 | `Assets/Scripts/Flux/` | 时间轴编辑器；技能工作台在 `Flux/Editor/Workbench` |
 | `Tools/Config/Datas/` | Luban **源表**（xlsx） |
@@ -93,7 +93,7 @@ EGamePlayInit.Update
 
 行为态优先级（只允许 `CombatStateDirector` 写）：
 
-**Dead > Control（硬控 / 失衡硬直）> Hit > Skill > Locomotion**
+**Dead > Control（硬控）> Stagger > Hit > Skill > Locomotion**
 
 出招唯一口：`ActSpellComponent.Enqueue` → `AbilityActivationGate` → `ActSpellSession` 占轴 → XC 播完。禁止 AI 或 Buff 直接 `Animator.Play` 绕过门控。Enqueue 之后大脑停选招，直到轴结束（开招即承诺）。
 
@@ -140,12 +140,12 @@ EGamePlayInit.Update
 主动伤害 **只查段表** `(SkillId, SegmentIndex)` + 技能组等级。时间轴只填何时开盒、盒形状、**段号 ≥ 1**、HitGroup，不填倍率。
 
 - 轻重手感读段表 `HitReaction`（`Light` / `Heavy`）。
-- 断招只比两个 int：出手 `InterruptLevel` ≥ 目标抗打断才进 Hit 并断招。`Buff.UnStopped` 给抗打断加值，不是布尔免疫；硬控 Buff 仍无视抗打断。
+- 断招只比两个 int：出手 `InterruptLevel` ≥ 目标抗打断才进 Hit 并断招。`State.UnStopped` 给抗打断加值，不是布尔免疫；硬控 Buff 仍无视抗打断。
 - 玩家连招（如 11001–11003）共用一个升级组；敌人招在 **12000 号段**，不进玩家槽表。
 
 ### 6.2 输入与招式包
 
-场上角色只有 **4 个战斗键**，候场另有 **2 个 Z**：
+场上角色只有 **4 个战斗键**，小队另有 **1 / 2 / 3** 绝对槽换人：
 
 | 逻辑 | 默认键 | 作用 |
 |---|---|---|
@@ -153,10 +153,10 @@ EGamePlayInit.Update
 | Dodge（Y） | K | 闪避（技能轴，不是走跑状态） |
 | Ultimate（A） | I | 只出终结技 |
 | Skill（B） | L | 战技 / EX |
-| Assist1 / Assist2（Z） | Q / E | 换人 / 黄闪招架 / 红闪回避 / 支援（连携已屏蔽） |
+| Switch1 / 2 / 3 | 1 / 2 / 3 | 换人 / 黄闪招架 / 红闪回避 / 支援（连携已屏蔽） |
 | Jump | Space | 不进招式包 |
 
-Z **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwitchRelative`。招架不是场上按 L。
+换人键 **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwitchTo(0/1/2)`。招架不是场上按 L。Q/E 留给锁定循环。
 
 槽位主键 `(CharacterId, Button, Press, FormId, Priority)`，空配置就是没有，不回退系统默认技能。同键 Click / Hold 互斥。任意槽位可配 `EmpoweredSkillId` 做资源/Tag 预检改写。连招链不进 Excel，运行时从轴 `SkillInputEvents` 收集。
 
@@ -168,27 +168,29 @@ Z **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwit
 
 换人优先级：
 
-`黄闪防御支援 > 红闪回避支援 > 支援窗快速支援 > Manual`（失衡连携已屏蔽）
+`黄闪防御支援 > 红闪回避支援 > 支援窗快速支援 > Manual`（失衡连携已删除）
 
 | 模式 | 行为 |
 |---|---|
 | Manual | Warp 进场后 Idle，**不打一刀** |
 | 快速支援 | 受击或轴上 `AssistCue` 开窗，换入打入场技 |
-| 黄闪 | 来刀开窗，候场 Z 成交吸附，打 Kit 防御支援轴 |
+| 黄闪 | 来刀开窗，按目标槽 1/2/3 成交吸附，打 Kit 防御支援轴 |
 | 红闪 | 换入带无敌帧闪过，不走招架成交 |
-| 连携 | **已屏蔽**（原失衡窗 Z）。高潮见偏谐文档 |
+| 连携 | **已删除**（原失衡窗换人）。高潮见偏谐文档 |
 
-团队 **支援点 3 点**：黄/红各耗 1，快速支援不耗。没点则黄/红 Z **整次失败**，不降级成 Manual。点数挂小队实体，开战灌满，惰性回复。
+切人 **无次数、无冷却**。黄/红只问来刀窗 + Kit 列（空列整次失败，不降级 Manual）。
 
-尚未做：延奏 `Buff.Outro` 转移、喧响团队大招条。现役 CharacterId=1 的 Quick/Evasive 列若为 0，红闪与支援窗内 Z 失败是配表预期。
+尚未做：延奏 `Buff.Outro` 转移、喧响团队大招条。现役 CharacterId=1 的 Quick/Evasive 列若为 0，红闪与支援窗内 1/2/3 失败是配表预期。
 
 ### 6.4 偏谐与原失衡
 
 **偏谐步骤 1–4 已接**：命中攒条，满了亮 F；场上按 F 打 `CharacterKit.HarmonyBreakSkillId`（空列不触发）。结束后真空锁零约 5s。普攻连招记忆已接。处决走独立表现包与构图镜头，HUD 只提示 F。见 [已完成/ActHarmonyBreakDesign.md](已完成/ActHarmonyBreakDesign.md)。
 
-原失衡硬直仍关（`DazeGameplayEnabled=false`）。Q/E 不因条满连携。表 `DazeSetting` / `DazeRatio` 继续当偏谐数字。
+失衡硬直 / 连携窗 **运行时已删除**。换人键不因条满连携。表 `DazeSetting` / `DazeRatio` 继续当偏谐数字。
 
-属性异常积蓄 → 紊乱 **未做**；仍计划复用同一计量组件，不要再写第二套条。
+属性异常按鸣潮走 **状态 Buff 叠层**（见 [ActBuffLearningBacklog.md](ActBuffLearningBacklog.md)），不抄绝区零积蓄条和紊乱。`CombatMeterComponent` 只服务偏谐。
+
+鸣潮 **共振度 / 削韧条**（白条扣光 → Stagger 瘫痪）第 0–4 步已接：精英按段表磨白条，扣光进 Stagger；黄闪招架砍目标 Max 的 25%，谐度破坏命中砍 30%（不跟角色、不跟技能）。头顶 Intact 白条 / Immobilized 黄条；破韧播 `StaggerBreak`。与偏谐并存、不复用 `DazeRatio`。方案见 [ActVibrationDesign.md](ActVibrationDesign.md)。
 
 ### 6.5 黄红闪与预警
 
@@ -201,7 +203,7 @@ Z **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwit
 三层，都不进伤害结算：
 
 1. **导演** `CombatEncounterDirector`：谁能打（Token 预算，同屏真伤轴大约 1～2 只）、Tempo、站位槽。难度只改预算/冷却/拍卖周期，不改伤害表。
-2. **HFSM** `EnemyBrainComponent`：Engage / Recover / Relax 等战术生活；强制态（死、硬控、失衡）优先同步。
+2. **HFSM** `EnemyBrainComponent`：Engage / Recover / Relax 等战术生活；强制态（死、硬控）优先同步。
 3. **效用选招** `EnemySkillSelector`：合法招里选一次 `Enqueue`，然后把轴打完。
 
 已落地：杂兵/精英档、车轮战与徘徊、突进、红闪、连段、Special、假前摇、轴上预警。屏外公平（看不见的怪不准偷袭）和 Boss 相位切招池尚未做。敌人动画仍借用玩家剪辑，观感是已知缺口。
@@ -209,12 +211,12 @@ Z **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwit
 ### 6.7 Buff 与控制
 
 - 流程问 Buff 列表和 Tag，经 `CombatBuffPipeline.Dispatch`。
-- 同一 BuffId 默认一条，重复走叠时/刷新/叠层/互斥。硬控（`Buff.MoveForbid`）跨 Id 再走 `HardControlMutex`：高 Priority 覆盖。冻结 Priority 高于眩晕，不会被短眩晕顶掉。
-- 沉默只 `Buff.SkillForbid`，仍可闪避；硬控不可闪。
+- 同一 BuffId 默认一条，重复走叠时/刷新/叠层/互斥。硬控（`State.MoveForbid`）跨 Id 再走 `HardControlMutex`：高 Priority 覆盖。冻结 Priority 高于眩晕，不会被短眩晕顶掉。
+- 沉默只 `State.SkillForbid`，仍可闪避；硬控不可闪。
 - 上 Buff 走 `AddStatusAction` + 免疫/抵抗；测试面板直挂会绕过免疫。
 - 被动 = 常驻 Buff（`PassiveSkillBuffComponent` + 表 `PassiveBuffIds`）。
-- 护盾已落 Vital 多段；协奏/延奏类转移未做。
-- 无敌帧 / 霸体走轴上 Tag（`Buff.Roll`、`Buff.UnStopped`），不用 Buff 模拟。
+- 护盾已落 Vital 多段。延奏 `Buff.Outro` 转移见小队 M4.3（`ActSquadDesign.md` §5.8）。协奏能量条不做。
+- 无敌帧 / 霸体走轴上 Tag（`State.Roll`、`State.UnStopped`），不用 Buff 模拟。
 
 ---
 
@@ -228,15 +230,15 @@ Z **不进** `InputBuffer`。`ConfigurableInputManager` 调 `CombatSquad.TrySwit
 
 ### 7.2 相机
 
-Stage 0/1 已落地：`CameraManager` 意图栈 + 优先级仲裁 + LateUpdate 唯一写 Transform；锁定与自由视角互斥切换；震屏是基准之外的叠加层。断裂/顿帧时相机钟保持 1，镜头不跟着世界停。
+Stage 0/1 已落地：`CameraManager` 意图栈 + LateUpdate 唯一写 Transform；震屏是基准之外的叠加层。断裂/顿帧时相机钟保持 1，镜头不跟着世界停。
 
-Stage 2（锁定与自由视角权重混合、自动构图、分曲线接管）是设计备忘，未排期。
+Stage 2A/B/F 已落地：角度权重混合；LockOn 包络；AutoFraming 只偏 yaw；大招构图三套预设走轴 Msg `SkillCamera`（F7 可预览）。C 曲线 / D 真过场 / G 配方字段见 `ActCameraStage2Design.md`。
 
 ### 7.3 表现包
 
 `CombatPresentationDirector` 按 `CombatFxPackageId` 播一组有序效果（HitStop、闪白、震屏、残影、时停、溶解……）。目录可挂在 `EGamePlayInit` 上。
 
-已占用的包包括：轻/重受击与命中、玩家被打震屏、普通闪避残影、极限闪避断裂、招架成功撞刃、破衡、切人入场/退场、连携、大招时停、死亡溶解。异常爆发包名为占位，紊乱系统未接。
+已占用的包包括：轻/重受击与命中、玩家被打震屏、普通闪避残影、极限闪避断裂、招架成功撞刃、破衡、切人入场/退场、连携、大招时停、死亡溶解。异常爆发包仍是占位；打爆走 `TryConsume`，表现另接。
 
 ### 7.4 画面实验
 
@@ -294,7 +296,7 @@ AI / 协作者不要手改巨大预制体 YAML，也不要开 Unity 代点；需
 
 - 普攻连段、闪避、极限闪避断裂、顿帧分轻重
 - 敌人轮流出手，黄刀可招架、红刀必须闪
-- 三人槽换人：手动无斩击；黄闪换人撞刃；合轴退场（失衡连携已关）
+- 三人槽换人：手动无斩击；黄闪换人撞刃；合轴退场（失衡连携已删除）
 - 敌人偏谐条可攒满，亮 F；按 F 打 Kit 破坏技，结束后条锁零一会儿
 - 冻结停动作不停跳伤；硬控互斥
 - 技能轴可在编辑器里改并立刻进战斗
@@ -303,10 +305,10 @@ AI / 协作者不要手改巨大预制体 YAML，也不要开 Unity 代点；需
 
 | 项 | 状态 |
 |---|---|
-| 属性异常 / 紊乱 | 未做 |
+| 鸣潮异常（光噪/风蚀叠层、打爆） | 表 `32001–32003` + `TryConsume` 已落地；打爆伤害由技能自己发 |
 | 延奏 Buff 转移、喧响大招条 | 未做 |
 | 走跑步态机与自有移动动画 | 电机有、片子未接 |
-| 相机自动构图 | 未排期 |
+| 相机自动构图 | 阶段 B 已接（只偏 yaw）；大招拍角色见相机文档 F/G |
 | 屏外公平、Boss 相位 | 未做 |
 | 敌人专用动画、预警正式特效 | 占位 |
 | 养成 UI、多角色分模 | 后置 |

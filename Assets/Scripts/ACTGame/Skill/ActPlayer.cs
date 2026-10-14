@@ -56,7 +56,7 @@ namespace ACTGameEditor
         const float DamageTextChestLerp = 0.42f;
         [HideInInspector]
         public AgentTag Agent;
-        /// <summary>模型位（生成时由 PlayerManager 写入）。敌人 AI 用 EnemyA=精英档、其余=杂兵档。</summary>
+        /// <summary>模型位（生成时由 PlayerManager 写入）。仅作刷怪默认号段；Poise / 偏谐问 MonsterId。</summary>
         [HideInInspector]
         public AgentModelType ModelType;
         public CombatEntity Combat { get; private set; }
@@ -74,6 +74,8 @@ namespace ACTGameEditor
 
         [Tooltip("角色配置 ID，对应 RoleAttriSetting 表的 CharacterId")]
         public int CharacterId;
+        [Tooltip("怪物表 MonsterId。玩家保持 0；敌人对应 MonsterSetting 主键（101 杂兵 / 201 精英 / 301 首领）")]
+        public int MonsterId;
         [Tooltip("角色等级，用于属性计算：基础值 + 等级 * 增长值")]
         public int Level = 1;
 
@@ -113,6 +115,7 @@ namespace ACTGameEditor
         {
             // 测试缩放（如精英放大）不随回池泄漏
             transform.localScale = Vector3.one;
+            MonsterId = 0;
 
             CharacterController controller = GetComponent<CharacterController>();
             if (controller != null)
@@ -183,6 +186,8 @@ namespace ACTGameEditor
             if (Level <= 0)
                 Level = SkillSettingMgr.DefaultRoleLevel;
 
+            MonsterId = MonsterIds.ResolveSpawnId(Agent, ModelType, MonsterId);
+
             GameObjectData data = new GameObjectData
             {
                 agent = Agent,
@@ -192,6 +197,7 @@ namespace ACTGameEditor
                 inputMoveBinder = CombatLocomotionInstaller.Default,
                 animTimeScale = GameTimeAnimTimeScaleSource.Default,
                 CharacterId = CharacterId,
+                MonsterId = MonsterId,
                 Level = Level,
                 isTruePlayer = isTruePlayer,
                 IsPlayerSquad = isPlayerSquad,

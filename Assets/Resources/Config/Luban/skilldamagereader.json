@@ -21,7 +21,8 @@
     "HitReaction": 0,
     "InterruptLevel": 0,
     "OnHitEffectIds": [],
-    "DazeRatio": 0.55
+    "DazeRatio": 0.55,
+    "VibrationRatio": 0.08
   },
   {
     "SkillId": 11002,
@@ -45,7 +46,8 @@
     "HitReaction": 0,
     "InterruptLevel": 0,
     "OnHitEffectIds": [],
-    "DazeRatio": 0.35
+    "DazeRatio": 0.35,
+    "VibrationRatio": 0.1
   },
   {
     "SkillId": 11002,
@@ -69,7 +71,8 @@
     "HitReaction": 1,
     "InterruptLevel": 3,
     "OnHitEffectIds": [],
-    "DazeRatio": 0.35
+    "DazeRatio": 0.35,
+    "VibrationRatio": 0.1
   },
   {
     "SkillId": 11003,
@@ -93,7 +96,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0.9
+    "DazeRatio": 0.9,
+    "VibrationRatio": 0.1
   },
   {
     "SkillId": 12001,
@@ -117,7 +121,8 @@
     "HitReaction": 0,
     "InterruptLevel": 0,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 12006,
@@ -141,7 +146,8 @@
     "HitReaction": 0,
     "InterruptLevel": 0,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 12002,
@@ -165,7 +171,8 @@
     "HitReaction": 0,
     "InterruptLevel": 0,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 12002,
@@ -189,7 +196,8 @@
     "HitReaction": 1,
     "InterruptLevel": 3,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 12003,
@@ -213,7 +221,8 @@
     "HitReaction": 1,
     "InterruptLevel": 3,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 12004,
@@ -237,7 +246,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 13001,
@@ -261,7 +271,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 13001,
@@ -285,7 +296,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 13001,
@@ -309,7 +321,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 13001,
@@ -333,7 +346,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 13001,
@@ -357,7 +371,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 14001,
@@ -381,7 +396,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 14001,
@@ -405,7 +421,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 14001,
@@ -429,7 +446,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 14001,
@@ -453,7 +471,8 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   },
   {
     "SkillId": 14001,
@@ -477,6 +496,7 @@
     "HitReaction": 1,
     "InterruptLevel": 5,
     "OnHitEffectIds": [],
-    "DazeRatio": 0
+    "DazeRatio": 0,
+    "VibrationRatio": 0
   }
 ]

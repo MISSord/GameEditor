@@ -98,7 +98,22 @@ namespace ACTGameEditor.Combat
                 case var _ when msgName == PlayEventMsg.PlayAudio:
                     PlayTimelineAudio(strMsg, floatMsg);
                     break;
+
+                case var _ when msgName == PlayEventMsg.SkillCamera:
+                    ApplySkillCamera(strMsg, floatMsg);
+                    break;
             }
+#endif
+        }
+
+        /// <inheritdoc/>
+        public void EndPresentationMessage(string msgName, string strMsg = null)
+        {
+            if (_owner == null || string.IsNullOrEmpty(msgName))
+                return;
+#if UNITY
+            if (msgName == PlayEventMsg.SkillCamera)
+                ReleaseSkillCamera(strMsg);
 #endif
         }
 
@@ -202,6 +217,26 @@ namespace ACTGameEditor.Combat
 
             float vol = volume > 0f ? volume : 1f;
             _audioSource.PlayOneShot(clip, vol);
+        }
+
+        void ApplySkillCamera(string presetName, float blendSeconds)
+        {
+            CameraManager cam = CameraManager.Instance;
+            if (cam == null || _owner == null || !cam.IsFollowing(_owner.RootTransform))
+                return;
+            if (!CameraShotRecipe.TryFromName(presetName, out CameraShotRecipe recipe))
+                return;
+
+            cam.SubmitShot(recipe, CameraIntentSource.SkillCamera, CameraManager.SkillShotPriority,
+                blendSeconds > 0f ? blendSeconds : -1f, duration: 0f);
+        }
+
+        void ReleaseSkillCamera(string presetName)
+        {
+            CameraManager cam = CameraManager.Instance;
+            if (cam == null || _owner == null || !cam.IsFollowing(_owner.RootTransform))
+                return;
+            cam.CancelSkillShotIfPreset(presetName);
         }
 #endif
     }

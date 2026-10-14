@@ -36,6 +36,8 @@ namespace ACTGameEditor.Combat
         int _playerCombatClockHold;
         /// <summary>角色配置 Id，对齐 RoleAttri / CharacterKit。0 表示未配，读不到招式包。</summary>
         public int CharacterId { get; private set; }
+        /// <summary>怪物表主键。玩家 / 假玩家为 0；敌人必须是 Monster 行 Id，禁止用 0 回退。</summary>
+        public int MonsterId { get; private set; }
         public AgentTag CurAgent { get; set; }
         public Transform ModelTrans { get; set; }
         public Transform RootTransform { get; set; }
@@ -62,8 +64,10 @@ namespace ACTGameEditor.Combat
         /// <summary>动画与 MotionDirector。</summary>
         public AnimComponent Anim => _anim;
 #endif
-        /// <summary>失衡计量。玩家未 Configure，<see cref="CombatMeterComponent.IsConfigured"/> 为 false。</summary>
+        /// <summary>偏谐计量。玩家未 Configure，<see cref="CombatMeterComponent.IsConfigured"/> 为 false。</summary>
         public CombatMeterComponent DazeMeter { get; private set; }
+        /// <summary>共振度。未 Configure 则无条（玩家、杂兵 CanBreak=0）。</summary>
+        public CombatVibrationComponent Vibration { get; private set; }
 
         public DamageActionAbility DamageAbility { get; private set; }
         public ResourceActionAbility ResourceAbility { get; private set; }
@@ -234,6 +238,8 @@ namespace ACTGameEditor.Combat
             SquadPresence = SquadPresence.OnField;
             _playerCombatClockHold = 0;
             NetId = 0;
+            CharacterId = 0;
+            MonsterId = 0;
             CurMoveState = MoveTypeEnum.Idle;
             _curState = PlayerStateEnum.Idle;
             AttackPlayer = null;
@@ -287,6 +293,7 @@ namespace ACTGameEditor.Combat
         void InitializeIdentity(GameObjectData data)
         {
             CharacterId = data.CharacterId;
+            MonsterId = data.MonsterId;
             isTruePlayer = data.isTruePlayer;
             IsPlayerSquad = data.IsPlayerSquad;
             SquadSlot = data.SquadSlot;
@@ -315,8 +322,31 @@ namespace ACTGameEditor.Combat
 
             CurrentVital = AddComponent<VitalComponent>();
             CurrentVital.InitVital();
-            AddComponent<CombatPoiseComponent>();
+            CombatPoiseComponent poise = AddComponent<CombatPoiseComponent>();
             DazeMeter = AddComponent<CombatMeterComponent>();
+            Vibration = AddComponent<CombatVibrationComponent>();
+            ApplyMonsterTable(poise);
+        }
+
+        /// <summary>
+        /// 按怪物表配抗打断、偏谐与共振度。缺行不回退；DazeSettingId≤0 不配偏谐；韧条缺行或 CanBreak=0 则无条。
+        /// </summary>
+        void ApplyMonsterTable(CombatPoiseComponent poise)
+        {
+            if (MonsterId <= 0)
+                return;
+
+            MonsterSetting monster = SkillSettingMgr.Instance != null
+                ? SkillSettingMgr.Instance.GetMonsterOrNull(MonsterId)
+                : null;
+            if (monster == null)
+                return;
+
+            bool eliteRank = monster.Rank == MonsterRank.Elite || monster.Rank == MonsterRank.Boss;
+            poise?.Configure(monster.AntiInterruptBase, monster.SuperArmorBonus, eliteRank);
+            if (monster.DazeSettingId > 0)
+                DazeMeter?.Configure(monster.DazeSettingId);
+            Vibration?.Configure(MonsterId);
         }
 
         void AddPresentationComponents()
@@ -354,6 +384,7 @@ namespace ACTGameEditor.Combat
             TimeScale = null;
             CurrentVital = null;
             DazeMeter = null;
+            Vibration = null;
             _formComponent = null;
             _timelinePresenter = null;
             _abilityComponent = null;
@@ -382,7 +413,7 @@ namespace ACTGameEditor.Combat
 #endif
         }
 
-        /// <summary>电机 AutoRotate 开关（闪避、时间轴 SetCanRotate）。</summary>
+        /// <summary>电机 AutoRotate 开关。技能默认关掉，时间轴 SetCanRotate 再打开。</summary>
         public void ChangeInputRotateState(bool state)
         {
 #if UNITY
@@ -395,6 +426,12 @@ namespace ACTGameEditor.Combat
 
         /// <summary>技能交轴：恢复满权；受击/禁移仍由 <see cref="MoveWeight"/> 合成压掉。</summary>
         public void EndSkillMoveLock() => _skillMoveWeight = 1f;
+
+        /// <summary>技能开轴：锁朝向。出招前的一次对向保留；时间轴 SetCanRotate 可再打开。</summary>
+        public void BeginSkillRotateLock() => ChangeInputRotateState(false);
+
+        /// <summary>技能交轴：恢复自动转向。后招已占轴时不要调用。</summary>
+        public void EndSkillRotateLock() => ChangeInputRotateState(true);
 
         /// <summary>闪避起步：非走路时锁存快跑，结束移动时接疾跑。</summary>
         public void ArmSprintFromDodge()
@@ -433,6 +470,9 @@ namespace ACTGameEditor.Combat
         #region Tag（转发）
 
         public bool HasTag(string tagName) => TagHost != null && TagHost.HasTag(tagName);
+
+        /// <summary>仅显式授予该路径，不含子孙。</summary>
+        public bool HasExactTag(string tagName) => TagHost != null && TagHost.HasExactTag(tagName);
 
         public bool CanSpellSkillWithTagLists(List<string> required, List<string> blocked) =>
             TagHost != null && TagHost.CanSpellSkillWithTagLists(required, blocked);
@@ -565,9 +605,18 @@ namespace ACTGameEditor.Combat
             _timelinePresenter?.ApplyPresentationMessage(msgName, floatMsg, boolMsg, strMsg, source);
         }
 
-        public void HandleTimelineMessageFinish(string msgName, bool boolMsg, bool setOppositeOnFinish)
+        public void HandleTimelineMessageFinish(string msgName, bool boolMsg, bool setOppositeOnFinish, string strMsg = null)
         {
-            if (!setOppositeOnFinish || string.IsNullOrEmpty(msgName))
+            if (string.IsNullOrEmpty(msgName))
+                return;
+
+            if (msgName == PlayEventMsg.SkillCamera)
+            {
+                _timelinePresenter?.EndPresentationMessage(msgName, strMsg);
+                return;
+            }
+
+            if (!setOppositeOnFinish)
                 return;
 
             _timelinePresenter?.ApplyPresentationMessage(msgName, 0f, !boolMsg);
@@ -583,6 +632,7 @@ namespace ACTGameEditor.Combat
                 return;
 
             DazeMeter?.OnOwnerDeath();
+            Vibration?.OnOwnerDeath();
             (AttackPlayer as IAttackPlayer)?.ClearHarmonyComboMemory();
             _stateDirector?.EnterDead();
 
@@ -596,6 +646,7 @@ namespace ACTGameEditor.Combat
             anim?.Motion?.SetPolicy(MotionPolicy.Locomotion);
             anim?.Motion?.SetSkillSuppressGravity(false);
             EndSkillMoveLock();
+            EndSkillRotateLock();
             SetTimedMoveLock(false);
             ChangeInputMoveState(false);
 #endif
@@ -623,6 +674,58 @@ namespace ACTGameEditor.Combat
             GetComponent<AnimComponent>()?.Director?.PlayDamageReaction();
 #endif
             return true;
+        }
+
+        /// <summary>
+        /// 破韧：无视抗打断 / UnStopped 断轴并进 Stagger。不推 MoveForbid。
+        /// 表现包在状态落地后播，不进 <c>DamageAction</c>。
+        /// </summary>
+        public void ApplyVibrationBreak()
+        {
+            if (IsDead)
+                return;
+
+            BreakActiveSkill();
+            EndSkillMoveLock();
+            EndSkillRotateLock();
+            SetTimedMoveLock(false);
+            _stateDirector?.EnterStagger();
+#if UNITY
+            _anim?.Director?.PlayHeldControlReaction();
+            PlayVibrationBreakFx();
+#endif
+        }
+
+#if UNITY
+        /// <summary>
+        /// 破韧顿帧 / 闪白 / 重震。Owner 与 ActionTarget 都是本实体，HitFlash 才能解析到目标。
+        /// </summary>
+        void PlayVibrationBreakFx()
+        {
+            var fx = CombatFxPlayContext.ForOwner(this, CombatFxSource.Entity(Id));
+            fx.ActionCreator = this;
+            fx.ActionTarget = this;
+            CombatFxPackagePlayer.Play(CombatFxPackageId.StaggerBreak, in fx);
+        }
+#endif
+
+        /// <summary>黄条结束：退出 Stagger。硬控仍盖住时不抢回 Locomotion。</summary>
+        public void ApplyVibrationRecover()
+        {
+            if (IsDead)
+                return;
+
+            bool stillControl = _stateDirector != null && _stateDirector.IsControl;
+            _stateDirector?.ExitStagger();
+            if (stillControl)
+                return;
+
+            ChangeInputMoveState(ShouldEnableMotor());
+#if UNITY
+            _anim?.Director?.ForceLocomotion();
+            _anim?.Motion?.SetPolicy(MotionPolicy.Locomotion);
+            _anim?.Motion?.SetSkillSuppressGravity(false);
+#endif
         }
 
         /// <summary>
@@ -728,6 +831,7 @@ namespace ACTGameEditor.Combat
             }
 
             EndSkillMoveLock();
+            EndSkillRotateLock();
             ChangeInputMoveState(false);
 
 #if UNITY
@@ -755,58 +859,6 @@ namespace ACTGameEditor.Combat
 #endif
                 return;
             }
-
-#if UNITY
-            AnimComponent anim = GetComponent<AnimComponent>();
-            anim?.Director?.ForceLocomotion();
-            anim?.Motion?.SetPolicy(MotionPolicy.Locomotion);
-            anim?.Motion?.SetSkillSuppressGravity(false);
-#endif
-        }
-
-        /// <summary>失衡条满：无条件断招进 Stagger，导演 Punish，播破衡包。表现不进 DamageAction。</summary>
-        public void BeginDazeStagger()
-        {
-            if (IsDead)
-                return;
-
-            var runner = ActiveExecution;
-            if (runner != null)
-            {
-                ActiveExecution = null;
-                runner.BreakSkill();
-            }
-
-            _stateDirector?.EnterStagger();
-            EndSkillMoveLock();
-            ChangeInputMoveState(false);
-            Ai.CombatEncounterDirector.Instance?.NotifyBreakMeterOpened(this);
-
-#if UNITY
-            AnimComponent anim = GetComponent<AnimComponent>();
-            anim?.Director?.PlayHeldControlReaction();
-            var fx = CombatFxPlayContext.ForOwner(this, CombatFxSource.Entity(Id));
-            fx.ActionTarget = this;
-            fx.ActionCreator = Ai.CombatEncounterDirector.Instance != null
-                ? Ai.CombatEncounterDirector.Instance.FocusTarget
-                : null;
-            CombatFxPackagePlayer.Play(CombatFxPackageId.StaggerBreak, in fx);
-#endif
-        }
-
-        /// <summary>失衡条掉光：退 Stagger，导演结束 Punish（场上无人 Opened 时）。冻结仍在则保持控制姿态。</summary>
-        public void EndDazeStagger()
-        {
-            if (IsDead)
-                return;
-
-            _stateDirector?.ExitStagger();
-            Ai.CombatEncounterDirector.Instance?.NotifyBreakMeterClosed(this);
-
-            if (_stateDirector != null && _stateDirector.IsControl)
-                return;
-
-            ChangeInputMoveState(ShouldEnableMotor());
 
 #if UNITY
             AnimComponent anim = GetComponent<AnimComponent>();

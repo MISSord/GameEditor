@@ -82,7 +82,7 @@ namespace XiaoCao
 
             const float lineH = 24f;
             const float padding = 8f;
-            const int controlLines = 13;
+            const int controlLines = 16;
             float listH = Mathf.Max(60f, buffListHeight);
             float h = padding * 2 + lineH * controlLines + listH;
             _panelRect.width = panelWidth;
@@ -120,6 +120,12 @@ namespace XiaoCao
                 AddTestBuff(testBuffId);
             if (GUILayout.Button("移除 Buff", GUILayout.Height(28)))
                 RemoveTestBuff(testBuffId);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("打爆 1 层", GUILayout.Height(28)))
+                ConsumeTestBuff(testBuffId, 1f);
+            if (GUILayout.Button("打爆全部", GUILayout.Height(28)))
+                ConsumeTestBuff(testBuffId, 0f);
+            GUILayout.EndHorizontal();
             if (GUILayout.Button("批量添加", GUILayout.Height(28)))
                 AddBatchBuffs();
             if (GUILayout.Button("清空全部", GUILayout.Height(28)))
@@ -197,12 +203,18 @@ namespace XiaoCao
                 _listLabel.Append("  ");
                 _listLabel.Append(name);
             }
+            if (buff.IsCanStack)
+            {
+                _listLabel.Append(" x");
+                _listLabel.Append((int)buff.GetStackCount());
+            }
             return _listLabel.ToString();
         }
 
         /// <summary>
         /// 对当前选中目标添加指定 Buff（可被 UI 按钮或测试代码调用）。
-        /// 已存在同 Id 时不重复 Attach，避免 StatusComponent.IdStatuses 抛重复键。
+        /// 已有同 Id 时走 <see cref="StatusComponent.RequestAddStatus"/> 叠层/刷新。
+        /// 施加者取本地主控，避免把跳伤算给被挂 Buff 的敌人。
         /// </summary>
         /// <param name="buffId">配置表中的 BuffId</param>
         /// <returns>是否添加成功</returns>
@@ -218,25 +230,57 @@ namespace XiaoCao
                 return false;
             }
 
-            if (statusComp.HasBuffId(buffId))
+            bool existed = statusComp.HasBuffId(buffId);
+            ICombatUnit caster = PlayerManager.Instance?.LocalPlayer?.Combat;
+            if (caster == null)
+                caster = _selected != null ? _selected.Combat : null;
+            BuffAddRequestResult result = statusComp.RequestAddStatus(buffId, caster, null);
+            if (result == BuffAddRequestResult.Blocked)
             {
-                Debug.Log($"[BuffBarTester] {BuildTargetLabel()} 已有 Buff Id={buffId}，跳过。当前 Buff 数量={statusComp.Statuses.Count}");
-                return true;
+                Debug.Log($"[BuffBarTester] {BuildTargetLabel()} 硬控互斥挡住 Buff Id={buffId}");
+                return false;
             }
 
-            Buff buff = statusComp.AttachStatus(buffId);
-            if (buff == null)
-                return false;
-            if (buff.Caster == null)
-                buff.Caster = statusComp.Entity;
-            bool overrideDuration = TryParseDurationOverride(out float durationSeconds);
-            if (overrideDuration)
+            Buff buff = statusComp.GetBuffById(buffId);
+            bool hasDurationOverride = TryParseDurationOverride(out float durationSeconds);
+            bool overrideDuration = !existed
+                && result == BuffAddRequestResult.Applied
+                && hasDurationOverride;
+            if (overrideDuration && buff != null)
+            {
                 ApplyDurationOverride(buff, durationSeconds);
-            buff.ActivateBuff();
-            if (overrideDuration)
-                Debug.Log($"[BuffBarTester] 对 {BuildTargetLabel()} 添加 Buff Id={buffId}，时长 {durationSeconds} 秒，当前 Buff 数量={statusComp.Statuses.Count}");
+                if (buff.TryGet(out BuffTimeComponent time))
+                    time.ResetDuration(durationSeconds);
+            }
+
+            int stacks = buff != null ? (int)buff.GetStackCount() : 0;
+            ICombatUnit liveCaster = buff != null ? buff.GetLiveCaster() : null;
+            long casterId = liveCaster != null ? liveCaster.Id : 0;
+            if (existed)
+                Debug.Log($"[BuffBarTester] 对 {BuildTargetLabel()} 刷新/叠层 Buff Id={buffId}，当前层数={stacks}，归属 Caster={casterId}，Buff 数量={statusComp.Statuses.Count}");
+            else if (overrideDuration)
+                Debug.Log($"[BuffBarTester] 对 {BuildTargetLabel()} 添加 Buff Id={buffId}，时长 {durationSeconds} 秒，归属 Caster={casterId}，当前 Buff 数量={statusComp.Statuses.Count}");
             else
-                Debug.Log($"[BuffBarTester] 对 {BuildTargetLabel()} 添加 Buff Id={buffId}，时长走配置，当前 Buff 数量={statusComp.Statuses.Count}");
+                Debug.Log($"[BuffBarTester] 对 {BuildTargetLabel()} 添加 Buff Id={buffId}，时长走配置，归属 Caster={casterId}，当前 Buff 数量={statusComp.Statuses.Count}");
+            return true;
+        }
+
+        /// <summary>
+        /// 对当前选中目标打爆指定 Buff。<paramref name="stacks"/> ≤ 0 表示扣光。
+        /// </summary>
+        public bool ConsumeTestBuff(int buffId, float stacks)
+        {
+            var statusComp = GetSelectedStatusComponent();
+            if (statusComp == null)
+                return false;
+
+            if (!statusComp.TryConsume(buffId, stacks, out BuffConsumeResult consumed) || !consumed.Success)
+            {
+                Debug.Log($"[BuffBarTester] {BuildTargetLabel()} 打爆失败 Id={buffId}");
+                return false;
+            }
+
+            Debug.Log($"[BuffBarTester] 打爆 {BuildTargetLabel()} Buff Id={buffId}，扣 {consumed.StacksConsumed} 层，剩余 {consumed.StacksRemaining}");
             return true;
         }
 

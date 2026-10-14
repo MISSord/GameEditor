@@ -35,6 +35,7 @@ namespace ACTGameEditor.Combat
             }
 
             _active.EnsureHarmonyBreakPackage();
+            _active.EnsureStaggerBreakPackage();
         }
 
         /// <summary>按 ID 查找包定义。</summary>
@@ -184,18 +185,7 @@ namespace ACTGameEditor.Combat
                 },
             });
 
-            Packages.Add(new CombatFxPackageDefinition
-            {
-                Id = CombatFxPackageId.StaggerBreak,
-                DisplayName = "破韧",
-                ReferenceNote = "强 HitStop + 闪白 + 最重震屏。",
-                Entries =
-                {
-                    CombatFxPackageEntry.HitStop(0.2f, 0.05f, camera: true, timePriority: 40),
-                    CombatFxPackageEntry.HitFlash(0.25f),
-                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.StaggerBreak()),
-                },
-            });
+            Packages.Add(CreateStaggerBreakPackage());
 
             Packages.Add(new CombatFxPackageDefinition
             {
@@ -226,7 +216,7 @@ namespace ACTGameEditor.Combat
             {
                 Id = CombatFxPackageId.ChainAttack,
                 DisplayName = "连携",
-                ReferenceNote = "失衡窗连携入场：短 HitStop + 重震屏。偏谐处决用 HarmonyBreak。",
+                ReferenceNote = "原失衡连携入场。运行时已删除连携，包保留以免 Id 腾挪。处决用 HarmonyBreak。",
                 Entries =
                 {
                     CombatFxPackageEntry.HitStop(0.12f, 0.12f, camera: true, timePriority: 28),
@@ -266,13 +256,28 @@ namespace ACTGameEditor.Combat
         /// <summary>项目目录若是旧 asset、没有处决包，补一条，避免 F 时静默没表现。</summary>
         void EnsureHarmonyBreakPackage()
         {
+            if (HasPackage(CombatFxPackageId.HarmonyBreak))
+                return;
+            Packages.Add(CreateHarmonyBreakPackage());
+        }
+
+        /// <summary>旧 catalog 缺破韧包时补一条，避免白条扣光没有顿帧。</summary>
+        void EnsureStaggerBreakPackage()
+        {
+            if (HasPackage(CombatFxPackageId.StaggerBreak))
+                return;
+            Packages.Add(CreateStaggerBreakPackage());
+        }
+
+        bool HasPackage(CombatFxPackageId id)
+        {
             for (int i = 0; i < Packages.Count; i++)
             {
-                if (Packages[i] != null && Packages[i].Id == CombatFxPackageId.HarmonyBreak)
-                    return;
+                if (Packages[i] != null && Packages[i].Id == id)
+                    return true;
             }
 
-            Packages.Add(CreateHarmonyBreakPackage());
+            return false;
         }
 
         static CombatFxPackageDefinition CreateHarmonyBreakPackage()
@@ -287,6 +292,22 @@ namespace ACTGameEditor.Combat
                     CombatFxPackageEntry.HitStop(0.16f, 0.08f, camera: true, timePriority: 28),
                     CombatFxPackageEntry.HitFlash(0.22f),
                     CombatFxPackageEntry.CameraShake(CameraShakeProfile.HarmonyBreak()),
+                },
+            };
+        }
+
+        static CombatFxPackageDefinition CreateStaggerBreakPackage()
+        {
+            return new CombatFxPackageDefinition
+            {
+                Id = CombatFxPackageId.StaggerBreak,
+                DisplayName = "破韧",
+                ReferenceNote = "强 HitStop + 闪白 + 最重震屏。由 ApplyVibrationBreak 播，不进 DamageAction。",
+                Entries =
+                {
+                    CombatFxPackageEntry.HitStop(0.2f, 0.05f, camera: true, timePriority: 40),
+                    CombatFxPackageEntry.HitFlash(0.25f),
+                    CombatFxPackageEntry.CameraShake(CameraShakeProfile.StaggerBreak()),
                 },
             };
         }

@@ -1,0 +1,32 @@
+[
+  {
+    "MonsterId": 101,
+    "MaxVibration": 0,
+    "CanBreak": 0,
+    "VibrationResist": 0,
+    "IdleRegenPerSec": 0,
+    "BreakHoldSeconds": 0,
+    "ImmobilizeSeconds": 0,
+    "RecoverIFrame": 0
+  },
+  {
+    "MonsterId": 201,
+    "MaxVibration": 100,
+    "CanBreak": 1,
+    "VibrationResist": 0,
+    "IdleRegenPerSec": 0,
+    "BreakHoldSeconds": 0.15,
+    "ImmobilizeSeconds": 4,
+    "RecoverIFrame": 0.45
+  },
+  {
+    "MonsterId": 301,
+    "MaxVibration": 160,
+    "CanBreak": 1,
+    "VibrationResist": 0.1,
+    "IdleRegenPerSec": 0,
+    "BreakHoldSeconds": 0.15,
+    "ImmobilizeSeconds": 6,
+    "RecoverIFrame": 0.55
+  }
+]

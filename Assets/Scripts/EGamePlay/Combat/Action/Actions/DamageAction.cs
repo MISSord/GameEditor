@@ -28,7 +28,7 @@ namespace EGamePlay.Combat
         Interrupt = 1,
         /// <summary>目标免疫本次伤害（如无敌 Buff）；不扣血，仍触发后置行动点，不播受击表现。</summary>
         Immunity = 2,
-        /// <summary>目标闪避本次伤害（如 Buff.Roll 无敌帧）；不扣血，仍触发后置行动点，不播受击表现。</summary>
+        /// <summary>目标闪避本次伤害（如 State.Roll 无敌帧）；不扣血，仍触发后置行动点，不播受击表现。</summary>
         Dodge = 4,
         /// <summary>目标招架本次伤害；不扣血，仍触发后置行动点，不播受击表现。不断招与否由招架结算另判。</summary>
         Parry = 8,

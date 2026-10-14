@@ -1,0 +1,26 @@
+[
+  {
+    "MonsterId": 101,
+    "Name": "测试杂兵",
+    "Rank": 0,
+    "DazeSettingId": 1,
+    "AntiInterruptBase": 1,
+    "SuperArmorBonus": 3
+  },
+  {
+    "MonsterId": 201,
+    "Name": "测试精英",
+    "Rank": 1,
+    "DazeSettingId": 2,
+    "AntiInterruptBase": 3,
+    "SuperArmorBonus": 3
+  },
+  {
+    "MonsterId": 301,
+    "Name": "测试首领",
+    "Rank": 2,
+    "DazeSettingId": 3,
+    "AntiInterruptBase": 3,
+    "SuperArmorBonus": 3
+  }
+]

@@ -118,10 +118,15 @@ namespace EGamePlay.Combat
                 // 正在卸的那条还在字典里；当成刷新成功，避免解锁后又挂回一条。
                 if (existing != null && existing.IsRemoving)
                     return BuffAddRequestResult.Reapplied;
+
+                BuffDemoSetting setting = SkillSettingMgr.Instance.GetBuffDemoSetting(buffId);
+                if (setting == null || setting.ReApplyRule != BuffReApplyRule.Exclusive)
+                    existing?.AssignCasterOnReApply(caster);
+
                 if (existing != null && !existing.Enable)
                     existing.ActivateBuff();
                 else
-                    ReApplyExistingBuff(existing, SkillSettingMgr.Instance.GetBuffDemoSetting(buffId));
+                    ReApplyExistingBuff(existing, setting);
                 return BuffAddRequestResult.Reapplied;
             }
 
@@ -295,6 +300,40 @@ namespace EGamePlay.Combat
             return IdStatuses.TryGetValue(buffId, out buff) && buff != null;
         }
 
+        /// <summary>
+        /// 外部打爆：扣 <paramref name="stacks"/> 层（≤0 扣光）。层数到 0 或不可叠层则 <see cref="RemoveStatus"/>（<see cref="BuffRemoveReason.Consumed"/>）。
+        /// 不发伤害；调用方用返回的 Caster 自己 <c>DamageAction</c>。热路径无分配。
+        /// </summary>
+        public bool TryConsume(int buffId, float stacks, out BuffConsumeResult result)
+        {
+            result = default;
+            if (buffId <= 0 || !TryGetBuffById(buffId, out Buff buff)
+                || buff == null || !buff.Enable || buff.IsRemoving || buff.IsDisposed)
+                return false;
+
+            float before = buff.GetStackCount();
+            if (before <= 0f)
+                return false;
+
+            Entity caster = buff.GetLiveCaster()?.Entity;
+            float consumed = buff.ConsumeStacks(stacks);
+            float remaining = buff.IsCanStack ? buff.GetStackCount() : 0f;
+            bool removeAll = !buff.IsCanStack || remaining <= 0f;
+            if (removeAll)
+            {
+                remaining = 0f;
+                RemoveStatus(buffId, BuffRemoveReason.Consumed);
+            }
+
+            result.Success = true;
+            result.BuffId = buffId;
+            result.StacksBefore = before;
+            result.StacksConsumed = consumed;
+            result.StacksRemaining = remaining;
+            result.Caster = caster;
+            return true;
+        }
+
         /// <summary>身上是否还有该大类（<c>Buff.BigBuffType</c>）的条目。</summary>
         public bool HasBigBuffType(int BigBuffType)
         {
@@ -309,7 +348,7 @@ namespace EGamePlay.Combat
             RemoveBuffByBigType(BigBuffType, BuffRemoveReason.Dispelled, BuffDispelPolarity.All);
         }
 
-        /// <summary>按大类驱散。极性看表 <c>BuffTag</c> 是否含 Debuff/增益 Tag，不是运行时容器。</summary>
+        /// <summary>按大类驱散。极性看表 <c>BuffTag</c>（Asset），不是运行时容器。</summary>
         public void RemoveBuffByBigType(int BigBuffType, BuffRemoveReason reason, BuffDispelPolarity polarity)
         {
             RemoveStatuses(reason, polarity, BigBuffType);
@@ -601,7 +640,7 @@ namespace EGamePlay.Combat
                 action = Entity.AddChild<RemoveStatusAction>();
             }
 
-            action.Creator = buff.Caster as ICombatUnit ?? Entity as ICombatUnit;
+            action.Creator = buff.GetLiveCaster() ?? Entity as ICombatUnit;
             action.Target = Entity as ICombatUnit;
             action.RemovedBuff = buff;
             action.BuffId = buff.BuffID;
@@ -647,7 +686,7 @@ namespace EGamePlay.Combat
         {
             if (polarity == BuffDispelPolarity.All)
                 return true;
-            // 极性看配表 BuffTag，不是运行时 TagHost。驱散「只解 Debuff」靠表行打了 Buff.Debuff。
+            // 极性看配表 BuffTag（Asset），不是运行时 TagHost。驱散「只解 Debuff」靠表行打了 Buff.Debuff。
             if (polarity == BuffDispelPolarity.DebuffOnly)
                 return HasBuffTag(buff, CombatTags.BuffDebuff);
             if (polarity == BuffDispelPolarity.BuffOnly)
@@ -657,15 +696,7 @@ namespace EGamePlay.Combat
 
         static bool HasBuffTag(Buff buff, string tag)
         {
-            if (buff?.Setting?.BuffTag == null || string.IsNullOrEmpty(tag))
-                return false;
-            List<string> tags = buff.Setting.BuffTag;
-            for (int i = 0; i < tags.Count; i++)
-            {
-                if (tags[i] == tag)
-                    return true;
-            }
-            return false;
+            return buff?.Setting != null && buff.Setting.HasAssetTag(tag);
         }
 
         static void ReApplyExistingBuff(Buff existingBuff, BuffDemoSetting config)

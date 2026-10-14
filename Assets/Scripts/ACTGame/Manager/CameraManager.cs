@@ -42,26 +42,107 @@ namespace ACTGameEditor
         public float scroll;
         public float Distance = 5f;
 
+        /// <summary>技能轴构图默认优先级。低于谐度破坏 28，高于锁定 1。</summary>
+        public const int SkillShotPriority = 22;
+
+        const float ShotProbeDistance = 8f;
+
         [Tooltip("镜头距离平滑时间（秒）；0 = 滚轮即时生效。")]
         public float DistanceSmoothTime = 0.1f;
 
         [Tooltip("镜头距离上限（滚轮 / 意图请求统一 clamp）。")]
         public float MaxDistance = 12f;
 
-        // ── 相机意图层：滚轮写距离目标；状态提议朝向；技能/调试提交 CameraIntent 接管角度或距离 ──
+        // ── 相机意图层：FreeLook 永驻基准；LockOn / AutoFraming / Skill 走权重混合；距离仍最高优先独占 ──
         [Tooltip("意图接管/归还的默认平滑时间（秒）。")]
         public float IntentBlendTime = 0.25f;
+
+        [Tooltip("自由视角在角度混合中的优先级。LockOn 高 1 档时约 67% 锁 / 33% 自由。")]
+        public int FreeLookPriority = 0;
+
+        [Tooltip("锁定源优先级。比 FreeLook 高 1 档即可留下鼠标残差。")]
+        public int LockOnPriority = 1;
+
+        [Tooltip("锁定权重 0↔1 包络时间（秒）。")]
+        public float LockWeightBlendTime = 0.15f;
+
+        [Tooltip("锁定朝向跟踪目标的平滑时间（秒）；Q/E 切目标也走这条。")]
+        public float LockLookSmoothTime = 0.1f;
+
+        [Tooltip("关闭则构图源权重恒为 0（跑图调试用）。")]
+        public bool AutoFramingEnabled = true;
+
+        [Tooltip("构图源优先级。与 FreeLook 同档时，只有目标靠近画幅边缘才会拉 yaw。")]
+        public int AutoFramingPriority = 0;
+
+        [Tooltip("构图权重包络时间（秒）。")]
+        public float AutoFramingBlendTime = 0.2f;
+
+        [Tooltip("水平偏心距低于此值（0=中心，1=画幅边缘）不拉镜头。")]
+        [Range(0f, 1f)]
+        public float AutoFramingDeadZone = 0.32f;
+
+        [Tooltip("水平偏心距达到此值时构图权重=1。")]
+        [Range(0.1f, 1.5f)]
+        public float AutoFramingFullZone = 0.78f;
+
+        [Tooltip("无锁时只收相机前方这个锥角内的敌人（度）。身后不入选。")]
+        public float AutoFramingMaxAngle = 95f;
 
         float _distanceTarget;
         float _distanceVelocity;
 
-        // 仲裁后的实际朝向（意图接管时平滑逼近；无意图时每帧直贴状态提议，正常手感零延迟）
+        // 仲裁后的实际朝向（技能意图接管时 SmoothDamp；无叠层时每帧直贴混合结果，正常手感零延迟）
         float _actualPitch, _actualYaw;
         float _pitchVelocity, _yawVelocity;
         float _releaseRemain;
         float _releaseBlendTime;
 
+        float _lockWeight;
+        float _lockWeightVelocity;
+        float _lockLookPitch, _lockLookYaw;
+        float _lockPitchVelocity, _lockYawVelocity;
+
+        float _frameWeight;
+        float _frameWeightVelocity;
+        float _frameYaw;
+        float _frameYawVelocity;
+        ICameraTarget _framingTarget;
+
+        const int MaxAngleSources = 8;
+        const float WeightEpsilon = 0.001f;
+        const float Ln2 = 0.6931472f;
+
+        struct AngleBlendSource
+        {
+            public float Pitch;
+            public float Yaw;
+            public float Weight;
+            public int Priority;
+            public float BlendTime;
+        }
+
+        readonly AngleBlendSource[] _angleSources = new AngleBlendSource[MaxAngleSources];
+        int _angleSourceCount;
+
         readonly List<CameraIntentEntry> _intents = new List<CameraIntentEntry>(4);
+
+        FreeLookState _freeLookState;
+        LockOnState _lockOnState;
+
+        /// <summary>当前跟随的是否为该角色根节点（构图只打主控镜头）。</summary>
+        public bool IsFollowing(Transform playerRoot)
+        {
+            if (playerRoot == null || CurrentTarget == null)
+                return false;
+            return CurrentTarget.GetPlayerTransform() == playerRoot;
+        }
+
+        /// <summary>锁定源当前包络权重（0..1）。混合层只读，不写回基准。</summary>
+        public float LockWeight => _lockWeight;
+
+        /// <summary>AutoFraming 当前包络权重（0..1）。只偏 yaw。</summary>
+        public float AutoFramingWeight => _frameWeight;
 
         public bool IsOpenPhysic = false;
         [HideInInspector]
@@ -83,8 +164,10 @@ namespace ACTGameEditor
 
             _distanceTarget = Distance;
 
-            _cameraStatesDic.Add(CameraEnumState.FreeLook, new FreeLookState(this));
-            _cameraStatesDic.Add(CameraEnumState.LockLook, new LockOnState(this));
+            _freeLookState = new FreeLookState(this);
+            _lockOnState = new LockOnState(this);
+            _cameraStatesDic.Add(CameraEnumState.FreeLook, _freeLookState);
+            _cameraStatesDic.Add(CameraEnumState.LockLook, _lockOnState);
         }
 
         private void Start()
@@ -112,12 +195,25 @@ namespace ACTGameEditor
         void OnLockSystemChanged()
         {
             var ls = LockSystem.Instance;
-            if (ls == null) return;
+            if (ls == null)
+                return;
 
             if (ls.IsLocked)
-                SwitchState(_cameraStatesDic[CameraEnumState.LockLook]);
-            else
-                SwitchState(_cameraStatesDic[CameraEnumState.FreeLook]);
+            {
+                // 从当前干净输出起算，包络才是转向目标的唯一运动
+                _lockLookPitch = _actualPitch;
+                _lockLookYaw = _actualYaw;
+                _lockPitchVelocity = 0f;
+                _lockYawVelocity = 0f;
+                return;
+            }
+
+            // 解锁：把混合结果写回 FreeLook 基准，随后锁源贴着基准淡出，镜头不会甩回锁定前的旧角度
+            if (_freeLookState != null)
+            {
+                _freeLookState.RebaseOrbit(Quaternion.Euler(_actualPitch, _actualYaw, 0f));
+                CleanLookRotation = _freeLookState.lookRotation;
+            }
         }
 
         public void ChangeCurFollowTarget(ICameraTarget target)
@@ -242,7 +338,7 @@ namespace ACTGameEditor
 
         /// <summary>
         /// 提交相机意图：同来源单槽（低优先级不覆盖，语义同 TimeScaleEffectManager）；
-        /// 角度意图按优先级接管朝向，距离意图覆盖滚轮目标，接管/归还均按 BlendTime 平滑。
+        /// 角度按 Weight × 优先级加权混合，距离仍覆盖滚轮目标，技能接管/归还按 BlendTime 平滑。
         /// 带 Duration 的意图过期自动归还，无需手动 Cancel（打断不会忘了还镜头）。
         /// </summary>
         public bool SubmitIntent(in CameraIntent intent)
@@ -263,6 +359,9 @@ namespace ACTGameEditor
                     entry.Elapsed = 0f;
                     entry.LookPoint = intent.LookPoint;
                     entry.Distance = intent.Distance;
+                    entry.Weight = intent.Weight;
+                    entry.HasRecipe = intent.HasRecipe;
+                    entry.Recipe = intent.Recipe;
                     return true;
                 }
             }
@@ -275,8 +374,54 @@ namespace ACTGameEditor
                 Duration = intent.Duration,
                 LookPoint = intent.LookPoint,
                 Distance = intent.Distance,
+                Weight = intent.Weight,
+                HasRecipe = intent.HasRecipe,
+                Recipe = intent.Recipe,
             });
             return true;
+        }
+
+        /// <summary>
+        /// 提交构图配方。Duration&lt;=0 时直到 CancelSkillShot / 片段结束才还。
+        /// </summary>
+        public bool SubmitShot(in CameraShotRecipe recipe,
+            CameraIntentSource source = CameraIntentSource.SkillCamera,
+            int priority = SkillShotPriority,
+            float blendTime = -1f,
+            float duration = 0f)
+        {
+            if (!recipe.IsValid)
+                return false;
+            return SubmitIntent(new CameraIntent(source, in recipe, priority, blendTime, duration));
+        }
+
+        /// <summary>取消技能构图槽（默认 priority 22，不影响谐度破坏 28 或距离请求 1）。</summary>
+        public void CancelSkillShot(int priority = SkillShotPriority)
+        {
+            CancelIntent(CameraIntentSource.SkillCamera, priority);
+        }
+
+        /// <summary>
+        /// 片段结束时取消：仅当当前槽仍是同一预设才拆，避免后一段构图被前一段 OnFinish 误关。
+        /// 名称空或无法解析则按 22 整槽取消。
+        /// </summary>
+        public void CancelSkillShotIfPreset(string presetName)
+        {
+            if (!CameraShotRecipe.TryFromName(presetName, out CameraShotRecipe recipe))
+            {
+                CancelSkillShot();
+                return;
+            }
+
+            for (int i = _intents.Count - 1; i >= 0; i--)
+            {
+                CameraIntentEntry entry = _intents[i];
+                if (entry.Source != CameraIntentSource.SkillCamera || entry.Priority != SkillShotPriority)
+                    continue;
+                if (!entry.HasRecipe || entry.Recipe.Preset != recipe.Preset)
+                    continue;
+                _intents.RemoveAt(i);
+            }
         }
 
         /// <summary>取消来源的意图；priority &gt; 0 时仅取消同优先级条目（低优先级释放不影响高者）。</summary>
@@ -304,28 +449,6 @@ namespace ACTGameEditor
                 if (entry.Expired)
                     _intents.RemoveAt(i);
             }
-        }
-
-        bool TryGetTopLookIntent(out Vector3 lookPoint, out float blendTime)
-        {
-            lookPoint = default;
-            blendTime = IntentBlendTime;
-            CameraIntentEntry best = null;
-            for (int i = 0; i < _intents.Count; i++)
-            {
-                CameraIntentEntry entry = _intents[i];
-                if (entry.LookPoint == null)
-                    continue;
-                if (best == null || entry.Priority > best.Priority)
-                    best = entry;
-            }
-
-            if (best == null)
-                return false;
-            lookPoint = best.LookPoint.Value;
-            if (best.BlendTime > 0f)
-                blendTime = best.BlendTime;
-            return true;
         }
 
         bool TryGetTopDistanceIntent(out float distance, out float blendTime)
@@ -367,39 +490,364 @@ namespace ACTGameEditor
         }
 
         /// <summary>
-        /// 角度仲裁：最高优先级角度意图接管朝向；无意图且不在归还期时直贴状态提议（正常手感零延迟）。
-        /// 位置锚点统一为 focusPoint（= 相机目标点）：FreeLook 本就如此，LockOn 视觉高度会轻微上移对齐。
+        /// 角度仲裁：FreeLook / LockOn / AutoFraming / 意图按 Weight × 2^(priority-max) 归一化球面混合。
+        /// 技能意图仍 SmoothDamp 接管与归还；无技能意图时直贴混合结果（含 AutoFraming），鼠标零延迟。
+        /// 位置锚点仍是 focusPoint；混合结果不写回 CleanLookRotation。
         /// </summary>
         void UpdateAngleArbitration(float dt)
         {
-            if (TryGetTopLookIntent(out Vector3 lookPoint, out float blendTime))
+            EulerToPitchYaw(CurrentCameraState.lookRotation, out float basePitch, out float baseYaw);
+
+            _angleSourceCount = 0;
+            AddAngleSource(basePitch, baseYaw, 1f, FreeLookPriority, 0f);
+
+            UpdateLockWeight(dt);
+            UpdateLockLook(dt, basePitch, baseYaw);
+            if (_lockWeight > WeightEpsilon)
+                AddAngleSource(_lockLookPitch, _lockLookYaw, _lockWeight, LockOnPriority, LockWeightBlendTime);
+
+            UpdateAutoFraming(dt);
+            if (_frameWeight > WeightEpsilon)
+                AddAngleSource(basePitch, _frameYaw, _frameWeight, AutoFramingPriority, AutoFramingBlendTime);
+
+            bool hasLookIntent = CollectLookIntents();
+
+            if (!TryBlendAngles(out float mixPitch, out float mixYaw, out float mixBlend))
             {
-                Vector3 dir = lookPoint - focusPoint;
-                if (dir.sqrMagnitude > 0.0001f)
-                {
-                    dir.Normalize();
-                    Vector3 euler = Quaternion.LookRotation(dir, Vector3.up).eulerAngles;
-                    _releaseRemain = blendTime;
-                    _releaseBlendTime = blendTime;
-                    SmoothAngleTo(euler.x > 180f ? euler.x - 360f : euler.x, euler.y, blendTime, dt);
-                    return;
-                }
+                mixPitch = basePitch;
+                mixYaw = baseYaw;
+                mixBlend = IntentBlendTime;
             }
 
-            Vector3 baseEuler = CurrentCameraState.lookRotation.eulerAngles;
-            float basePitch = baseEuler.x > 180f ? baseEuler.x - 360f : baseEuler.x;
+            if (hasLookIntent)
+            {
+                _releaseRemain = mixBlend;
+                _releaseBlendTime = mixBlend;
+                SmoothAngleTo(mixPitch, mixYaw, mixBlend, dt);
+                return;
+            }
 
             if (_releaseRemain > 0f)
             {
                 _releaseRemain -= dt;
-                SmoothAngleTo(basePitch, baseEuler.y, _releaseBlendTime, dt);
+                SmoothAngleTo(mixPitch, mixYaw, _releaseBlendTime, dt);
                 return;
             }
 
-            _actualPitch = basePitch;
-            _actualYaw = baseEuler.y;
+            _actualPitch = mixPitch;
+            _actualYaw = mixYaw;
             _pitchVelocity = 0f;
             _yawVelocity = 0f;
+        }
+
+        void UpdateLockWeight(float dt)
+        {
+            float target = LockSystem.Instance != null && LockSystem.Instance.IsLocked ? 1f : 0f;
+            float smooth = Mathf.Max(0.001f, LockWeightBlendTime);
+            _lockWeight = Mathf.Clamp01(Mathf.SmoothDamp(_lockWeight, target, ref _lockWeightVelocity, smooth, float.MaxValue, dt));
+            if (_lockWeight < WeightEpsilon)
+            {
+                _lockWeight = 0f;
+                _lockWeightVelocity = 0f;
+            }
+            else if (target >= 1f && _lockWeight > 1f - WeightEpsilon)
+            {
+                _lockWeight = 1f;
+                _lockWeightVelocity = 0f;
+            }
+        }
+
+        void UpdateLockLook(float dt, float freePitch, float freeYaw)
+        {
+            if (_lockOnState != null && _lockOnState.TryProposeLook(out float pitch, out float yaw))
+            {
+                float smooth = Mathf.Max(0.001f, LockLookSmoothTime);
+                _lockLookPitch = Mathf.SmoothDampAngle(_lockLookPitch, pitch, ref _lockPitchVelocity, smooth, float.MaxValue, dt);
+                _lockLookYaw = Mathf.SmoothDampAngle(_lockLookYaw, yaw, ref _lockYawVelocity, smooth, float.MaxValue, dt);
+                return;
+            }
+
+            // 解锁包络期：锁源贴着 FreeLook，淡出不跟鼠标抢、也不甩向旧锁定点
+            _lockLookPitch = freePitch;
+            _lockLookYaw = freeYaw;
+            _lockPitchVelocity = 0f;
+            _lockYawVelocity = 0f;
+        }
+
+        void UpdateAutoFraming(float dt)
+        {
+            float desiredWeight = 0f;
+            float desiredYaw = _actualYaw;
+            bool haveYaw = false;
+
+            if (AutoFramingEnabled)
+            {
+                ICameraTarget target = ResolveFramingTarget();
+                if (target != null && TryGetPlanarYaw(target, out desiredYaw))
+                {
+                    haveYaw = true;
+                    desiredWeight = ComputeFramingWeight(target);
+                }
+            }
+
+            float prevWeight = _frameWeight;
+            float smooth = Mathf.Max(0.001f, AutoFramingBlendTime);
+            _frameWeight = Mathf.Clamp01(Mathf.SmoothDamp(
+                _frameWeight, desiredWeight, ref _frameWeightVelocity, smooth, float.MaxValue, dt));
+            if (_frameWeight < WeightEpsilon)
+            {
+                _frameWeight = 0f;
+                _frameWeightVelocity = 0f;
+                _frameYawVelocity = 0f;
+                return;
+            }
+
+            if (!haveYaw)
+                return;
+
+            if (prevWeight <= WeightEpsilon)
+            {
+                _frameYaw = _actualYaw;
+                _frameYawVelocity = 0f;
+            }
+
+            _frameYaw = Mathf.SmoothDampAngle(_frameYaw, desiredYaw, ref _frameYawVelocity, smooth, float.MaxValue, dt);
+        }
+
+        ICameraTarget ResolveFramingTarget()
+        {
+            var ls = LockSystem.Instance;
+            if (ls == null)
+            {
+                _framingTarget = null;
+                return null;
+            }
+
+            ICameraTarget next = ls.FindFramingTarget(AutoFramingMaxAngle);
+            if (_framingTarget != null && ls.IsEligibleFramingTarget(_framingTarget, AutoFramingMaxAngle))
+            {
+                if (next != null && next != _framingTarget && CurrentTarget != null)
+                {
+                    float oldSq = (_framingTarget.GetPlayerPos() - CurrentTarget.GetPlayerPos()).sqrMagnitude;
+                    float newSq = (next.GetPlayerPos() - CurrentTarget.GetPlayerPos()).sqrMagnitude;
+                    // 显著更近才换，避免两名敌人之间抖动
+                    if (newSq < oldSq * 0.49f)
+                        _framingTarget = next;
+                }
+            }
+            else
+            {
+                _framingTarget = next;
+            }
+
+            return _framingTarget;
+        }
+
+        bool TryGetPlanarYaw(ICameraTarget target, out float yaw)
+        {
+            yaw = 0f;
+            Vector3 dir = target.GetCameraTargetPos() - focusPoint;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f)
+                return false;
+            yaw = Quaternion.LookRotation(dir, Vector3.up).eulerAngles.y;
+            return true;
+        }
+
+        float ComputeFramingWeight(ICameraTarget target)
+        {
+            if (regularCamera == null)
+                return 0f;
+
+            Vector3 viewport = regularCamera.WorldToViewportPoint(target.GetCameraTargetPos());
+            bool locked = LockSystem.Instance != null && LockSystem.Instance.IsLocked
+                && target == LockSystem.Instance.LockedTarget;
+            if (viewport.z <= 0f)
+                return locked ? 1f : 0f;
+
+            float eccentricity = Mathf.Abs(viewport.x - 0.5f) * 2f;
+            float dead = Mathf.Min(AutoFramingDeadZone, AutoFramingFullZone);
+            float full = Mathf.Max(AutoFramingFullZone, dead + 0.01f);
+            return Mathf.InverseLerp(dead, full, eccentricity);
+        }
+
+        bool TryResolveRecipeLook(in CameraShotRecipe recipe, out float pitch, out float yaw)
+        {
+            pitch = 0f;
+            yaw = 0f;
+            if (focusPoint == default && focus == null)
+                return false;
+
+            float spaceYaw = ResolveShotSpaceYaw(recipe.Space);
+            Quaternion rot = Quaternion.Euler(recipe.Pitch, spaceYaw + recipe.Azimuth, 0f);
+            Vector3 lookPoint = focusPoint + Vector3.up * recipe.LookHeight + rot * Vector3.forward * ShotProbeDistance;
+            Vector3 dir = lookPoint - focusPoint;
+            if (dir.sqrMagnitude <= 0.0001f)
+                return false;
+
+            Vector3 euler = Quaternion.LookRotation(dir.normalized, Vector3.up).eulerAngles;
+            pitch = euler.x > 180f ? euler.x - 360f : euler.x;
+            yaw = euler.y;
+            return true;
+        }
+
+        float ResolveShotSpaceYaw(CameraShotSpace space)
+        {
+            float casterYaw = 0f;
+            bool haveCaster = false;
+            if (CurrentTarget != null)
+            {
+                Transform player = CurrentTarget.GetPlayerTransform();
+                if (player != null)
+                {
+                    casterYaw = player.eulerAngles.y;
+                    haveCaster = true;
+                }
+            }
+
+            if (space != CameraShotSpace.LockLine)
+                return haveCaster ? casterYaw : _actualYaw;
+
+            Vector3 from = CurrentTarget != null ? CurrentTarget.GetPlayerPos() : focusPoint;
+            Vector3 to = default;
+            bool haveTo = false;
+            var ls = LockSystem.Instance;
+            if (ls != null && ls.IsLocked && ls.LockedTarget != null)
+            {
+                to = ls.LockedTarget.GetCameraTargetPos();
+                haveTo = true;
+            }
+            else if (_framingTarget != null)
+            {
+                to = _framingTarget.GetCameraTargetPos();
+                haveTo = true;
+            }
+
+            if (!haveTo)
+                return haveCaster ? casterYaw : _actualYaw;
+
+            Vector3 dir = to - from;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f)
+                return haveCaster ? casterYaw : _actualYaw;
+            return Quaternion.LookRotation(dir, Vector3.up).eulerAngles.y;
+        }
+
+        bool CollectLookIntents()
+        {
+            bool hasLookIntent = false;
+            for (int i = 0; i < _intents.Count; i++)
+            {
+                CameraIntentEntry entry = _intents[i];
+                if (entry.Weight <= WeightEpsilon)
+                    continue;
+
+                float blend = entry.BlendTime > 0f ? entry.BlendTime : IntentBlendTime;
+                if (entry.HasRecipe)
+                {
+                    if (!TryResolveRecipeLook(in entry.Recipe, out float pitch, out float yaw))
+                        continue;
+                    AddAngleSource(pitch, yaw, entry.Weight, entry.Priority, blend);
+                    hasLookIntent = true;
+                    continue;
+                }
+
+                if (entry.LookPoint == null)
+                    continue;
+
+                Vector3 dir = entry.LookPoint.Value - focusPoint;
+                if (dir.sqrMagnitude <= 0.0001f)
+                    continue;
+
+                Vector3 euler = Quaternion.LookRotation(dir.normalized, Vector3.up).eulerAngles;
+                AddAngleSource(
+                    euler.x > 180f ? euler.x - 360f : euler.x,
+                    euler.y,
+                    entry.Weight,
+                    entry.Priority,
+                    blend);
+                hasLookIntent = true;
+            }
+
+            return hasLookIntent;
+        }
+
+        void AddAngleSource(float pitch, float yaw, float weight, int priority, float blendTime)
+        {
+            if (weight <= WeightEpsilon || _angleSourceCount >= MaxAngleSources)
+                return;
+
+            _angleSources[_angleSourceCount++] = new AngleBlendSource
+            {
+                Pitch = pitch,
+                Yaw = yaw,
+                Weight = weight,
+                Priority = priority,
+                BlendTime = blendTime,
+            };
+        }
+
+        bool TryBlendAngles(out float pitch, out float yaw, out float blendTime)
+        {
+            pitch = 0f;
+            yaw = 0f;
+            blendTime = IntentBlendTime;
+            int count = _angleSourceCount;
+            if (count <= 0)
+                return false;
+
+            if (count == 1)
+            {
+                ref AngleBlendSource only = ref _angleSources[0];
+                pitch = only.Pitch;
+                yaw = only.Yaw;
+                if (only.BlendTime > 0f)
+                    blendTime = only.BlendTime;
+                return true;
+            }
+
+            int maxPriority = _angleSources[0].Priority;
+            for (int i = 1; i < count; i++)
+            {
+                int p = _angleSources[i].Priority;
+                if (p > maxPriority)
+                    maxPriority = p;
+            }
+
+            float sinPitch = 0f;
+            float cosPitch = 0f;
+            float sinYaw = 0f;
+            float cosYaw = 0f;
+            float weightSum = 0f;
+            float bestWeight = -1f;
+            for (int i = 0; i < count; i++)
+            {
+                ref AngleBlendSource source = ref _angleSources[i];
+                float w = source.Weight * Mathf.Exp((source.Priority - maxPriority) * Ln2);
+                if (w <= WeightEpsilon)
+                    continue;
+
+                float pitchRad = source.Pitch * Mathf.Deg2Rad;
+                float yawRad = source.Yaw * Mathf.Deg2Rad;
+                sinPitch += Mathf.Sin(pitchRad) * w;
+                cosPitch += Mathf.Cos(pitchRad) * w;
+                sinYaw += Mathf.Sin(yawRad) * w;
+                cosYaw += Mathf.Cos(yawRad) * w;
+                weightSum += w;
+                if (w > bestWeight)
+                {
+                    bestWeight = w;
+                    if (source.BlendTime > 0f)
+                        blendTime = source.BlendTime;
+                }
+            }
+
+            if (weightSum <= WeightEpsilon)
+                return false;
+
+            pitch = Mathf.Atan2(sinPitch, cosPitch) * Mathf.Rad2Deg;
+            yaw = Mathf.Atan2(sinYaw, cosYaw) * Mathf.Rad2Deg;
+            return true;
         }
 
         void SmoothAngleTo(float pitchTarget, float yawTarget, float blendTime, float dt)
@@ -407,6 +855,13 @@ namespace ACTGameEditor
             float smooth = Mathf.Max(0.001f, blendTime);
             _actualPitch = Mathf.SmoothDampAngle(_actualPitch, pitchTarget, ref _pitchVelocity, smooth, float.MaxValue, dt);
             _actualYaw = Mathf.SmoothDampAngle(_actualYaw, yawTarget, ref _yawVelocity, smooth, float.MaxValue, dt);
+        }
+
+        static void EulerToPitchYaw(Quaternion rotation, out float pitch, out float yaw)
+        {
+            Vector3 euler = rotation.eulerAngles;
+            pitch = euler.x > 180f ? euler.x - 360f : euler.x;
+            yaw = euler.y;
         }
 
         sealed class CameraIntentEntry
@@ -418,6 +873,9 @@ namespace ACTGameEditor
             public float Elapsed;
             public Vector3? LookPoint;
             public float Distance;
+            public float Weight = 1f;
+            public bool HasRecipe;
+            public CameraShotRecipe Recipe;
 
             public bool Expired => Duration > 0f && Elapsed >= Duration;
         }
@@ -450,6 +908,8 @@ namespace ACTGameEditor
 
             if(this.focus == null || CurrentCameraState == null) return;
             CurrentCameraState.OnUpdate();
+            // Q/E 与目标校验挂在 LockOn 提议源上，不再依赖状态机切到 LockLook
+            _lockOnState.OnUpdate();
             
         }
 
@@ -478,10 +938,10 @@ namespace ACTGameEditor
 
             CurrentCameraState.OnLateUpdate();
 
-            // 状态提议 = 基准（状态机下一帧读回，永不包含意图/震屏叠加）
+            // 状态提议 = 基准（始终是 FreeLook 轨道；混合/构图/震屏都在这之后的输出层）
             CleanLookRotation = CurrentCameraState.lookRotation;
 
-            // 角度仲裁：意图接管朝向（接管/归还按 BlendTime 平滑；无意图时直贴基准）
+            // 角度仲裁：权重混合 → 技能 SmoothDamp；结果不写回基准
             UpdateAngleArbitration(GameTimeManager.CameraDelta);
 
             Quaternion finalRotation = Quaternion.Euler(_actualPitch, _actualYaw, 0f);
@@ -526,19 +986,15 @@ namespace ACTGameEditor
         }
 
 #if UNITY_EDITOR
-        /// <summary>调试：技能镜头测试（由 SkillEditorScene 的 F7 调用）。看向锁定目标或前方，拉近 3.2m，1.5s 后自动归还。</summary>
+        int _debugShotIndex;
+
+        /// <summary>调试：F7 循环三套构图预设，1.5s 后自动归还。</summary>
         public void DebugPlaySkillCamIntent()
         {
-            Vector3 lookPoint;
-            if (LockSystem.Instance != null && LockSystem.Instance.LockedTarget != null)
-                lookPoint = LockSystem.Instance.LockedTarget.GetCameraTargetPos();
-            else if (focus != null)
-                lookPoint = focus.position + CleanLookRotation * Vector3.forward * 8f;
-            else
-                lookPoint = MainCamera.position + MainCamera.forward * 8f;
-
-            SubmitIntent(new CameraIntent(CameraIntentSource.Debug, lookPoint, 3.2f,
-                priority: 30, blendTime: 0.25f, duration: 1.5f));
+            CameraShotPreset preset = (CameraShotPreset)(_debugShotIndex % 3 + 1);
+            _debugShotIndex++;
+            CameraShotRecipe recipe = CameraShotRecipe.FromPreset(preset);
+            SubmitShot(recipe, CameraIntentSource.Debug, priority: 30, blendTime: 0.25f, duration: 1.5f);
         }
 #endif
 
@@ -569,7 +1025,7 @@ namespace ACTGameEditor
             Cursor.lockState = CursorLockMode.None;
         }
 
-        // 切换状态的核心方法
+        // 切换状态的核心方法。Stage A 起 CurrentCameraState 应保持 FreeLook（LockOn 只作混合源）。
         public void SwitchState(CameraState newState)
         {
             CameraState oldState = null;

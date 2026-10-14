@@ -122,7 +122,7 @@ namespace XiaoCao
             RefreshSwitchViewCooldowns();
         }
 
-        /// <summary> 每帧刷新小队换人按钮与调试切镜头冷却。 </summary>
+        /// <summary> 每帧刷新小队换人按钮；非小队单位才显示调试切镜头冷却。 </summary>
         private void RefreshSwitchViewCooldowns()
         {
             if (_switchViewButtonDic.Count == 0 && _switchViewCooldownDic.Count == 0) return;
@@ -166,10 +166,10 @@ namespace XiaoCao
         static string FormatSquadLabel(CombatEntity combat)
         {
             if (combat.isTruePlayer)
-                return $"上场 {combat.SquadSlot}";
+                return $"上场 {combat.SquadSlot + 1}";
             if (combat.SquadPresence == SquadPresence.Exiting)
-                return $"退场 {combat.SquadSlot}";
-            return $"候场 {combat.SquadSlot}";
+                return $"退场 {combat.SquadSlot + 1}";
+            return $"候场 {combat.SquadSlot + 1}";
         }
 
         void OnSquadControlChanged(ActPlayer incoming)
@@ -252,6 +252,7 @@ namespace XiaoCao
             uiBarDic.Add(netId, newUIBar);
             if (TryGetHp(item, out int hp, out int maxHp))
                 newUIBar.SetFillValue(hp, maxHp);
+            ApplyVibrationHud(newUIBar, item.Combat);
             ApplyHarmonyHud(newUIBar, item.Combat, ResolveHarmonyViewer(out int spawnBreakSkillId), spawnBreakSkillId);
             newUIBar.OnUpdate();
 
@@ -280,6 +281,22 @@ namespace XiaoCao
             hp = (int)combat.CurrentVital.GetVitalValue(AttributeType.HealthPoint);
             maxHp = Mathf.Max(1, (int)attr.HealthPointMax.Value);
             return true;
+        }
+
+        /// <summary>血条下共振度：Intact 白 / Immobilized 黄；Recover、杂兵、玩家不画。</summary>
+        static void ApplyVibrationHud(UIBar bar, CombatEntity target)
+        {
+            if (bar == null)
+                return;
+
+            CombatVibrationComponent vibration = target != null ? target.Vibration : null;
+            if (vibration == null || !vibration.ShowVibrationHud)
+            {
+                bar.SetVibrationFill(0f, false, false);
+                return;
+            }
+
+            bar.SetVibrationFill(vibration.DisplayRatio, true, vibration.IsYellowBar);
         }
 
         /// <summary>血条下偏谐：Ready 且 Kit 有破坏技时提示 F，不提示 Q/E。超距仍显示 F，范围内脉冲更强。</summary>
@@ -416,6 +433,7 @@ namespace XiaoCao
                     bar.SetTarget(follow);
                 if (TryGetHp(item, out int hp, out int maxHp))
                     bar.SetFillValue(hp, maxHp);
+                ApplyVibrationHud(bar, item.Combat);
                 ApplyHarmonyHud(bar, item.Combat, viewer, breakSkillId);
                 bar.OnUpdate();
             }
@@ -631,6 +649,7 @@ namespace XiaoCao
                 return;
 
             bar.SetTarget(null);
+            bar.SetVibrationFill(0f, false, false);
             bar.SetHarmonyFill(0f, false, DazePhase.Idle, false, false);
             bar.gameObject.SetActive(false);
         }

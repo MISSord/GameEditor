@@ -155,6 +155,37 @@ namespace EGamePlay
             return row;
         }
 
+        /// <summary>怪物身份。缺 Id 返回 null，不回退第一行。</summary>
+        public MonsterSetting GetMonsterOrNull(int monsterId)
+        {
+            if (monsterId <= 0)
+                return null;
+            MonsterSetting row = CurrentTable.MonsterReader.GetOrDefault(monsterId);
+            if (row == null || row.MonsterId != monsterId)
+                return null;
+            return row;
+        }
+
+        /// <summary>共振度行。缺 Id 返回 null，禁止回退第一行。</summary>
+        public VibrationSetting GetVibrationSettingOrNull(int monsterId)
+        {
+            if (monsterId <= 0)
+                return null;
+            VibrationSetting row = CurrentTable.VibrationSettingReader.GetOrDefault(monsterId);
+            if (row == null || row.MonsterId != monsterId)
+                return null;
+            return row;
+        }
+
+        /// <summary>削韧全局行（Id=1）。缺表返回 null，不回退代码常量。</summary>
+        public VibrationRule GetVibrationRuleOrNull()
+        {
+            VibrationRule row = CurrentTable.VibrationRuleReader.GetOrDefault(1);
+            if (row == null || row.Id != 1)
+                return null;
+            return row;
+        }
+
         /// <summary>获取技能某一段伤害配置；未找到则返回 null。</summary>
         public SkillDamageSetting GetSkillDamageSetting(int skillId, int segmentIndex)
         {
@@ -313,7 +344,6 @@ namespace EGamePlay
                         AddOwnedSkillId(outIds, extra[i]);
                 }
 
-                AddOwnedSkillId(outIds, kit.ChainSkillId);
                 AddOwnedSkillId(outIds, kit.HarmonyBreakSkillId);
                 AddOwnedSkillId(outIds, kit.QuickAssistSkillId);
                 AddOwnedSkillId(outIds, kit.DefensiveAssistSkillId);

@@ -19,6 +19,7 @@ namespace ACTGameEditor
         private InputAction _sprintAction;
         private InputAction _switch1Action;
         private InputAction _switch2Action;
+        private InputAction _switch3Action;
         private InputAction _executeAction;
         int _sampledFrame = -1;
         PlayerInputSnapshot _snapshot;
@@ -62,16 +63,10 @@ namespace ACTGameEditor
                 ?? map.FindAction(InputListernType.ButtonZ.ToString());
             _switch2Action = map.FindAction(InputListernType.Switch2.ToString())
                 ?? map.FindAction(InputListernType.ButtonZ2.ToString());
-            if (_switch1Action != null)
-            {
-                _switch1Action.performed += OnSwitch1Perform;
-                _switch1Action.Enable();
-            }
-            if (_switch2Action != null)
-            {
-                _switch2Action.performed += OnSwitch2Perform;
-                _switch2Action.Enable();
-            }
+            _switch3Action = map.FindAction(InputListernType.Switch3.ToString());
+            BindSwitchPerformed(_switch1Action, OnSwitch1Perform);
+            BindSwitchPerformed(_switch2Action, OnSwitch2Perform);
+            BindSwitchPerformed(_switch3Action, OnSwitch3Perform);
 
             _executeAction = map.FindAction(InputListernType.Execute.ToString());
             if (_executeAction != null)
@@ -81,6 +76,14 @@ namespace ACTGameEditor
             }
 
             _joyStick = SimpleJoyStick.Instance;
+        }
+
+        static void BindSwitchPerformed(InputAction action, System.Action<InputAction.CallbackContext> performed)
+        {
+            if (action == null)
+                return;
+            action.performed += performed;
+            action.Enable();
         }
 
         static void BindCombatButton(
@@ -145,14 +148,15 @@ namespace ACTGameEditor
             PollSwitchFallback();
         }
 
-        void OnSwitch1Perform(InputAction.CallbackContext context)
-        {
-            CombatSquad.Instance?.TrySwitchRelative(1);
-        }
+        void OnSwitch1Perform(InputAction.CallbackContext context) => TrySwitchSlot(0);
 
-        void OnSwitch2Perform(InputAction.CallbackContext context)
+        void OnSwitch2Perform(InputAction.CallbackContext context) => TrySwitchSlot(1);
+
+        void OnSwitch3Perform(InputAction.CallbackContext context) => TrySwitchSlot(2);
+
+        static void TrySwitchSlot(int slot)
         {
-            CombatSquad.Instance?.TrySwitchRelative(2);
+            CombatSquad.Instance?.TrySwitchTo(slot);
         }
 
         void OnExecutePerform(InputAction.CallbackContext context)
@@ -168,18 +172,31 @@ namespace ACTGameEditor
             CombatHarmonyBreak.TryExecute(player.Combat);
         }
 
-        /// <summary>InputAction 未配到 Q/E 时的键盘兜底，不进技能槽。</summary>
+        /// <summary>InputAction 未配到 1/2/3 时的键盘兜底，不进技能槽。</summary>
         void PollSwitchFallback()
         {
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null)
                 return;
-            if (_switch1Action == null && keyboard.qKey.wasPressedThisFrame)
-                CombatSquad.Instance?.TrySwitchRelative(1);
-            if (_switch2Action == null && keyboard.eKey.wasPressedThisFrame)
-                CombatSquad.Instance?.TrySwitchRelative(2);
+            if (_switch1Action == null && WasDigitPressed(keyboard, 1))
+                TrySwitchSlot(0);
+            if (_switch2Action == null && WasDigitPressed(keyboard, 2))
+                TrySwitchSlot(1);
+            if (_switch3Action == null && WasDigitPressed(keyboard, 3))
+                TrySwitchSlot(2);
             if (_executeAction == null && keyboard.fKey.wasPressedThisFrame)
                 TryExecuteHarmonyBreak();
+        }
+
+        static bool WasDigitPressed(Keyboard keyboard, int digit)
+        {
+            return digit switch
+            {
+                1 => keyboard.digit1Key.wasPressedThisFrame || keyboard.numpad1Key.wasPressedThisFrame,
+                2 => keyboard.digit2Key.wasPressedThisFrame || keyboard.numpad2Key.wasPressedThisFrame,
+                3 => keyboard.digit3Key.wasPressedThisFrame || keyboard.numpad3Key.wasPressedThisFrame,
+                _ => false,
+            };
         }
 
         /// <summary>键盘 / 屏上技能钮共用：写入当前玩家预输入。</summary>

@@ -136,6 +136,15 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
+                    ""name"": ""Switch3"",
+                    ""type"": ""Button"",
+                    ""id"": ""07b8c9d0-e1f2-4a3b-9c4d-5e6f708192a3"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
                     ""name"": ""Execute"",
                     ""type"": ""Button"",
                     ""id"": ""a7c8d9e0-f1a2-4b3c-8d4e-5f60718293b4"",
@@ -369,7 +378,7 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""a3c4d5e6-f708-4192-ac13-d4e5f6071829"",
-                    ""path"": ""<Keyboard>/q"",
+                    ""path"": ""<Keyboard>/1"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Mouse and Keyboard"",
@@ -379,12 +388,89 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
                 },
                 {
                     ""name"": """",
+                    ""id"": ""d1e2f3a4-b5c6-4789-8d0e-1f2a3b4c5d6e"",
+                    ""path"": ""<Keyboard>/numpad1"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""Switch1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e2f3a4b5-c6d7-4890-9e1f-2a3b4c5d6e7f"",
+                    ""path"": ""<Gamepad>/dpad/left"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Switch1"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
                     ""id"": ""b4d5e6f7-0819-42a3-bd24-e5f60718293a"",
-                    ""path"": ""<Keyboard>/e"",
+                    ""path"": ""<Keyboard>/2"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": ""Mouse and Keyboard"",
                     ""action"": ""Switch2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""f3a4b5c6-d7e8-4901-af20-3b4c5d6e7f80"",
+                    ""path"": ""<Keyboard>/numpad2"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""Switch2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""04b5c6d7-e8f9-4012-b031-4c5d6e7f8091"",
+                    ""path"": ""<Gamepad>/dpad/up"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Switch2"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""15c6d7e8-f90a-4123-c142-5d6e7f8091a2"",
+                    ""path"": ""<Keyboard>/3"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""Switch3"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""26d7e8f9-0a1b-4234-d253-6e7f8091a2b3"",
+                    ""path"": ""<Keyboard>/numpad3"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Mouse and Keyboard"",
+                    ""action"": ""Switch3"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""37e8f90a-1b2c-4345-e364-7f8091a2b3c4"",
+                    ""path"": ""<Gamepad>/dpad/right"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Gamepad"",
+                    ""action"": ""Switch3"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -440,6 +526,7 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         m_ACTPlayer_Sprint = m_ACTPlayer.FindAction("Sprint", throwIfNotFound: true);
         m_ACTPlayer_Switch1 = m_ACTPlayer.FindAction("Switch1", throwIfNotFound: true);
         m_ACTPlayer_Switch2 = m_ACTPlayer.FindAction("Switch2", throwIfNotFound: true);
+        m_ACTPlayer_Switch3 = m_ACTPlayer.FindAction("Switch3", throwIfNotFound: true);
         m_ACTPlayer_Execute = m_ACTPlayer.FindAction("Execute", throwIfNotFound: true);
     }
 
@@ -514,6 +601,7 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_ACTPlayer_Sprint;
     private readonly InputAction m_ACTPlayer_Switch1;
     private readonly InputAction m_ACTPlayer_Switch2;
+    private readonly InputAction m_ACTPlayer_Switch3;
     private readonly InputAction m_ACTPlayer_Execute;
     public struct ACTPlayerActions
     {
@@ -531,6 +619,7 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         public InputAction @Sprint => m_Wrapper.m_ACTPlayer_Sprint;
         public InputAction @Switch1 => m_Wrapper.m_ACTPlayer_Switch1;
         public InputAction @Switch2 => m_Wrapper.m_ACTPlayer_Switch2;
+        public InputAction @Switch3 => m_Wrapper.m_ACTPlayer_Switch3;
         public InputAction @Execute => m_Wrapper.m_ACTPlayer_Execute;
         public InputActionMap Get() { return m_Wrapper.m_ACTPlayer; }
         public void Enable() { Get().Enable(); }
@@ -577,6 +666,9 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
             @Switch2.started += instance.OnSwitch2;
             @Switch2.performed += instance.OnSwitch2;
             @Switch2.canceled += instance.OnSwitch2;
+            @Switch3.started += instance.OnSwitch3;
+            @Switch3.performed += instance.OnSwitch3;
+            @Switch3.canceled += instance.OnSwitch3;
             @Execute.started += instance.OnExecute;
             @Execute.performed += instance.OnExecute;
             @Execute.canceled += instance.OnExecute;
@@ -620,6 +712,9 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
             @Switch2.started -= instance.OnSwitch2;
             @Switch2.performed -= instance.OnSwitch2;
             @Switch2.canceled -= instance.OnSwitch2;
+            @Switch3.started -= instance.OnSwitch3;
+            @Switch3.performed -= instance.OnSwitch3;
+            @Switch3.canceled -= instance.OnSwitch3;
             @Execute.started -= instance.OnExecute;
             @Execute.performed -= instance.OnExecute;
             @Execute.canceled -= instance.OnExecute;
@@ -672,6 +767,7 @@ public partial class @RPGFREEInputActions: IInputActionCollection2, IDisposable
         void OnSprint(InputAction.CallbackContext context);
         void OnSwitch1(InputAction.CallbackContext context);
         void OnSwitch2(InputAction.CallbackContext context);
+        void OnSwitch3(InputAction.CallbackContext context);
         void OnExecute(InputAction.CallbackContext context);
     }
 }

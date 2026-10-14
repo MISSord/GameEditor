@@ -21,6 +21,9 @@ namespace EGamePlay.Unity
         /// <summary>角色配置 ID，用于从 RoleAttriSetting 表读取属性。</summary>
         public int CharacterId;
 
+        /// <summary>怪物表主键。玩家为 0；敌人对应 MonsterSetting.MonsterId。</summary>
+        public int MonsterId;
+
         /// <summary>角色等级，用于属性计算：基础值 + 等级 * 增长值。</summary>
         public int Level;
 

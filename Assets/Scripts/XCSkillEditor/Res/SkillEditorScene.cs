@@ -11,8 +11,8 @@ using ACTGameEditor.Combat;
 /// 测试方法一律挂这里，不要污染 CameraManager / MainUIPanel / 渲染控制器等正常逻辑。
 ///
 /// 热键一览：
-///   F2 刷杂兵 / F3 刷精英 / F4 生成测试小队（4 杂兵 + 2 精英）
-///   F6 打满偏谐 Ready / Shift+F6 清空
+///   F2 刷杂兵(101) / F3 刷精英(201) / F4 生成测试小队（4 杂兵 + 2 精英）
+///   F6 打满偏谐 Ready / Shift+F6 清空 / Ctrl+F6 打空最近精英共振度
 ///   F7 技能镜头测试 / F8 震屏测试 / F9 时空断裂 / F10 普攻组等级切换
 ///   数字键 5 显现球 / 6 深度视界 / 7 显现锥 / 8 玩家雾
 /// </summary>
@@ -56,7 +56,7 @@ public class SkillEditorScene : MonoBehaviour
         for (int i = 0; i < gruntAngles.Length; i++)
         {
             Vector3 dir = Quaternion.AngleAxis(gruntAngles[i], Vector3.up) * forward;
-            pm.AddFakePlayer(origin + dir * gruntDistance, true, AgentTag.enemy, AgentModelType.Player);
+            pm.AddFakePlayer(origin + dir * gruntDistance, true, AgentTag.enemy, AgentModelType.Player, MonsterIds.Grunt);
         }
 
         // 精英：两翼稍后一点，体型放大方便观察 Special / 假前摇
@@ -64,7 +64,7 @@ public class SkillEditorScene : MonoBehaviour
         for (int i = 0; i < eliteAngles.Length; i++)
         {
             Vector3 dir = Quaternion.AngleAxis(eliteAngles[i], Vector3.up) * forward;
-            ActPlayer elite = pm.AddFakePlayer(origin + dir * (gruntDistance + 1.5f), true, AgentTag.enemy, AgentModelType.Player);
+            ActPlayer elite = pm.AddFakePlayer(origin + dir * (gruntDistance + 1.5f), true, AgentTag.enemy, AgentModelType.Player, MonsterIds.Elite);
             if (elite != null)
                 elite.transform.localScale = Vector3.one * eliteScale;
         }
@@ -100,11 +100,6 @@ public class SkillEditorScene : MonoBehaviour
     [Button("最近敌人打满偏谐")]
     public void DebugFillNearestEnemyDaze()
     {
-        if (!CombatMeterComponent.HarmonyBreakEnabled)
-        {
-            Debug.Log("[Harmony] 偏谐未开启，见 Docs/ActHarmonyBreakDesign.md");
-            return;
-        }
         CombatMeterComponent meter = FindNearestEnemyMeter();
         if (meter == null)
         {
@@ -123,6 +118,19 @@ public class SkillEditorScene : MonoBehaviour
             return;
         meter.DebugClear();
         Debug.Log("[Harmony] 已清空");
+    }
+
+    [Button("最近敌人打空共振度")]
+    public void DebugBreakNearestEnemyVibration()
+    {
+        CombatVibrationComponent vibration = FindNearestEnemyVibration();
+        if (vibration == null)
+        {
+            Debug.Log("[Vibration] 场上没有可破韧的敌人（F3=201）");
+            return;
+        }
+        vibration.DebugBreak();
+        Debug.Log($"[Vibration] 破韧 {vibration.Phase}");
     }
 
     static CombatMeterComponent FindNearestEnemyMeter()
@@ -150,6 +158,31 @@ public class SkillEditorScene : MonoBehaviour
         return best;
     }
 
+    static CombatVibrationComponent FindNearestEnemyVibration()
+    {
+        PlayerManager pm = PlayerManager.Instance;
+        if (pm == null || pm.LocalPlayer == null)
+            return null;
+        Vector3 origin = pm.LocalPlayer.transform.position;
+        CombatVibrationComponent best = null;
+        float bestSq = float.MaxValue;
+        foreach (var kv in pm.MonoAttackerDic)
+        {
+            ActPlayer p = kv.Value;
+            if (p == null || p.Agent != AgentTag.enemy || p.Combat == null)
+                continue;
+            CombatVibrationComponent vibration = p.Combat.Vibration;
+            if (vibration == null || !vibration.IsConfigured)
+                continue;
+            float sq = (p.transform.position - origin).sqrMagnitude;
+            if (sq >= bestSq)
+                continue;
+            bestSq = sq;
+            best = vibration;
+        }
+        return best;
+    }
+
     void Update()
     {
         TickDebugHotkeys();
@@ -171,13 +204,16 @@ public class SkillEditorScene : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.F6))
         {
-            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+                DebugBreakNearestEnemyVibration();
+            else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
                 DebugClearNearestEnemyDaze();
             else
                 DebugFillNearestEnemyDaze();
         }
 
         // ── 战斗表现调试 ──
+        // F7：循环 HeroThreeQuarter / OverShoulder / CloseImpact，1.5s 后还镜
         if (Input.GetKeyDown(KeyCode.F7))
             CameraManager.Instance?.DebugPlaySkillCamIntent();
         else if (Input.GetKeyDown(KeyCode.F8))
@@ -207,12 +243,23 @@ public class SkillEditorScene : MonoBehaviour
 
     void OnGUI()
     {
+        float y = 12f;
         CombatMeterComponent meter = FindNearestEnemyMeter();
-        if (meter == null || !meter.ShowHarmonyHud)
+        if (meter != null && meter.ShowHarmonyHud)
+        {
+            GUI.Label(
+                new Rect(12f, y, 560f, 24f),
+                $"[Harmony] {meter.Phase}  {meter.CurrentRatio * 100f:0}%{(meter.IsHarmonyReady ? "  按F" : "")}");
+            y += 22f;
+        }
+
+        CombatVibrationComponent vibration = FindNearestEnemyVibration();
+        if (vibration == null || !vibration.ShowVibrationHud)
             return;
+        string bar = vibration.IsYellowBar ? "黄" : "白";
         GUI.Label(
-            new Rect(12f, 12f, 560f, 24f),
-            $"[Harmony] {meter.Phase}  {meter.CurrentRatio * 100f:0}%{(meter.IsHarmonyReady ? "  按F" : "")}");
+            new Rect(12f, y, 560f, 24f),
+            $"[Vibration] {vibration.Phase}  {bar} {vibration.DisplayRatio * 100f:0}%");
     }
 }
 #endif

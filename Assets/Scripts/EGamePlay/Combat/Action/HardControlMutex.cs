@@ -4,7 +4,7 @@ using EGamePlay;
 namespace EGamePlay.Combat
 {
     /// <summary>
-    /// 硬控互斥：问 <see cref="CombatTags.BuffMoveForbid"/>，不问技能名。
+    /// 硬控互斥：问 <see cref="CombatTags.StateMoveForbid"/>，不问技能名。
     /// 新硬控 Priority 不低于已有则卸旧（<see cref="BuffRemoveReason.Replaced"/>）；更低则本次不落地。
     /// 沉默只有 SkillForbid，不进本组。
     /// </summary>
@@ -64,13 +64,14 @@ namespace EGamePlay.Combat
         }
 
         /// <summary>
-        /// 是否硬控：表 BuffTag 或 PlayerControll 修饰带 <see cref="CombatTags.BuffMoveForbid"/>。
+        /// 是否硬控：GrantedTags（或误配的 BuffTag）或 PlayerControll 带 <see cref="CombatTags.StateMoveForbid"/>。
         /// </summary>
         public static bool IsHardControl(BuffDemoSetting setting)
         {
             if (setting == null)
                 return false;
-            if (ContainsMoveForbid(setting.BuffTag))
+            if (setting.HasGrantedTagOnSheet(CombatTags.StateMoveForbid)
+                || setting.HasAssetTag(CombatTags.StateMoveForbid))
                 return true;
 
             List<int> mods = setting.BuffModifyList;
@@ -99,7 +100,7 @@ namespace EGamePlay.Combat
                 return false;
             for (int i = 0; i < tags.Count; i++)
             {
-                if (tags[i] == CombatTags.BuffMoveForbid)
+                if (tags[i] == CombatTags.StateMoveForbid)
                     return true;
             }
 

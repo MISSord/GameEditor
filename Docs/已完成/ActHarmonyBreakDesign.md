@@ -1,6 +1,6 @@
 # 偏谐条与谐度破坏（对照鸣潮 3.0）
 
-> 状态：**步骤 1–4 已接运行时**（攒条 / Ready / F 出 Kit 破坏技 / 真空锁零 / 普攻连招记忆 / 处决镜头与正式 HUD）。绝区零失衡硬直 / 连携窗仍屏蔽。14001 轴仍是占位，需 Flux 换处决动画。
+> 状态：**步骤 1–4 已接运行时**（攒条 / Ready / F 出 Kit 破坏技 / 真空锁零 / 普攻连招记忆 / 处决镜头与正式 HUD）。绝区零失衡硬直 / 连携窗 **运行时已删除**。14001 轴仍是占位，需 Flux 换处决动画。
 > 关联：`ActCombatRoadmap.md`（§一指向本文）、`ActSquadDesign.md`（Z 不再因条满走 Chain）、`ActSkillKitConfig.md`（键位）、`ProjectConventions.md`。
 > 数字仍走 Excel 再导出。技能轴走 Flux 预制体。禁止手改 json / `SkillDataScriptable`。
 
@@ -10,7 +10,7 @@
 
 敌人一条计量，打满只表示 **场上角色可以按 F 打谐度破坏**。怪不硬直、不换人、不拆普攻连段。F 结束后条 **锁在 0** 一段时间。
 
-绝区零那套「满条跪下 + 窗内 Q/E 连携」先不做，代码用总开关关掉。
+绝区零那套「满条跪下 + 窗内 Q/E 连携」**运行时已删除**（不再用开关屏蔽）。
 
 ---
 
@@ -40,7 +40,7 @@
 - 不按 F，战斗照常
 - F 插进普攻连段，结束后继续下一段，不回到 1
 
-两套高潮不要并存。失衡先 **屏蔽**（不删表、不删组件），偏谐另开落地，不要把 `DazeGameplayEnabled` 扳回 true 来「临时玩连携」。
+两套高潮不要并存。失衡硬直 / 连携窗 **运行时已删除**（`CombatChainSkill`、`BeginDazeStagger`、导演 Punish、计量 Opened/Draining/Recover 已去掉）。表名 `DazeSetting` / `DazeRatio` 继续当偏谐数字。不要把连携代码加回来。
 
 ---
 
@@ -73,7 +73,7 @@
 |---|---|
 | 协奏满切人变奏 | 小队文档已否「能量条满才能延奏」；F **不换人** |
 | 共鸣回路 / Empowered | 角色 Vital，走槽位 `EmpoweredSkillId`，不是敌人条 |
-| 绝区零失衡连携 | 满条硬直 + 候场 Z 轮转。**已屏蔽** |
+| 绝区零失衡连携 | 满条硬直 + 候场 Z 轮转。**运行时已删除** |
 | 喧响 / 终结技 | 仍是 Ultimate 槽（A）。F 不产喧响；以后若要「高光涨条」，来源改绑这次 F，不绑连携 |
 | 震谐 / 集谐 / 偏移 / 干涉 | 3.0 角色后置，禁止 `if (琳奈)` / `if (角色名)` |
 
@@ -101,7 +101,7 @@
 
 ## 六、和现有代码怎么接
 
-计量继续挂 `CombatMeterComponent`（不是 TimeBuff、不进 `IdStatuses`）。**改相位语义**，不要再开第二条条。异常积蓄（路线图 §二）仍复用同一组件的多槽 Meter，不要第三套。
+计量继续挂 `CombatMeterComponent`（不是 TimeBuff、不进 `IdStatuses`）。**改相位语义**，不要再开第二条条。鸣潮异常走 Buff 叠层，不要给本组件再开元素积蓄槽（见 `ActBuffLearningBacklog.md`）。
 
 ### 6.1 建议相位
 
@@ -112,11 +112,9 @@
 | `Executing` | 正在播破坏技。可暂停真空计时，避免 F 播到一半进入真空 |
 | `Vacuum` | `Current = 0`，拒绝一切 `AddDaze`。到期 → Idle |
 
-**不要**再走现在的：
+**不要**再走已删除的：`Opened` → `BeginDazeStagger` → 导演 Punish → `IsChainWindow` → Z `SwitchReason.Chain`。
 
-`Opened` → `BeginDazeStagger` → 导演 `NotifyBreakMeterOpened`（Punish）→ `IsChainWindow` → Z `SwitchReason.Chain`
-
-招架成功仍可给这条计量加值（当偏谐贡献）。`HarmonyBreakEnabled` 打开后 `AddDaze` 会涨条；满了进 Ready，不会 `Open()` / Stagger。
+招架成功仍可给这条计量加值（当偏谐贡献）。`AddDaze` 涨条；满了进 Ready，不会 Open / Stagger。
 
 ### 6.2 伤害
 
@@ -132,7 +130,7 @@
 
 ### 6.4 距离与失败
 
-破坏技需要目标在范围内（可复用现 `CombatChainSkill.MaxRange` 量级，落地时再定）。超距 / Kit 空列 / Gate 拒绝 = 这次 F 失败，条仍停在 Ready，不要误清条、不要换人。
+破坏技需要目标在范围内（`CombatHarmonyBreak.MaxRange` = 14m）。超距 / Kit 空列 / Gate 拒绝 = 这次 F 失败，条仍停在 Ready，不要误清条、不要换人。
 
 ---
 
@@ -200,33 +198,30 @@ Executing 期间不要提前进真空，避免 F 自己的段还在打却已经�
 
 ---
 
-## 十一、绝区零失衡：移除范围（运行时已屏蔽）
+## 十一、绝区零失衡：运行时已删除
 
-先 **屏蔽** 失衡硬直，不删表、不删组件。偏谐步骤 1 已用同一组件攒条进 Ready。
+原先对照绝区零做了满条 Stagger + 导演 Punish + 窗内 Z 打 `ChainSkillId`。偏谐落地后这套 **从运行时拿掉**，不是再挂一个 `DazeGameplayEnabled=false`。
 
-总开关：`CombatMeterComponent.DazeGameplayEnabled = false`（失衡）。  
-偏谐开关：`CombatMeterComponent.HarmonyBreakEnabled = true`（步骤 1）。两套不要同时为 true。
+已删除：`CombatChainSkill`、`BeginDazeStagger` / `EndDazeStagger`、导演 `NotifyBreakMeterOpened/Closed` 与 `EncounterTempo.Punish`、计量相位 Opened / Draining / Recover、连携次数 / 易伤 / 起身无敌 Tag 推送、Q/E `SwitchReason.Chain` 推断。角色不再 `AttachAbility(ChainSkillId)`。
 
-### 11.1 失衡关掉之后不应再发生
+### 11.1 现在不应再发生
 
-- `Open()` → `BeginDazeStagger` / 易伤 / 起身 Tag
-- 导演 Punish（`NotifyBreakMeterOpened`）
-- `IsChainWindow` 为真；Q/E `SwitchReason.Chain`；`CombatChainSkill` 换入 13001
-- 血条下旧失衡黄条语义（现条是偏谐，满条提示 F 而不是 Q/E）
+- 满条跪下、导演停发牌（Punish）
+- Q/E 因条满打 13001
+- 血条下旧失衡黄条语义（现条是偏谐，满条提示 F）
 
 命中 / 招架 `AddDaze` **会**涨偏谐条。F6 打满进 Ready，不破衡。
 
 ### 11.2 不要动（不是这套玩法）
 
 - 段表 `HitReaction` 轻重（受击表现，不是失衡窗）
-- `CombatStateDirector` 的 Stagger 槽位本身（硬控仍可写 Control）
-- `DazeSetting.xlsx` / `SkillDamage.DazeRatio` / `ParryDazeRatio`（偏谐落地会改用这些数字）
-- `Kit.ChainSkillId` 列（表保留，Z 不再因失衡读它）
+- `CombatStateDirector` 的 Stagger 槽位本身（硬控仍可写 Control；偏谐不再写入）
+- `DazeSetting.xlsx` / `SkillDamage.DazeRatio` / `ParryDazeRatio`（当偏谐数字；Hold/Duration/Vuln/ChainCount/RecoverIFrame 运行时已不读）
+- `Kit.ChainSkillId` 列与 `SkillCategory.Chain`（表保留，运行时不读、不挂技能）
 - 黄闪招架、红闪回避、支援窗、手动换人
+- 表现包 `ChainAttack=402` 的枚举值（避免 Id 腾挪）
 
-### 11.3 打开偏谐时
-
-步骤 1 已把攒条改成 Ready 相位机。继续落地 F / 真空时 **不要** 把 `DazeGameplayEnabled` 设回 true。两套高潮不要并存。
+不要把连携 / Punish / 满条 Stagger 加回来。
 
 ---
 
@@ -234,7 +229,7 @@ Executing 期间不要提前进真空，避免 F 自己的段还在打却已经�
 
 | 步 | 内容 | 验收 |
 |---|---|---|
-| 0 | 屏蔽失衡（已做） | 砍满不跪、Q/E 不再因条满连携 |
+| 0 | 删除失衡运行时（已做） | 砍满不跪、Q/E 不再因条满连携 |
 | 1 | Ready 相位 + UI 提示 F，怪仍行动 | **已接** |
 | 2 | 情境键 F + Kit 破坏技 + 真空锁零 | **已接**：范围内 F 出 `HarmonyBreakSkillId`；0 失败；结束后锁 0 |
 | 3 | 连招记忆 | **已接**：F 入队前快照下一发；结束后 Attack×Click 续段；闪避/受击/硬控/换人/死亡清记忆 |
@@ -247,9 +242,9 @@ Executing 期间不要提前进真空，避免 F 自己的段还在打却已经�
 
 - 用 A / B / Z 冒充 F
 - 满条进 Stagger 冒充失谐
+- 把已删除的失衡连携 / Punish 加回来
 - Kit 判断方法列、`if (角色名)`
 - 手改 json / `SkillDataScriptable`
-- 偏谐未接 F 出招时不要把 `DazeGameplayEnabled` 改回 true
 - 第五根钟、把表现写进 `DamageAction`
 - 把破坏技配进 `CharacterSlot` 当第 5 战斗键
 
@@ -257,4 +252,4 @@ Executing 期间不要提前进真空，避免 F 自己的段还在打却已经�
 
 ## 十四、回看
 
-偏谐是 **敌人计量 + 场上 F**，不是换人技。失衡硬直连携已从玩法里拿掉。黄红闪和支援仍走 Q/E。A 仍是终结技。
+偏谐是 **敌人计量 + 场上 F**，不是换人技。失衡硬直连携已从运行时删除。黄红闪和支援仍走 Q/E。A 仍是终结技。

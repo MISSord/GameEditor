@@ -1,15 +1,15 @@
 # ACT 角色技能配置收口（对照绝区零）
 
-> 状态：**阶段 0–4 已接运行时**（表 + 4 键 Click/Hold 互斥 + Kit/Z 窗 + 支援点 + 被动 `PassiveBuffIds` + **任意槽位行 Empowered 预检改写**）。闪避反击的极限闪避 Tag 授予未做。**多档蓄力 / 松手结算只是方案（§十），未落地。绝区零失衡硬直 / Z 连携已屏蔽**，高潮改偏谐见 `ActHarmonyBreakDesign.md`。
-> 关联：`ActSkillConfigAndLeveling.md`（段表与升级）、`ActCharacterKitTemplate.md`（新角色填表）、`ActSquadDesign.md`（换人 Reason；**输入以本文为准**）、`ProjectConventions.md`。
+> 状态：**阶段 0–4 已接运行时**（表 + 4 键 Click/Hold 互斥 + Kit 换人窗 + 被动 `PassiveBuffIds` + **任意槽位行 Empowered 预检改写**）。闪避反击的极限闪避 Tag 授予未做。**多档蓄力 / 松手结算只是方案（§十），未落地。绝区零失衡硬直 / Z 连携已屏蔽**，高潮改偏谐见 `ActHarmonyBreakDesign.md`。**绝区零支援点已删**（切人无次数、无 CD）。
+> 关联：`ActSkillConfigAndLeveling.md`（段表与升级）、`ActCharacterKitTemplate.md`（新角色填表）、`ActSquadDesign.md`（换人 Reason **与换人键 1/2/3**）、`ProjectConventions.md`。**4 战斗键以本文为准**；换人键以小队 §八为准。
 > 养成 UI、命座、驱动盘不在本文。敌人招池仍走 12000 号段 + AI，不进玩家 `CharacterSlot`。
 
 ---
 
 ## 〇、一句话
 
-当前角色只有 **4 个战斗键**（每键 Click / Hold 互斥），加上候场 **2 个 Z 键**。  
-招式包按「角色 × 键 × 按法」进 Luban；Z 触发的招架 / 支援写在 `CharacterKit` 列，**不进** `CharacterSlot`。连携已屏蔽；场上 F 谐度破坏见 `ActHarmonyBreakDesign.md`。  
+当前角色只有 **4 个战斗键**（每键 Click / Hold 互斥），加上小队 **1 / 2 / 3** 绝对槽换人。  
+招式包按「角色 × 键 × 按法」进 Luban；换人触发的招架 / 支援写在 `CharacterKit` 列，**不进** `CharacterSlot`。连携已屏蔽；场上 F 谐度破坏见 `ActHarmonyBreakDesign.md`。  
 **空就是没有**：缺行、SkillId=0、Kit 列=0 都不回退系统默认。
 
 ---
@@ -19,8 +19,8 @@
 | 项 | 结论 |
 |---|---|
 | 战斗键 | **Attack=ButtonX，Dodge=ButtonY，Ultimate=ButtonA，Skill=ButtonB** |
-| 特殊键 Z | **Switch1 / Switch2（Q/E）即 ButtonZ / ButtonZ2**：两人候场肖像。无窗=Manual 换人；黄闪=防御支援；红闪=回避支援；支援窗=快速支援。~~失衡窗=连携~~ **已屏蔽** |
-| 招架 | **不是面键，不是场上按 L。** 黄闪按某个 Z = 换入该角色并打 `DefensiveAssistSkillId` |
+| 特殊键 换人 | **Switch1 / 2 / 3 = 槽 0 / 1 / 2**（键盘 1/2/3）。无窗=Manual；黄闪=防御支援；红闪=回避支援；支援窗=快速支援。~~失衡窗=连携~~ **已屏蔽**。细则 `ActSquadDesign.md` §八 |
+| 招架 | **不是面键，不是场上按 L。** 黄闪按要换入角色的 1/2/3 = 换入并打 `DefensiveAssistSkillId` |
 | 连携 | **已屏蔽。** 原「失衡窗 Z = `ChainSkillId`」不再触发 |
 | 谐度破坏 | 场上 **F**，读 Kit `HarmonyBreakSkillId`。空列这次失败，不换人、不回退 13001 |
 | 槽表主键 | `(CharacterId, Button, Press, FormId, Priority)`。Button **仅** 4 战斗键 |
@@ -30,17 +30,17 @@
 | 键位硬件 | 全角色同一套 InputProfile。不按角色拆键位表 |
 | 被动 | `SkillDemo.PassiveBuffIds` + Kit 点名。映射 SO 已删 |
 | 空配置 | 不读 CharacterId=0 系统行；不回退 `const 11005 / 13001`；不把空的 B/A 绑去普攻；红闪空列不复用闪避轴 |
-| 单人调试 | **不降级。** 没有合法候场时 Z 失败，不改成场上自己招架 / 连携 |
+| 单人调试 | **不降级。** 没有合法候场时 1/2/3 失败，不改成场上自己招架 / 连携 |
 
 取消的旧方案：B=招架、A=连携、场上 L 自己招架、空键回退系统默认、Ultimate×Click + ChainWindow 改写连携。
 
-与 `ActSquadDesign` 冲突时，**输入键位以本文为准**；小队 Reason 优先级不变：
+与 `ActSquadDesign` 冲突时，**4 战斗键以本文为准**；换人键以小队 §八为准。Reason 优先级不变：
 
 `黄闪 DefensiveAssist > 红闪 EvasiveAssist > 支援窗 QuickAssist > Manual`
 
 （原「失衡 Chain」一档已屏蔽，运行时不会再走到。）
 
-没支援点时黄 / 红 Z **整次失败**（不降级 Manual）。点数挂小队实体，开战灌满，惰性回复。
+切人 **无次数、无冷却**。黄 / 红只问来刀窗 + Kit 列（空列整次失败，不降级 Manual）。
 
 ---
 
@@ -54,12 +54,13 @@
 | Dodge | ButtonY | K / 南 | 闪避 |
 | Ultimate | ButtonA | I / 北 | **只出终结技**。现役 CharacterId=1 无行则空 |
 | Skill | ButtonB | L / 东 | **战技 / EX**。现役无行则空 |
-| Assist1 | Switch1（即 Z） | Q | 候场相对 +1 |
-| Assist2 | Switch2（即 Z2） | E | 候场相对 +2 |
+| AssistSlot0 | Switch1 | 1 | 绝对槽 0 |
+| AssistSlot1 | Switch2 | 2 | 绝对槽 1 |
+| AssistSlot2 | Switch3 | 3 | 绝对槽 2 |
 | Execute | Execute | F | 谐度破坏。情境键，不进 `CharacterSlot`。Kit 列=0 不触发 |
 | Jump | Jump | Space | 不进招式包 |
 
-Z **不进** `InputBuffer` / `SkillResolver`。`ConfigurableInputManager` 调 `CombatSquad.TrySwitchRelative(1|2)`。
+1/2/3 **不进** `InputBuffer` / `SkillResolver`。`ConfigurableInputManager` 调 `CombatSquad.TrySwitchTo(0|1|2)`。Q/E 不再换人。
 
 同一次战斗键按下：当前能匹配到 Hold 行则长按到阈值（玩家钟，默认 0.35s）**入队并吞点按**；提前抬起才点按。无匹配 Hold 行则点按立刻入队，长按**不会**改放 Click 技能。  
 这是阶段 3 的「到点就放」。多档蓄力要改成松手才结算，见 **§十**（未落地）。
@@ -74,8 +75,8 @@ ButtonX / Y / A / B + Click|Hold
       → 完整 Gate          再 Enqueue
       → 轴 InputEvents     技能中连招窗
 
-Switch1 / Switch2（Z）
-  → CombatSquad.TrySwitchTo(候场槽)
+Switch1 / Switch2 / Switch3
+  → CombatSquad.TrySwitchTo(槽 0/1/2)
       → Manual：不 Enqueue
       → 其余：换入者 Kit 列 SkillId → Enqueue
 ```
@@ -117,12 +118,12 @@ Switch1 / Switch2（Z）
 | 特殊技 | Skill×Click（B） | Special |
 | EX | 同行 `EmpoweredSkillId`（不限 Skill×Click） | ExSpecial |
 | 终结技 | Ultimate×Click（A） | Ultimate |
-| 连携技 | ~~Z + 失衡窗 → `Kit.ChainSkillId`~~ **已屏蔽** | Chain |
+| 连携技 | ~~换人 + 失衡窗 → `Kit.ChainSkillId`~~ **已屏蔽** | Chain |
 | 谐度破坏 | 场上 F → `Kit.HarmonyBreakSkillId`（0 不触发） | HarmonyBreak |
 | 核心被动 / 额外能力 | 无键，Kit 点名 | CorePassive / AdditionalAbility |
-| 快速支援 | Z + 支援窗 | QuickAssist |
-| 防御支援（招架） | Z + 黄闪 | DefensiveAssist |
-| 回避支援 | Z + 红闪 | EvasiveAssist |
+| 快速支援 | 1/2/3 + 支援窗 | QuickAssist |
+| 防御支援（招架） | 1/2/3 + 黄闪 | DefensiveAssist |
+| 回避支援 | 1/2/3 + 红闪 | EvasiveAssist |
 | 支援突击 | 招架 / 回避成功后派生 | AssistFollowUp |
 | 敌人主动技 | 不进玩家槽 | EnemyActive |
 
@@ -144,11 +145,11 @@ Switch1 / Switch2（Z）
 | CorePassiveSkillId / AdditionalAbilitySkillId / AdditionalCondition | 被动。第一期 Condition=`None` |
 | ExtraPassiveSkillIds | 列表，替代预制体 ExtraPassive |
 | DefaultFormId | 0=无形态 |
-| ChainSkillId | 表仍保留。Z + 失衡窗 **已屏蔽**，运行时不读 |
+| ChainSkillId | 表仍保留。换人 + 失衡窗 **已屏蔽**，运行时不读 |
 | HarmonyBreakSkillId | 场上 F 谐度破坏。**0=这次 F 失败**，不换人、不回退 13001。角色之间可配不同 SkillId |
-| QuickAssistSkillId | Z + 支援窗。0=该窗失败 |
-| DefensiveAssistSkillId | Z + 黄闪。0=没有招架支援。不要再单列 `ParrySkillId` |
-| EvasiveAssistSkillId | Z + 红闪。0=该窗失败 |
+| QuickAssistSkillId | 换人 + 支援窗。0=该窗失败 |
+| DefensiveAssistSkillId | 换人 + 黄闪。0=没有招架支援。不要再单列 `ParrySkillId` |
+| EvasiveAssistSkillId | 换人 + 红闪。0=该窗失败 |
 | AssistFollowUpSkillId | 招架 / 回避成交后派生。0=无 |
 
 ### 4.2 `CharacterSlot`（同文件）
@@ -192,13 +193,13 @@ Switch1 / Switch2（Z）
 
 不建 Skill / Ultimate / Hold 行。按 B / A 不出招。
 
-`CharacterKit` 把原先绑在 A/B 上的系统技 **显式搬过来**（不写则三人队按 Z 也打不出来）：
+`CharacterKit` 把原先绑在 A/B 上的系统技 **显式搬过来**（不写则三人队按 1/2/3 也打不出来）：
 
 | 列 | 值 | 为什么 |
 |---|---|---|
 | DefensiveAssistSkillId | 11005 | 原 B 招架轴，复用 |
 | ChainSkillId | 13001 | 原 A 连携轴，复用 |
-| 其余 Z / 被动列 | 0 | 没有就不填 |
+| 其余换人 / 被动列 | 0 | 没有就不填 |
 
 11000 / 11005 / 13001 仍是可复用轴，**写进该角色格子才生效**。
 
@@ -209,17 +210,14 @@ Combo 表、每角色键位表、`LongButton*` 配表、场上 Parry 键表、Ch
 
 ### 4.6 `SquadSetting`（`SquadSetting.xlsx`）
 
-主键 `Id=1` 一行全局。支援窗 / 支援点 / 换入 i-frame，不进角色 Kit。
+主键 `Id=1` 一行全局。支援窗 / 换入 i-frame，不进角色 Kit。点数列保留不读。
 
 | 列 | 现役 | 说明 |
 |---|---|---|
-| SwitchLock | 0.3 | 仅 Manual 表现锁（秒），本阶段未接线 |
+| SwitchLock | 0.3 | **先不加切人冷却**，运行时不读 |
 | AssistWindow | 1.2 | 快速支援窗（秒，世界钟） |
-| AssistPointsMax | 3 | 开战灌满 |
-| AssistPointRegenPerSec | 0.12 | 约 8s 回 1 点 |
+| AssistPointsMax / Regen / Cost | — | **运行时已删**，切人无限次 |
 | SwitchIFrame | 0.4 | 红闪换入 `Combat.SwitchIFrame` |
-| AssistPointDefensiveCost | 1 | 黄闪耗点 |
-| AssistPointEvasiveCost | 1 | 红闪耗点；快速支援不耗 |
 
 ---
 
@@ -241,7 +239,7 @@ Combo 表、每角色键位表、`LongButton*` 配表、场上 Parry 键表、Ch
 
 1. 一 SkillId 一行 Demo；主动技另有一份 Flux 轴。数字只在 `SkillDamage`。
 2. `CharacterSlot` 只有 4 个 Button。反击 / 冲刺 / 回路强化普攻用 **Attack 的 Tag 行**；满条改写普攻/蓄力用 **Attack 该按法行的 Empowered**。都不要写进战技行的 Empowered。
-3. Z 响应技只写 Kit 列。
+3. 换人响应技只写 Kit 列。
 4. 不要再写 `ParrySkillId` / 场上招架键。
 5. 不要把连携配在 Ultimate 行。
 6. Combo 不进 Excel。
@@ -260,14 +258,14 @@ Combo 表、每角色键位表、`LongButton*` 配表、场上 Parry 键表、Ch
 
 ```
 4 战斗键 → InputBuffer(SkillSlotId) → CharacterSlot 行 → Empowered 预检 → Gate → Enqueue
-Z/Z2     → TrySwitchTo → Manual 不占轴；否则换入者 Kit 列 Enqueue
+1/2/3    → TrySwitchTo(槽) → Manual 不占轴；否则换入者 Kit 列 Enqueue
 F        → CombatHarmonyBreak.TryExecute → 场上角色 Kit.HarmonyBreakSkillId（0 不触发）
 ```
 
 - `ActPlayer.CharacterId` 必须是表里的 Id（现役预制体 **1**）。0 读不到 Kit / Slot，表现为没招。
 - `SkillSettingMgr.GetSkillDemoSetting` 的「缺 Id 回退表第一行」**禁止**用在 Kit / Slot / 时间轴加载。用 `GetSkillDemoSettingOrNull`。
-- `CombatParry` / `CombatChainSkill` 不再用 `const SkillId` 当默认绑定。识别用 `SkillCategory`；出招 Id 读换入者 Kit 列。
-- 黄闪 / 红闪还问支援点；没点或 Kit 列=0 整次 Z 失败。红闪走 `CombatEvasiveAssist`，不成交招架。快速支援窗由受击 / 轴 `AssistCue` 打开，免 CD、不耗点。
+- `CombatParry` / `CombatHarmonyBreak` 不再用 `const SkillId` 当默认绑定。识别用 `SkillCategory`；出招 Id 读换入者 Kit 列。
+- 黄闪 / 红闪只问来刀窗 + Kit 列；空列整次换人失败，不降级 Manual。切人无次数、无 CD。红闪走 `CombatEvasiveAssist`，不成交招架。快速支援窗由受击 / 轴 `AssistCue` 打开，免技能 CD。
 - 4 战斗键点按 / 长按互斥。Hold 只读 `CharacterSlot` 的 Hold 行（含当前 Form / Tag）；无匹配行则 `ResolveIdle(..., LongPress)` 返回 0 并丢掉该预输入，也不回退 Click。
 - Idle SkillId **提交时**解析（`SkillResolver` + `GetCharacterSlotRow`）。`LoadFromTable` 只收集 Attach 列表（含各行 Empowered）。
 - Empowered 预检：`AbilityActivationGate.PassesEmpoweredPreview`（技能 Tag + `TriggerFormula` + `CanAfford`）。通过打 Empowered，否则打该行 `SkillId`。当选技再走完整 `Evaluate`。
@@ -283,7 +281,7 @@ F        → CombatHarmonyBreak.TryExecute → 场上角色 Kit.HarmonyBreakSkil
 | 阶段 | 内容 | 验收 |
 |---|---|---|
 | **0** | 表头 + CharacterId=1 迁 X/Y；Kit 显式搬 11005/13001；运行时按 CharacterId 读表；B/A 空；Q/E 按窗推断黄闪/连携 | 当时验收含失衡窗 Q/E 打 13001。**失衡连携现已屏蔽**，该项不再作为回归 |
-| **1** | 枚举补 ButtonZ/Z2 别名；红闪 / 快速支援 / 支援点 | 空列失败；没点失败；不降级 Manual。现役 CharacterId=1 的 Quick/Evasive 仍为 0，红闪/支援窗内 Z 失败是预期 |
+| **1** | 枚举补 ButtonZ/Z2 别名；红闪 / 快速支援 | 空列失败；不降级 Manual。支援点已删。现役 CharacterId=1 的 Quick/Evasive 仍为 0，红闪/支援窗内换人失败是预期 |
 | **2** | 被动改读 `PassiveBuffIds` | 已删 `PassiveSkillBuffMaps` SO；Kit 点名 19001 才挂 31000 |
 | **3** | 接长按 | 无 Hold 行不误放。现役 CharacterId=1 无 Hold 行：点按立刻出 X/Y，长按 J 不会改放 11001 以外的招，也不会把长当点按多放一次 |
 | **4** | 任意槽位行 Empowered 预检改写 | 提交时解析；能量够打 Empowered，不够打该行 SkillId；跨按法不回退。现役 CharacterId=1 无 Skill / Empowered 行：按 B 仍空，X/Y 不变 |
@@ -303,7 +301,7 @@ F        → CombatHarmonyBreak.TryExecute → 场上角色 Kit.HarmonyBreakSkil
 2. 强化普攻：有回路 Tag 用 Attack×Click 高 Priority 行；只是条够用 Attack 行 `EmpoweredSkillId`。都不要写进战技行的 Empowered。
 3. 多档蓄力：§十方案能否直接用，取决于绝区零 / 鸣潮实机（低档到了还按着会不会自动放、满档是否强制放、大招是站桩蓄还是占轴循环）。测完再改列名和默认值。
 
-已拍：空配置不默认绑定；单人调试 Z 不降级成场上招架；不加 Kit「判断方法」列；Empowered 预检不问 CD / Sort；跨按法不回退。
+已拍：空配置不默认绑定；单人调试换人键不降级成场上招架；不加 Kit「判断方法」列；Empowered 预检不问 CD / Sort；跨按法不回退。
 
 ---
 
@@ -385,4 +383,4 @@ Click/按下先 Enqueue **蓄力轴**（这是一招，不是结算档位）。�
 
 ## 十一、回看
 
-新角色：`CharacterSlot` 只写有招的键；`CharacterKit` 只写有的被动和 Z 响应。空列不要靠默认。不要新建 `CharacterSlotConfig.asset` 当技能源，不要为招架 / 连携加第 5 战斗键。单人场景按 Z 失败是预期。多档蓄力未对照实机前，不要加 `MinHoldSeconds` 列，也不要改阶段 3 的到点入队。
+新角色：`CharacterSlot` 只写有招的键；`CharacterKit` 只写有的被动和换人响应。空列不要靠默认。不要新建 `CharacterSlotConfig.asset` 当技能源，不要为招架 / 连携加第 5 战斗键。单人场景按 1/2/3 失败是预期。多档蓄力未对照实机前，不要加 `MinHoldSeconds` 列，也不要改阶段 3 的到点入队。

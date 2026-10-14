@@ -1,5 +1,4 @@
-#if UNITY
-using EGamePlay.Combat;
+﻿#if UNITY
 
 namespace ACTGameEditor.Combat
 {

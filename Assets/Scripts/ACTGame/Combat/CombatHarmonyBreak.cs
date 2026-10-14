@@ -45,7 +45,7 @@ namespace ACTGameEditor.Combat
         /// </summary>
         public static bool TryExecute(CombatEntity caster)
         {
-            if (!CombatMeterComponent.HarmonyBreakEnabled || caster == null || caster.IsDisposed)
+            if (caster == null || caster.IsDisposed)
                 return false;
             if (caster.IsDead || caster.IsBench || caster.SquadPresence == SquadPresence.Exiting)
                 return false;
@@ -94,6 +94,7 @@ namespace ACTGameEditor.Combat
                 return false;
             if (!target.DazeMeter.TryBeginHarmonyExecute())
                 return false;
+            target.Vibration?.ArmHarmonyTuneBreak();
             (caster.AttackPlayer as IAttackPlayer)?.SetHarmonyComboPause(true);
             PlayPresentation(caster, target);
             return true;

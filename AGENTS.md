@@ -13,8 +13,9 @@
 - 角色招式包表（槽位/被动/号段）：[Docs/ActSkillKitConfig.md](Docs/ActSkillKitConfig.md)
 - 相机意图/构图：[Docs/ActCameraStage2Design.md](Docs/ActCameraStage2Design.md)
 - 敌人 AI（导演 / HFSM / 选招）：[Docs/ActEnemyAiDesign.md](Docs/ActEnemyAiDesign.md)
-- 战斗缺口与里程碑（偏谐 / 招架 / 小队；失衡连携已屏蔽）：[Docs/ActCombatRoadmap.md](Docs/ActCombatRoadmap.md)
+- 战斗缺口与里程碑（偏谐 / 招架 / 小队；失衡连携已删除）：[Docs/ActCombatRoadmap.md](Docs/ActCombatRoadmap.md)
 - 偏谐条 / 谐度破坏（F；对照鸣潮 3.0）：[Docs/已完成/ActHarmonyBreakDesign.md](Docs/已完成/ActHarmonyBreakDesign.md)（已归档）
+- 削韧条 / 共振度（怪物表 + Stagger 窗）：[Docs/ActVibrationDesign.md](Docs/ActVibrationDesign.md)
 - 小队换人（三人队 / 支援 / 延奏）：[Docs/ActSquadDesign.md](Docs/ActSquadDesign.md)
 - 角色选型与招式包模板（单手刀/剑）：[Docs/ActCharacterKitTemplate.md](Docs/ActCharacterKitTemplate.md)
 - 走跑 / 移动动画（鸣潮子集：起步急停 Pivot）：[Docs/ActLocomotionWuWaPlan.md](Docs/ActLocomotionWuWaPlan.md)

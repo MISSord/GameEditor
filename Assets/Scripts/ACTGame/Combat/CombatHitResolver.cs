@@ -19,10 +19,10 @@ namespace ACTGameEditor.Combat
         public override void Awake()
         {
             _owner = GetEntity<CombatEntity>();
-            _rollTagIndex = TagCollection.TagToIndexDic[CombatTags.BuffRoll];
-            _dazeRecoverIndex = TagCollection.TagToIndexDic[CombatTags.CombatDazeRecover];
-            _parryWindowIndex = TagCollection.TagToIndexDic[CombatTags.CombatParryWindow];
-            _switchIFrameIndex = TagCollection.TagToIndexDic[CombatTags.CombatSwitchIFrame];
+            _rollTagIndex = TagCollection.GetIndexOrInvalid(CombatTags.StateRoll);
+            _dazeRecoverIndex = TagCollection.GetIndexOrInvalid(CombatTags.CombatDazeRecover);
+            _parryWindowIndex = TagCollection.GetIndexOrInvalid(CombatTags.CombatParryWindow);
+            _switchIFrameIndex = TagCollection.GetIndexOrInvalid(CombatTags.CombatSwitchIFrame);
             _owner.ListenActionPoint(ActionPointType.PreReceiveDamage, OnPreReceiveDamage);
         }
 

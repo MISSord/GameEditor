@@ -29,6 +29,7 @@ namespace Flux
                 { "PlayFxPackage(id)",  PlayEventMsg.PlayFxPackage },
                 { "AiTelegraph(str kind, F_time)",  PlayEventMsg.AiTelegraph },
                 { "AssistCue(F_time)",  PlayEventMsg.AssistCue },
+                { "SkillCamera(str preset, F_blend)",  PlayEventMsg.SkillCamera },
                 { "SetNoGravityT(F_time)",  PlayEventMsg.SetNoGravityT },
                 { "SetNoBreakTime(F_time)",  PlayEventMsg.SetNoBreakTime },
                 { "PlayAudio(id,volume)",  PlayEventMsg.PlayAudio },

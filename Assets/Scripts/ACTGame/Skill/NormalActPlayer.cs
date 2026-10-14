@@ -124,7 +124,6 @@ namespace ACTGameEditor
             {
                 ClearHarmonyComboMemory();
                 ApplyDodgeFacing(spellCtx);
-                Combat.ChangeInputRotateState(false);
                 return;
             }
 
@@ -192,10 +191,7 @@ namespace ACTGameEditor
                 return;
 
             if (SkillSortUtil.IsRoll(spellCtx.Sort))
-            {
-                Combat.ChangeInputRotateState(true);
                 return;
-            }
 
             if (SkillTimelineCombo.IsComboContinueSkill(spellCtx.SkillId)
                 && _lastComboSkillId == spellCtx.SkillId)

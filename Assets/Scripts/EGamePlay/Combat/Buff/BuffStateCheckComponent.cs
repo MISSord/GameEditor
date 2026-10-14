@@ -66,20 +66,15 @@ namespace EGamePlay.Combat
 
         public bool CheckTargetState(Entity target)
         {
-            GameLog.Debug("BuffTriggerStateCheckComponent CheckTargetState");
-            // 这里是状态判断，状态判断是判断目标的状态是否满足条件，满足则触发效果
-
-            //判断方法
             if (CheckStateMethod != null)
-            {
                 return BuffStateCheck.CallStaticMethodEfficiently(CheckStateMethod, target, GetEntity<Buff>());
-            }
             
             //判断简单表达式
             var conditionCheckResult = true;
             ExpressionContext context = new ExpressionContext();
             context.Target = target;
-            context.Caster = Entity.As<Buff>().OwnerEntity?.Entity;
+            var buff = Entity.As<Buff>();
+            context.Caster = buff != null ? buff.GetLiveCaster()?.Entity : null;
             context.Skill = Entity;
 
             if (CheckStateExpress.Check(context) == false)
@@ -167,11 +162,59 @@ namespace EGamePlay.Combat
     public class BuffMethod
     {
         /// <summary>
+        /// 从卸除上下文读原因。不是 <see cref="RemoveStatusAction"/>、也未在卸除中则 false。
+        /// 周期跳把持有者当 target 传入，这里会失败，死亡爆炸不会在跳伤时误开。
+        /// </summary>
+        public static bool TryGetRemoveReason(Entity target, Buff buff, out BuffRemoveReason reason)
+        {
+            if (target is RemoveStatusAction action)
+            {
+                reason = action.Reason;
+                return true;
+            }
+
+            if (buff != null && buff.IsRemoving)
+            {
+                reason = buff.PendingRemoveReason;
+                return true;
+            }
+
+            reason = default;
+            return false;
+        }
+
+        static bool MatchesRemoveReason(Entity target, Buff buff, BuffRemoveReason expected)
+        {
+            return TryGetRemoveReason(target, buff, out BuffRemoveReason reason) && reason == expected;
+        }
+
+        /// <summary>卸除原因是死亡。配 `#IsRemoveReasonDeath`：到期不爆、死亡才跳伤。</summary>
+        public static bool IsRemoveReasonDeath(Entity target, Buff buff)
+        {
+            return MatchesRemoveReason(target, buff, BuffRemoveReason.Death);
+        }
+
+        /// <summary>卸除原因是到期 / 次数耗尽 / 绑定到点。</summary>
+        public static bool IsRemoveReasonExpired(Entity target, Buff buff)
+        {
+            return MatchesRemoveReason(target, buff, BuffRemoveReason.Expired);
+        }
+
+        /// <summary>卸除原因是打爆吃层或破盾。</summary>
+        public static bool IsRemoveReasonConsumed(Entity target, Buff buff)
+        {
+            return MatchesRemoveReason(target, buff, BuffRemoveReason.Consumed);
+        }
+
+        /// <summary>卸除原因是净化。</summary>
+        public static bool IsRemoveReasonDispelled(Entity target, Buff buff)
+        {
+            return MatchesRemoveReason(target, buff, BuffRemoveReason.Dispelled);
+        }
+
+        /// <summary>
         /// 检查是否有火焰类型的buff
         /// </summary>
-        /// <param name="target"></param>
-        /// <param name="buff"></param>
-        /// <returns></returns>
         public static bool CheckIsHadFireBigBuff(Entity target, Buff buff)
         {
             if (target != null
@@ -182,9 +225,6 @@ namespace EGamePlay.Combat
             return false;
         }
 
-        /// <summary>
-        /// 本次行动是否为“释放普攻或大招”。被动/Buff 伤害不会走施法 Session，因此不会命中。
-        /// </summary>
         /// <summary>
         /// 本次伤害是否为主动技能真实命中。Buff/点燃跳字不会再触发，闪避与免疫也不算命中。
         /// </summary>

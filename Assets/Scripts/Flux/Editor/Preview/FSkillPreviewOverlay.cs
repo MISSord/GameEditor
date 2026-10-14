@@ -455,9 +455,9 @@ namespace FluxEditor
                             for (int s = 0; s < tagEvent.SkillTagList.Count; s++)
                             {
                                 string tag = tagEvent.SkillTagList[s];
-                                if (tag == CombatTags.BuffRoll)
+                                if (tag == CombatTags.StateRoll)
                                     roll = true;
-                                else if (tag == CombatTags.BuffUnStopped)
+                                else if (tag == CombatTags.StateUnStopped)
                                     unstopped = true;
                                 else if (tag == CombatTags.CombatParryWindow)
                                     parry = true;

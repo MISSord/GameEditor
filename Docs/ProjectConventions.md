@@ -58,7 +58,7 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 
 - **EGamePlay.Combat** 只依赖 `ICombatUnit`，不要引用 `ActPlayer`。
 - 表现、电机、Shader 留在 `ACTGame`。
-- 流程问 Buff 列表和 Tag，不要写 `if (着火)` / `if (冻结)` 散落各处。冻结外观由 `Buff.Freeze` 叶子计数回调到 `NotifyFreezeChanged`。
+- 流程问 Buff 列表和 Tag，不要写 `if (着火)` / `if (冻结)` 散落各处。冻结外观由 `State.Freeze` 叶子计数回调到 `NotifyFreezeChanged`。
 
 ---
 
@@ -79,15 +79,17 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 
 ### 状态
 
-`CombatStateDirector` 是行为态唯一写入口：Dead > Control > Hit > Skill > Locomotion。硬控认 `Buff.MoveForbid`；沉默只 `Buff.SkillForbid`（仍可闪避）；冻结另推 `Buff.Freeze`（实体钟=0 + 冰壳）。**断招只比两个 int**：段表 `InterruptLevel` ≥ 目标抗打断。`Buff.UnStopped` 只给抗打断加值（默认 +3），不是布尔免疫；硬控 Buff 仍无视抗打断。闪白/顿帧继续读段表 `HitReaction`，与断招脱钩。
+`CombatStateDirector` 是行为态唯一写入口：Dead > Control > Hit > Skill > Locomotion。硬控认 `State.MoveForbid`；沉默只 `State.SkillForbid`（仍可闪避）；冻结另推 `State.Freeze`（实体钟=0 + 冰壳）。**断招只比两个 int**：段表 `InterruptLevel` ≥ 目标抗打断。`State.UnStopped` 只给抗打断加值（默认 +3），不是布尔免疫；硬控 Buff 仍无视抗打断。闪白/顿帧继续读段表 `HitReaction`，与断招脱钩。
 
 ### Buff
 
-- 同一 BuffId 默认一条，重复走 `RepeatedAddition`（叠时 / 刷新 / 叠层 / 互斥）。硬控（`Buff.MoveForbid`）跨 Id 再走 `HardControlMutex`：高 Priority 覆盖，同等则新替旧。
+- 同一 BuffId 默认一条，重复走 `RepeatedAddition`（叠时 / 刷新 / 叠层 / 互斥）。硬控（`State.MoveForbid`）跨 Id 再走 `HardControlMutex`：高 Priority 覆盖，同等则新替旧。
+- Buff 表两列 Tag（对齐 GAS）：**`BuffTag` = Asset**（前缀 `Buff.`：极性 / Bind / Caster / Outro，查定义，不进容器）；**`GrantedTags` = Granted**（前缀 `State.`：Freeze / 异常 / Forbid，存活时 Push，`HasTag` 认容器）。不要把 `Buff.Debuff` 写进 Granted。
+- ReApply 默认把 `Caster` 改成后上的人；表 `BuffTag` 打 `Buff.Caster.KeepFirst` 则保持原施法者。跳伤 / 击杀只用这份 Caster，已销毁则本跳不出手，不要抓当前主控。
 - 上 Buff 走 `AddStatusAction` + `PreGive/PreReceive` + `StatusApplyResolver`（免疫 / 抵抗）。测试面板 `AttachStatus` 是直挂，**绕过**免疫。
-- 卸走统一 `RemoveStatus(id, BuffRemoveReason)`。效果锁中的添加要入队。
+- 卸走统一 `RemoveStatus(id, BuffRemoveReason)`。效果锁中的添加要入队。卸时跳伤用 `TriggerFormula` `#IsRemoveReasonDeath` 等滤原因，不要在代码里 `if (死亡)`。
 - Modify 槽位：`Assets/Scripts/EGamePlay/Combat/Buff/BuffModify/EffectModifyParamSlots.md`。
-- 异常积蓄 / 削韧不要做成普通 TimeBuff。清单：`ActBuffLearningBacklog.md`。
+- 异常是状态 Buff 叠层（鸣潮），不要做成积蓄 Meter，也不要抄 ZZZ 紊乱。清单：`ActBuffLearningBacklog.md`。
 
 ### 主动技伤害
 
@@ -144,13 +146,14 @@ Unity ACT：本地玩家 + 敌人，技能走 XC 时间轴，战斗数值走 EGa
 | 文档 | 内容 |
 |---|---|
 | `Docs/ActUnfinishedIndex.md` | **文档状态总索引**：已完成归档 + 未完成项清单（权威，开工前先看） |
-| `Docs/ActBuffLearningBacklog.md` | Buff 管线、护盾、控制；异常/紊乱/快照未做 |
+| `Docs/ActBuffLearningBacklog.md` | Buff 对照鸣潮：**已收口**；延奏见小队 M4.3 |
 | `Docs/ActSkillKitConfig.md` | 角色招式包收口 Luban：Kit/槽位/被动/号段（阶段 0–4 已接） |
 | `Docs/ActEnemyAiDesign.md` | 敌人 AI：导演 + HFSM + 效用选招 + XC 轴（后续只看文内 §十二） |
 | `Docs/ActSquadDesign.md` | 三人小队：换人 / 支援 / 延奏（M4.0–4.2 已接；延奏/喧响未做） |
-| `Docs/ActCombatRoadmap.md` | 战斗缺口（偏谐 / 异常 / 招架 / 小队；原失衡连携已屏蔽；总表滞后以索引为准） |
+| `Docs/ActCombatRoadmap.md` | 战斗缺口（偏谐 / 招架 / 小队；ZZZ 积蓄+紊乱已丢掉；总表滞后以索引为准） |
+| `Docs/ActVibrationDesign.md` | 削韧 / 共振度：怪物表 `MonsterId`、白条扣光进 Stagger；招架/F 全局比例；瘫痪无易伤 |
 | `Docs/ActLocomotionWuWaPlan.md` | 走跑对照鸣潮子集：接线、急停/起步、锁定侧移（未开工） |
-| `Docs/ActCameraStage2Design.md` | 相机意图 P2：混合构图设计备忘（未排期） |
+| `Docs/ActCameraStage2Design.md` | 相机意图 P2：混合构图（阶段 A/B/F 已接；C–E、G 未做） |
 | `Docs/ActCharacterKitTemplate.md` | 角色选型（单手刀/剑）与招式包模板 |
 | `Docs/已完成/` | **已归档**：`ActTimeEffectsBacklog`（时间钟）、`ActSkillConfigAndLeveling`（段表/升级）、`ActHarmonyBreakDesign`（偏谐 F） |
 | `Assets/Scripts/EGamePlay/Combat/Buff/BuffModify/EffectModifyParamSlots.md` | Modify 各类型 Param 槽位 |

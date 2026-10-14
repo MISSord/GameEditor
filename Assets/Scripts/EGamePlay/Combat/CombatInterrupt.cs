@@ -18,7 +18,7 @@ namespace EGamePlay.Combat
         /// <summary>精英站立抗打断（无 Profile 时）。</summary>
         public const int DefaultEliteAnti = 3;
 
-        /// <summary><see cref="CombatTags.BuffUnStopped"/> 存在时叠加的抗打断。</summary>
+        /// <summary><see cref="CombatTags.StateUnStopped"/> 存在时叠加的抗打断。</summary>
         public const int DefaultSuperArmorBonus = 3;
 
         /// <summary>段表 0 时按轻重回退，避免旧行漏填导致全员不断招或全员可断。</summary>

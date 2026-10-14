@@ -80,5 +80,5 @@ MonoBehaviour:
         NormalEffectList: 
         SkillEffectList: 
         SkillTagList:
-        - Buff.UnStopped
-        - Buff.Roll
+        - State.UnStopped
+        - State.Roll

@@ -846,7 +846,18 @@ namespace ACTGameEditor
 
         public override void OnFinish()
         {
-            if (eventData.MsgEType == MsgType.Bool)
+            if (eventData.MsgName == PlayEventMsg.SkillCamera)
+            {
+                if (HasTriggered)
+                {
+                    OwnCombat?.HandleTimelineMessageFinish(
+                        eventData.MsgName,
+                        eventData.BoolMsg,
+                        true,
+                        eventData.StrMsg);
+                }
+            }
+            else if (eventData.MsgEType == MsgType.Bool)
             {
                 if (eventData.SetOppositeOnFinish)
                 {

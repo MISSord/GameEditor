@@ -19,7 +19,6 @@ namespace ACTGameEditor.Combat
         int _skillId;
         int _sort;
         bool _postProcessed;
-        bool _chainHolding;
         bool _harmonyHolding;
 
         public ICombatUnit Caster => _caster;
@@ -52,23 +51,7 @@ namespace ACTGameEditor.Combat
             session._inputPoint = intent.Point;
             session._inputDirection = intent.Direction;
 
-            if (CombatChainSkill.IsChainSkill(session._skillId))
-            {
-                CombatEntity chainTarget = session._inputTarget;
-                if (!CombatChainSkill.IsValidWindow(chainTarget)
-                    && !CombatChainSkill.TryResolveTarget(caster, out chainTarget))
-                {
-                    session.DestroySelf();
-                    return null;
-                }
-
-                session._inputTarget = chainTarget;
-                Vector3 to = chainTarget.Position - caster.Position;
-                if (to.sqrMagnitude > 0.0001f)
-                    session._inputDirection = to.normalized;
-                session._inputPoint = chainTarget.Position;
-            }
-            else if (CombatHarmonyBreak.IsHarmonyBreakSkill(session._skillId))
+            if (CombatHarmonyBreak.IsHarmonyBreakSkill(session._skillId))
             {
                 CombatEntity breakTarget = session._inputTarget;
                 if (!CombatHarmonyBreak.IsValidReadyTarget(caster, breakTarget)
@@ -95,18 +78,7 @@ namespace ACTGameEditor.Combat
             if (!session.LaunchRunner(intent.Sort))
                 return null;
 
-            if (CombatChainSkill.IsChainSkill(session._skillId))
-            {
-                if (!CombatChainSkill.OnSessionStarted(session._caster, session._inputTarget))
-                {
-                    session._runner.BreakSkill();
-                    session.DestroySelf();
-                    return null;
-                }
-
-                session._chainHolding = true;
-            }
-            else if (CombatHarmonyBreak.IsHarmonyBreakSkill(session._skillId))
+            if (CombatHarmonyBreak.IsHarmonyBreakSkill(session._skillId))
             {
                 if (!CombatHarmonyBreak.OnSessionStarted(session._caster, session._inputTarget))
                 {
@@ -168,6 +140,7 @@ namespace ACTGameEditor.Combat
             _caster.ActiveExecution = _runner;
             _caster.StateDirector?.EnterSkill(_runner.Id);
             _caster.BeginSkillMoveLock();
+            _caster.BeginSkillRotateLock();
             TagSource src = TagSource.Skill(_runner.Id);
             if (SkillSortUtil.IsParry(sort))
             {
@@ -177,9 +150,9 @@ namespace ACTGameEditor.Combat
             else if (SkillSortUtil.IsRoll(sort))
             {
                 _caster.ArmSprintFromDodge();
-                // 轴上 EffectEvent 要等到第 0 帧才 Push Buff.Roll；出招当下先挂上，同一帧 Flush 才能判闪避。
-                _caster.PushTag(src, CombatTags.BuffRoll);
-                _caster.PushTag(src, CombatTags.BuffUnStopped);
+                // 轴上 EffectEvent 要等到第 0 帧才 Push State.Roll；出招当下先挂上，同一帧 Flush 才能判闪避。
+                _caster.PushTag(src, CombatTags.StateRoll);
+                _caster.PushTag(src, CombatTags.StateUnStopped);
             }
 
             CombatParry.TryBindAttackerTags(_caster, _inputTarget, _skillId, _runner.Id);
@@ -236,31 +209,37 @@ namespace ACTGameEditor.Combat
                 UnbindSkillBuffs(_runner.Id);
                 _caster.StateDirector?.ExitSkill(_runner.Id);
                 if (releasedAxis || _caster.ActiveExecution == null)
+                {
                     _caster.EndSkillMoveLock();
+                    _caster.EndSkillRotateLock();
+                }
             }
 
             if (_runner != null)
                 CombatPresentationDirector.StopBySource(CombatFxSource.Skill(_runner.Id));
 
-            if (_caster != null && !_caster.IsDisposed && SkillSortUtil.IsRoll(_sort))
-                _caster.ChangeInputRotateState(true);
-
             TryNotifyAttackWhiff();
+            ReleaseHarmonyHold();
+            ReleaseSkillShot();
             DestroySelf();
         }
 
-        void ReleaseChainHold()
+        void ReleaseSkillShot()
         {
-            if (_harmonyHolding)
-            {
-                _harmonyHolding = false;
-                CombatHarmonyBreak.OnSessionEnded(_caster, _inputTarget);
-            }
-
-            if (!_chainHolding)
+            CameraManager cam = CameraManager.Instance;
+            if (cam == null || _caster == null || _caster.IsDisposed)
                 return;
-            _chainHolding = false;
-            CombatChainSkill.OnSessionEnded(_inputTarget);
+            if (!cam.IsFollowing(_caster.RootTransform))
+                return;
+            cam.CancelSkillShot();
+        }
+
+        void ReleaseHarmonyHold()
+        {
+            if (!_harmonyHolding)
+                return;
+            _harmonyHolding = false;
+            CombatHarmonyBreak.OnSessionEnded(_caster, _inputTarget);
         }
 
         void TryNotifyPlayerRolled()
@@ -287,7 +266,7 @@ namespace ACTGameEditor.Combat
         public override void OnDestroy()
         {
             CombatEntity caster = _caster;
-            ReleaseChainHold();
+            ReleaseHarmonyHold();
 
             if (_runner != null)
                 CombatParry.NotifyRunnerFinished(_runner.Id);
@@ -308,7 +287,6 @@ namespace ACTGameEditor.Combat
             _skillId = 0;
             _sort = 0;
             _postProcessed = false;
-            _chainHolding = false;
             _harmonyHolding = false;
 
             if (caster != null && !caster.IsDisposed)
@@ -326,7 +304,6 @@ namespace ACTGameEditor.Combat
             _skillId = 0;
             _sort = 0;
             _postProcessed = false;
-            _chainHolding = false;
             _harmonyHolding = false;
         }
 

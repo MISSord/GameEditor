@@ -79,8 +79,13 @@ namespace ACTGameEditor.Combat.Ai
             _abilities = _owner.GetComponent<AbilityComponent>();
             _anim = _owner.GetComponent<AnimComponent>();
 
-            // 档位由生成时的模型位决定（EnemyA=精英）；AddComponent 时 Awake 即跑，AttackPlayer 已在 Init 里赋好
-            _isElite = _owner.AttackPlayer != null && _owner.AttackPlayer.ModelType == AgentModelType.EnemyA;
+            // AI 档问怪物 Rank；缺行才回退 EnemyA 模型位。Poise / 偏谐由 CombatEntity 按怪物表写。
+            MonsterSetting monster = SkillSettingMgr.Instance != null
+                ? SkillSettingMgr.Instance.GetMonsterOrNull(_owner.MonsterId)
+                : null;
+            _isElite = monster != null
+                ? (monster.Rank == MonsterRank.Elite || monster.Rank == MonsterRank.Boss)
+                : (_owner.AttackPlayer != null && _owner.AttackPlayer.ModelType == AgentModelType.EnemyA);
             _profile = EnemyBrainProfile.LoadForArchetype(_isElite, out _ownsFallback);
             if (MoveSet == null)
                 _runtimeMoveSet = EnemyMoveSet.CreateGruntFallback();
@@ -89,8 +94,8 @@ namespace ACTGameEditor.Combat.Ai
             InstallLocomotion();
             EnemySkillSelector.AttachAbilities(_abilities, MoveSet);
             TryRegisterEncounter();
-            ApplyPoiseFromProfile();
-            ApplyDazeFromProfile();
+            if (monster == null)
+                ApplyPoiseFromProfile();
             _state = EnemyTacticalState.Idle;
         }
 
@@ -126,14 +131,6 @@ namespace ACTGameEditor.Combat.Ai
             int anti = _profile != null ? _profile.AntiInterruptBase : 0;
             int armor = _profile != null ? _profile.SuperArmorBonus : CombatInterrupt.DefaultSuperArmorBonus;
             poise.Configure(anti, armor, _isElite);
-        }
-
-        void ApplyDazeFromProfile()
-        {
-            CombatMeterComponent meter = _owner.DazeMeter;
-            if (meter == null)
-                return;
-            meter.Configure(_isElite ? DazeTierId.Elite : DazeTierId.Grunt);
         }
 
         void InstallLocomotion()

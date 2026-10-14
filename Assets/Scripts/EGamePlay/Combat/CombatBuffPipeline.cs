@@ -15,6 +15,26 @@ namespace EGamePlay.Combat
         Blocked = 3,
     }
 
+    /// <summary>
+    /// 外部吃层结果。失败时 <see cref="Success"/> 为 false，其余字段为默认值。
+    /// 调用方用 <see cref="Caster"/> 发独立伤害；本结构不分配。
+    /// </summary>
+    public struct BuffConsumeResult
+    {
+        /// <summary>是否扣到了层（或卸掉了不可叠层 Buff）。</summary>
+        public bool Success;
+        /// <summary>被吃的 BuffId。</summary>
+        public int BuffId;
+        /// <summary>吃之前的层数；不可叠层视为 1。</summary>
+        public float StacksBefore;
+        /// <summary>实际扣掉的层数。</summary>
+        public float StacksConsumed;
+        /// <summary>吃完后的层数；整段卸掉为 0。</summary>
+        public float StacksRemaining;
+        /// <summary>施加者实体，供打爆伤害归属。</summary>
+        public Entity Caster;
+    }
+
     /// <summary>卸 Buff 原因。OnRemoved 开火时可读；调用方按语义填写。</summary>
     public enum BuffRemoveReason : byte
     {
@@ -22,7 +42,7 @@ namespace EGamePlay.Combat
         Expired = 0,
         /// <summary>净化 / 按大类驱散。</summary>
         Dispelled = 1,
-        /// <summary>护盾破了、引爆吃层。护盾段吃到 0 由 Vital 调用；引爆见第 3 条。</summary>
+        /// <summary>护盾破了、外部打爆吃层（<see cref="StatusComponent.TryConsume"/>）。</summary>
         Consumed = 2,
         /// <summary>互斥覆盖：硬控被更高或同等 Priority 的新硬控顶掉。</summary>
         Replaced = 3,
@@ -32,7 +52,7 @@ namespace EGamePlay.Combat
         Manual = 5,
     }
 
-    /// <summary>净化极性。看 Buff 表 <c>BuffTag</c> 是否含 <see cref="CombatTags.BuffDebuff"/> / <see cref="CombatTags.BuffGain"/>。</summary>
+    /// <summary>净化极性。看 Buff 表 <c>BuffTag</c>（Asset）是否含 <see cref="CombatTags.BuffDebuff"/> / <see cref="CombatTags.BuffGain"/>。</summary>
     public enum BuffDispelPolarity : byte
     {
         /// <summary>不按极性过滤。</summary>

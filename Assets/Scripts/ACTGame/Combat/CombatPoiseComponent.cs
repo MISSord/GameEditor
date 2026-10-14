@@ -14,13 +14,13 @@ namespace ACTGameEditor.Combat
         /// <summary>站立抗打断。玩家/杂兵 1，精英 3。</summary>
         public int BaseLevel = CombatInterrupt.DefaultBaseAnti;
 
-        /// <summary>有 <see cref="CombatTags.BuffUnStopped"/> 时叠加。不是布尔免疫。</summary>
+        /// <summary>有 <see cref="CombatTags.StateUnStopped"/> 时叠加。不是布尔免疫。</summary>
         public int SuperArmorBonus = CombatInterrupt.DefaultSuperArmorBonus;
 
         public override void Awake()
         {
             _owner = GetEntity<CombatEntity>();
-            _unstoppedIndex = TagCollection.TagToIndexDic[CombatTags.BuffUnStopped];
+            _unstoppedIndex = TagCollection.GetIndexOrInvalid(CombatTags.StateUnStopped);
             _owner.ListenActionPoint(ActionPointType.PostReceiveDamage, OnPostReceiveDamage);
         }
 
@@ -38,13 +38,13 @@ namespace ACTGameEditor.Combat
             SuperArmorBonus = CombatInterrupt.DefaultSuperArmorBonus;
         }
 
-        /// <summary>生成时按档写入；缺档回退杂兵 1 / 精英 3。</summary>
+        /// <summary>生成时按怪物行写入；基数 0 按 Rank 默认杂兵 1 / 精英 3；霸体加值 0 用代码默认 +3。</summary>
         public void Configure(int baseLevel, int superArmorBonus, bool elite)
         {
             BaseLevel = baseLevel > 0
                 ? baseLevel
                 : (elite ? CombatInterrupt.DefaultEliteAnti : CombatInterrupt.DefaultBaseAnti);
-            SuperArmorBonus = superArmorBonus >= 0
+            SuperArmorBonus = superArmorBonus > 0
                 ? superArmorBonus
                 : CombatInterrupt.DefaultSuperArmorBonus;
         }

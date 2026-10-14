@@ -218,8 +218,8 @@ MonoBehaviour:
     _start: 0
     _end: 71
   SkillTagList:
-  - Buff.UnStopped
-  - Buff.Roll
+  - State.UnStopped
+  - State.Roll
   NormalEffectIds: 
   SkillEffectIds: 
 --- !u!1 &6889016166023563177

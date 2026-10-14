@@ -122,7 +122,7 @@ namespace EGamePlay.Combat
         {
             if (string.IsNullOrEmpty(tag) || _actor?.TagHost == null)
                 return;
-            if (TagCollection.TagToIndexDic == null || !TagCollection.TagToIndexDic.ContainsKey(tag))
+            if (!TagCollection.TryGetIndex(tag, out _))
                 return;
             _actor.TagHost.PushTag(src, tag);
         }
@@ -131,7 +131,7 @@ namespace EGamePlay.Combat
         {
             if (string.IsNullOrEmpty(tag) || _actor?.TagHost == null)
                 return;
-            if (TagCollection.TagToIndexDic == null || !TagCollection.TagToIndexDic.ContainsKey(tag))
+            if (!TagCollection.TryGetIndex(tag, out _))
                 return;
             _actor.TagHost.PopTag(src, tag);
         }

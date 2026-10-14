@@ -11,7 +11,7 @@ namespace EGamePlay.Combat
     {
         /// <summary>
         /// 执行 HP 伤害（SkillHpDamage / BuffHpDamage）。
-        /// 槽位：ParamInt1=DamageCalcuFormulaType, ParamInt2=DamageType, ParamInt3=CanCrit, ParamFloat1=skillRate。
+        /// 槽位：ParamInt1=DamageCalcuFormulaType, ParamInt2=DamageType, ParamInt3=CanCrit, ParamFloat1=skillRate（可叠层 Buff 为单层值，运行时 × 层数）。
         /// </summary>
         public static void ExecuteHpDamage(
             BuffModifySetting setting,
@@ -31,6 +31,9 @@ namespace EGamePlay.Combat
             var damageType = (DamageType)setting.ParamInt2;
             bool canCrit = setting.ParamInt3 != 0;
             float skillRate = setting.ParamFloat1 > 0f ? setting.ParamFloat1 : 1f;
+            // 可叠层 Buff 的 ParamFloat1 是单层倍率；跳伤时乘当前层。不可叠层 GetStackCount=1。
+            if (triggerSource is Buff triggerBuff)
+                skillRate *= triggerBuff.GetStackCount();
 
             if (caster.DamageAbility != null && caster.DamageAbility.TryMakeAction(out var damageAction))
             {

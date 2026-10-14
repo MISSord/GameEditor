@@ -3,20 +3,25 @@
 namespace EGamePlay.Combat
 {
     /// <summary>
-    /// Tag 读写与定时释放；底层容器来自 <see cref="StatusComponent.TagContainer"/>。
+    /// Tag 读写与定时释放。底层是 <see cref="StatusComponent.TagContainer"/>。
+    /// HasIndex / HasTag 走 Matching；短时 Tag 用玩家钟到期 Pop。
     /// </summary>
     public sealed class CombatTagComponent : Component
     {
         struct TimedTagRelease
         {
+            /// <summary>到期时按此 Source 配对 Pop，避免卸掉别路同名 Tag。</summary>
             public TagSource Source;
+            /// <summary>到期 Pop 的路径名（显式授予那条，不是祖先）。</summary>
             public string TagName;
+            /// <summary>玩家钟时间点。魔女时间里与走世界钟的 Buff 持续可能不同步。</summary>
             public float EndTime;
         }
 
         GameplayTagContainer _container;
         readonly List<TimedTagRelease> _timedTagReleases = new List<TimedTagRelease>(4);
 
+        // Awake 缓存 intern index；热路径 HasIndex，0 表示未 intern。
         public int AttackDamageForbidIndex { get; private set; }
         public int MoveForbidIndex { get; private set; }
         public int SkillForbidIndex { get; private set; }
@@ -27,12 +32,13 @@ namespace EGamePlay.Combat
 
         public override void Awake()
         {
+            TagCollection.Instance.Initialize();
             _container = Entity.GetComponent<StatusComponent>().TagContainer;
-            AttackDamageForbidIndex = TagCollection.TagToIndexDic[CombatTags.BuffAttackDamageForbid];
-            MoveForbidIndex = TagCollection.TagToIndexDic[CombatTags.BuffMoveForbid];
-            SkillForbidIndex = TagCollection.TagToIndexDic[CombatTags.BuffSkillForbid];
-            UnStoppedIndex = TagCollection.TagToIndexDic[CombatTags.BuffUnStopped];
-            FreezeIndex = TagCollection.TagToIndexDic[CombatTags.BuffFreeze];
+            AttackDamageForbidIndex = TagCollection.GetIndexOrInvalid(CombatTags.StateAttackDamageForbid);
+            MoveForbidIndex = TagCollection.GetIndexOrInvalid(CombatTags.StateMoveForbid);
+            SkillForbidIndex = TagCollection.GetIndexOrInvalid(CombatTags.StateSkillForbid);
+            UnStoppedIndex = TagCollection.GetIndexOrInvalid(CombatTags.StateUnStopped);
+            FreezeIndex = TagCollection.GetIndexOrInvalid(CombatTags.StateFreeze);
             if (_container != null)
                 _container.LeafCountChanged += OnLeafCountChanged;
         }
@@ -58,9 +64,16 @@ namespace EGamePlay.Combat
             return _container != null && _container.HasTag(tagIndex);
         }
 
+        /// <summary>Matching：该路径或任一子孙被授予。</summary>
         public bool HasTag(string tagName)
         {
             return _container != null && _container.HasTag(tagName);
+        }
+
+        /// <summary>仅显式授予该路径，不含子孙。</summary>
+        public bool HasExactTag(string tagName)
+        {
+            return _container != null && _container.HasExactTag(tagName);
         }
 
         /// <summary>按 RequiredTags/BlockedTags 判断是否可释放技能。</summary>
@@ -112,7 +125,7 @@ namespace EGamePlay.Combat
         /// <summary>技能时间轴：短时霸体。</summary>
         public void GrantUnstoppedFor(float durationSeconds, TagSource source)
         {
-            GrantTagFor(source, CombatTags.BuffUnStopped, durationSeconds);
+            GrantTagFor(source, CombatTags.StateUnStopped, durationSeconds);
         }
 
         void TickTimedTags(float playerTime)

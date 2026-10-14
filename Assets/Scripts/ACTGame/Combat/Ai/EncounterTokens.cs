@@ -19,16 +19,15 @@ namespace ACTGameEditor.Combat.Ai
         Death = 5,
         FailedLaunch = 6,
         Unregistered = 7,
-        /// <summary>Relax / Punish 收回未承诺的牌。</summary>
+        /// <summary>Relax 收回未承诺的牌。</summary>
         TempoRecall = 8,
     }
 
-    /// <summary>战局节奏。E 落地 Build / Relax；Peak / Punish 以后再开。</summary>
+    /// <summary>战局节奏。E 落地 Build / Relax；Peak 以后再开。Punish（原失衡）已删除。</summary>
     public enum EncounterTempo : byte
     {
         Build = 0,
         Peak = 1,
         Relax = 2,
-        Punish = 3,
     }
 }

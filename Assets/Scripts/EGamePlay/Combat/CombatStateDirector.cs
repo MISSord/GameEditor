@@ -1,4 +1,4 @@
-namespace EGamePlay.Combat
+﻿namespace EGamePlay.Combat
 {
     /// <summary>
     /// 战斗行为态唯一写入口：按优先级槽位合成 CurState。
@@ -6,11 +6,6 @@ namespace EGamePlay.Combat
     /// </summary>
     public sealed class CombatStateDirector
     {
-        const byte PriorityLocomotion = 0;
-        const byte PrioritySkill = 10;
-        const byte PriorityHit = 20;
-        const byte PriorityDead = 30;
-
         ICombatUnit _owner;
 
         bool _skillActive;
@@ -101,7 +96,7 @@ namespace EGamePlay.Combat
             Recompute();
         }
 
-        /// <summary>受击硬直。duration≤0 需手动 ExitHit。硬控/失衡中忽略，避免短硬直冲掉长硬直。</summary>
+        /// <summary>受击硬直。duration≤0 需手动 ExitHit。硬控/破衡槽中忽略，避免短硬直冲掉长硬直。</summary>
         public void EnterHit(long sourceId, float durationSeconds = 0.35f)
         {
             if (_dead || _controlActive || _staggerActive)
@@ -150,7 +145,7 @@ namespace EGamePlay.Combat
             Recompute();
         }
 
-        /// <summary>进入失衡硬直。清短硬直；冻结等 Control 仍可盖住外观，本标志保持。</summary>
+        /// <summary>进入破衡硬直槽。偏谐不再写入；冻结等 Control 仍可盖住外观。</summary>
         public void EnterStagger()
         {
             if (_dead)
@@ -165,7 +160,7 @@ namespace EGamePlay.Combat
             Recompute();
         }
 
-        /// <summary>退出失衡硬直（条掉光或调试清空）。</summary>
+        /// <summary>退出破衡硬直槽。</summary>
         public void ExitStagger()
         {
             if (!_staggerActive)

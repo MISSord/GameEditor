@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ACTGameEditor.Combat;
 using ACTGameEditor.Locomotion;
 using EGamePlay;
+using EGamePlay.Combat;
 using EGamePlay.Unity;
 using UnityEngine;
 
@@ -56,25 +57,25 @@ namespace ACTGameEditor
 
         private List<uint> PlayerNetIdList = new List<uint>();
 
-        #region Switch Cooldown (Honkai3-style)
+        #region Switch Cooldown (debug camera only)
 
-        /// <summary> 切换角色冷却时长（秒），冷却期间无法再次切换。 </summary>
+        /// <summary>调试切镜头冷却。小队换人无 CD，不要接到 <see cref="ApplySquadSwitch"/>。</summary>
         public float SwitchCooldownDuration { get; set; } = 5f;
 
-        /// <summary> 上次切换视角的时间戳（Time.time），用于计算剩余冷却。 </summary>
+        /// <summary>上次调试切镜头的世界钟时间。</summary>
         private float _lastSwitchTime = -999f;
 
         /// <summary> 当前摄像机跟随的单位 NetId；用于 UI 高亮当前视角。 </summary>
         public uint CurrentFollowNetId { get; private set; }
 
-        /// <summary> 当前剩余切换冷却时间（秒），0 表示无冷却。 </summary>
+        /// <summary>调试切镜头剩余冷却。小队肖像不走这条。</summary>
         public float GetRemainingSwitchCooldown()
         {
             float elapsed = GameTimeManager.WorldTime - _lastSwitchTime;
             return elapsed >= SwitchCooldownDuration ? 0f : Mathf.Max(0f, SwitchCooldownDuration - elapsed);
         }
 
-        /// <summary> 是否处于切换冷却中（冷却中不可再次切换）。 </summary>
+        /// <summary>调试切镜头是否在冷却。小队换人不问。</summary>
         public bool IsSwitchInCooldown() => GetRemainingSwitchCooldown() > 0f;
 
         #endregion
@@ -189,7 +190,7 @@ namespace ACTGameEditor
             SquadControlChanged?.Invoke(lead);
         }
 
-        /// <summary>Q/E 与肖像：小队走换人，其余单位只切镜头（调试）。</summary>
+        /// <summary>1/2/3 与肖像：小队走换人，其余单位只切镜头（调试）。</summary>
         public void TrySelectAttacker(uint netId)
         {
             ActPlayer player = GetAcker(netId);
@@ -226,7 +227,10 @@ namespace ACTGameEditor
 
             incoming.WarpTo(incomingPos, incomingRot);
             ApplySquadPresence(incoming, SquadPresence.OnField);
-            incoming.GetComponent<AnimComponent>()?.Director?.ForceLocomotion();
+            // 合轴未完的人不能切回来；这里兜底不要 ForceLocomotion 掐掉上一刀。
+            ISkillExecutionHandle incomingExec = incoming.ActiveExecution;
+            if (incomingExec == null || incomingExec.IsDisposed)
+                incoming.GetComponent<AnimComponent>()?.Director?.ForceLocomotion();
             CombatFxPackagePlayer.Play(
                 CombatFxPackageId.SwitchIn,
                 CombatFxPlayContext.ForOwner(incoming, CombatFxSource.Entity(incoming.Id)));
@@ -309,12 +313,27 @@ namespace ACTGameEditor
             }
         }
 
-        public ActPlayer AddFakePlayer(Vector3 startPos, bool isAi, AgentTag agentTag, AgentModelType agentName = AgentModelType.Player)
+        /// <summary>
+        /// 生成人机或敌人。敌人写入 <paramref name="monsterId"/>（0 则按模型位默认 101/201）。
+        /// </summary>
+        public ActPlayer AddFakePlayer(
+            Vector3 startPos,
+            bool isAi,
+            AgentTag agentTag,
+            AgentModelType agentName = AgentModelType.Player,
+            int monsterId = 0)
         {
             string prefabPath = agentName == AgentModelType.Player ? PrefabPath.Player : PrefabPath.EnemyB;
             string assetPath = agentName == AgentModelType.Player ? "ActPlayer" : "EnemyB";
 
-            ActPlayer player = SpawnActPlayer(prefabPath, assetPath, startPos, agentTag, isTruePlayer: false, modelType: agentName);
+            ActPlayer player = SpawnActPlayer(
+                prefabPath,
+                assetPath,
+                startPos,
+                agentTag,
+                isTruePlayer: false,
+                modelType: agentName,
+                monsterId: monsterId);
 
             PlayerNetIdList.Add(player.Combat.NetId);
             RegisterPlayer(player);
@@ -332,7 +351,8 @@ namespace ACTGameEditor
             bool isTruePlayer,
             AgentModelType modelType = AgentModelType.Player,
             bool isPlayerSquad = false,
-            int squadSlot = -1)
+            int squadSlot = -1,
+            int monsterId = 0)
         {
             GameObject obj = RunTimePoolManager.Instance != null
                 ? RunTimePoolManager.Instance.LoadResPoolObj(bundle, asset)
@@ -353,6 +373,7 @@ namespace ACTGameEditor
             player.RestoreForReuse();
             player.Agent = agent;
             player.ModelType = modelType;
+            player.MonsterId = MonsterIds.ResolveSpawnId(agent, modelType, monsterId);
             player.Init(isTruePlayer, isPlayerSquad, squadSlot);
             return player;
         }
@@ -376,22 +397,22 @@ namespace ACTGameEditor
             return AddFakePlayer(pos, false, AgentTag.PlayerB, AgentModelType.Player);
         }
 
-        /// <summary> UI 功能，在本地玩家前方生成敌人，AgentTag 为 enemy </summary>
+        /// <summary> UI 功能，在本地玩家前方生成杂兵（MonsterId=101）。 </summary>
         public ActPlayer AddEnemyFromUI()
         {
             Vector3 pos = LocalPlayer != null
                 ? LocalPlayer.transform.position + LocalPlayer.transform.TransformDirection(Vector3.forward) * 5f
                 : Vector3.forward * 5f;
-            return AddFakePlayer(pos, true, AgentTag.enemy, AgentModelType.EnemyB);
+            return AddFakePlayer(pos, true, AgentTag.enemy, AgentModelType.EnemyB, MonsterIds.Grunt);
         }
 
-        /// <summary> UI 功能，在本地玩家前方生成精英敌人（EnemyA 模型位 → 精英大脑档） </summary>
+        /// <summary> UI 功能，在本地玩家前方生成精英（MonsterId=201，EnemyA 大脑档）。 </summary>
         public ActPlayer AddEliteEnemyFromUI()
         {
             Vector3 pos = LocalPlayer != null
                 ? LocalPlayer.transform.position + LocalPlayer.transform.TransformDirection(Vector3.forward) * 5f
                 : Vector3.forward * 5f;
-            return AddFakePlayer(pos, true, AgentTag.enemy, AgentModelType.EnemyA);
+            return AddFakePlayer(pos, true, AgentTag.enemy, AgentModelType.EnemyA, MonsterIds.Elite);
         }
 
         /// <summary>调试：只切镜头，不换人。正式换人走 <see cref="TrySelectAttacker"/>。</summary>
